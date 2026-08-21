@@ -1,0 +1,3 @@
+[submodule "preator"]
+	path = preator
+	url = git@github.com:cesarvieira/preator.git
