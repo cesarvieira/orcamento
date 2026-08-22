@@ -53,6 +53,11 @@ skills.lock
 !.sdd/backlog/
 .sdd/backlog/done/
 
+# ...e menos a fila DERIVADA das issues: ela é projeção do GitHub, refeita por
+# sincronizar-issues.sh. Versioná-la criaria uma segunda verdade para a mesma
+# fila — e as duas divergiriam no primeiro edit da issue.
+.sdd/backlog/issues/
+
 # O carimbo do gate: é por execução, e vale só na máquina que o produziu.
 # Versioná-lo seria transformar um veredito local em declaração de "pronto" —
 # exatamente o que o Preator existe para impedir.
