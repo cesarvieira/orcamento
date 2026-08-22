@@ -20,6 +20,11 @@ consequências que ela impôs.
 | [005](ADR-005-acesso-familiar-e-convite.md) | Acesso familiar, convite e provedor de email | aceita | 2026-08-22 | `RN-FAM-001` · `RN-CVT-*` |
 | [006](ADR-006-fatias-no-github-issues.md) | Fatias no GitHub Issues | aceita | 2026-08-22 | — (processo) |
 | [007](ADR-007-tempo-real-por-websocket.md) | Tempo real por WebSocket; invalidação, não estado | aceita | 2026-08-22 | `RN-RT-*` |
+| [009](ADR-009-drizzle-no-lugar-do-prisma.md) | Drizzle no lugar do Prisma; schema em TypeScript | aceita | 2026-08-22 | — (stack) |
+
+**O 008 não existe, e isso é de propósito.** Ele registrava qual CLI o motor usa nesta máquina —
+decisão de ambiente local, não do produto — e foi retirado. A numeração não se reaproveita: um vão
+conta a história melhor do que um número reciclado apontando para outro assunto.
 
 Nem toda regra vem de um ADR: `RN-CON-001` e boa parte de `RN-LAN-*` nascem direto do mockup e
 estão documentadas em [../REGRAS-DE-NEGOCIO.md](../REGRAS-DE-NEGOCIO.md), sem decisão associada
@@ -64,6 +69,7 @@ ADR-006  independente — processo de trabalho
 | A pergunta | Vá para |
 |---|---|
 | Por que Nuxt e não Next? Por que dois composes? | [001](ADR-001-stack-e-infraestrutura.md) |
+| Por que Drizzle e não Prisma? | [009](ADR-009-drizzle-no-lugar-do-prisma.md) |
 | Por que a poupança não conta como dinheiro disponível? | [002](ADR-002-orcamento-por-envelope-com-lastro.md) |
 | Por que o rateio é proporcional e não por prioridade? | [002](ADR-002-orcamento-por-envelope-com-lastro.md) |
 | Por que receber mais não aumenta meu teto? | [002](ADR-002-orcamento-por-envelope-com-lastro.md) |

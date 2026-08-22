@@ -39,8 +39,8 @@ Datas em UTC no banco; conversão para o fuso da família na borda.
 ```
 api/src/modulos/<modulo>/
   <modulo>.rotas.ts        HTTP: valida entrada, autoriza, delega. Sem regra.
-  <modulo>.servico.ts      A regra de negócio. Sem HTTP, sem Prisma cru.
-  <modulo>.repositorio.ts  Prisma. Sem regra.
+  <modulo>.servico.ts      A regra de negócio. Sem HTTP, sem query crua.
+  <modulo>.repositorio.ts  Drizzle. Sem regra.
   <modulo>.schema.ts       Zod: entrada e saída
   <modulo>.spec.ts         Testes de integração
 ```
@@ -87,7 +87,8 @@ api (zod → OpenAPI)  →  packages/contrato (gerado)  →  web (importa)
 ```
 
 `packages/contrato` é **saída**, não fonte: não se edita à mão. Migration é gerada do
-`schema.prisma`, nunca escrita à mão. Modela-se uma vez, gera-se o resto.
+`api/src/db/schema.ts` por `drizzle-kit generate`, nunca escrita à mão — o SQL
+gerado é versionado em `api/drizzle/`. Modela-se uma vez, gera-se o resto.
 
 ## Frontend (Nuxt)
 

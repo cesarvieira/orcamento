@@ -41,7 +41,7 @@ O mecanismo completo está em [docs/DOMINIO.md](docs/DOMINIO.md#o-lastro).
 
 | Camada | Tecnologia |
 |---|---|
-| Backend | TypeScript · API REST · Prisma · porta `3000` |
+| Backend | TypeScript · API REST · Drizzle ORM · porta `3000` |
 | Frontend | TypeScript · Nuxt (SSR) sobre Vite · porta `3001` |
 | Banco | PostgreSQL |
 | Tempo real | WebSocket (Socket.IO) · mesma porta da API, path `/realtime` |

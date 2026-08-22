@@ -29,7 +29,7 @@ revisao: por-mudanca-de-decisao
 | Camada | Tecnologia | Porta |
 |---|---|---|
 | Linguagem | TypeScript | — |
-| Backend | API REST + Prisma | `3000` |
+| Backend | API REST + Drizzle ORM | `3000` |
 | Banco | PostgreSQL | `5432` |
 | Frontend | Nuxt (SSR) sobre Vite | `3001` |
 | Tempo real | WebSocket · Socket.IO · path `/realtime` | `3000` |
@@ -43,7 +43,8 @@ Fechada por [ADR-001](../../../docs/decisoes/ADR-001-stack-e-infraestrutura.md) 
 
 ```
 api/src/modulos/<modulo>/     rotas · servico · repositorio · schema · spec
-api/prisma/schema.prisma      migrations geradas daqui, nunca à mão
+api/src/db/schema.ts          o modelo, em TypeScript — fonte única
+api/drizzle/                  SQL gerado por drizzle-kit. Versionado, nunca escrito à mão.
 web/                          Nuxt — pages, components, composables, middleware
 packages/contrato/            OpenAPI gerado. SAÍDA, não fonte.
 scripts/                      crawl-gate.mjs, seed.ts

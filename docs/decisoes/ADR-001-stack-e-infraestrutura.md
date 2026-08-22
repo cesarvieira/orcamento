@@ -3,6 +3,8 @@
 - **Status:** aceita
 - **Data:** 2026-08-22
 - **Decisor:** Cesar Vieira
+- **Emendado por:** [ADR-009](ADR-009-drizzle-no-lugar-do-prisma.md) — o ORM passou a ser
+  **Drizzle**. O resto deste ADR continua valendo.
 
 ## Contexto
 
@@ -19,7 +21,7 @@ contáveis, de um OpenAPI para o gate de contrato, e de um artefato de deploy qu
 
 | Camada | Escolha |
 |---|---|
-| Backend | TypeScript · API REST · Prisma · PostgreSQL · porta `3000` |
+| Backend | TypeScript · API REST · ~~Prisma~~ · PostgreSQL · porta `3000` |
 | Frontend | TypeScript · **Nuxt** (SSR) sobre Vite · porta `3001` |
 | Contrato | OpenAPI gerado do back; tipos gerados em `packages/contrato` |
 | Infra | Docker Compose |
@@ -47,7 +49,7 @@ custo para o desenvolvimento diário.
 ## Consequências
 
 **Boas.** Uma linguagem, uma skill, todos os workers. OpenAPI e tipos gerados nativamente.
-Migrations geradas do `schema.prisma`. Um front responsivo em vez de dois produtos.
+Migrations geradas do schema (ver ADR-009). Um front responsivo em vez de dois produtos.
 
 **Custos e cuidados.**
 

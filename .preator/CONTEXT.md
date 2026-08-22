@@ -30,9 +30,9 @@ Cada lançamento registra quem o criou.
 
 | Camada | Tecnologia | Observação |
 |---|---|---|
-| Backend | TypeScript · API REST · Prisma | porta `3000` |
+| Backend | TypeScript · API REST · Drizzle ORM | porta `3000` |
 | Frontend | TypeScript · Nuxt sobre Vite | porta `3001` · **SSR** — sessão em cookie `httpOnly` |
-| Banco | PostgreSQL | migrations geradas do `schema.prisma`, nunca à mão |
+| Banco | PostgreSQL | migrations geradas de `db/schema.ts` por drizzle-kit, nunca à mão |
 | Tempo real | WebSocket · Socket.IO | mesma porta da API, path `/realtime` · room por família |
 | Infra | Docker Compose | **dois** composes; o de produção é o alvo dos gates |
 | Auth | Google OAuth + email/senha | convite por email validado por identidade |
@@ -119,6 +119,7 @@ conhecimento de domínio. Foi escalado ao humano e decidido em
 | Família com vários logins; convite validado por identidade; email por `.env` | [005](../docs/decisoes/ADR-005-acesso-familiar-e-convite.md) |
 | Fatias no GitHub Issues | [006](../docs/decisoes/ADR-006-fatias-no-github-issues.md) |
 | Tempo real por WebSocket; servidor emite invalidação, não estado | [007](../docs/decisoes/ADR-007-tempo-real-por-websocket.md) |
+| Drizzle no lugar do Prisma; o schema é TypeScript e a migration é SQL versionado | [009](../docs/decisoes/ADR-009-drizzle-no-lugar-do-prisma.md) |
 
 ---
 
