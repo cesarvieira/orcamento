@@ -1,0 +1,116 @@
+# Deriva labels dos dropdowns do formulário de fatia.
+#
+# POR QUE ISTO EXISTE: um issue form do GitHub não sabe transformar a resposta
+# de um dropdown em label — o `labels:` do template é uma lista estática,
+# aplicada igual a toda issue. Sem este workflow, papel/modo/prioridade/
+# complexidade ficariam só no corpo: legíveis, mas não filtráveis nem
+# utilizáveis num board.
+#
+# A label é PROJEÇÃO do corpo, não uma segunda verdade: o corpo é a fonte, e
+# rodar em `edited` mantém as duas em dia. Trocar o dropdown troca a label.
+name: Labels da fatia
+
+on:
+  issues:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+
+jobs:
+  rotular:
+    # Só mexe no que é fatia. Bug e dúvida não passam por aqui.
+    if: contains(github.event.issue.labels.*.name, 'fatia')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const corpo = context.payload.issue.body || "";
+
+            // campo do formulário -> prefixo da label + cor
+            const CAMPOS = [
+              { rotulo: "Papel que lidera", prefixo: "papel:", cor: "1D76DB", desc: "Papel que lidera a fatia" },
+              { rotulo: "Modo",             prefixo: "modo:",  cor: "0E8A16", desc: "Modo de trabalho da fatia" },
+              { rotulo: "Complexidade",     prefixo: "tam:",   cor: "BFDADC", desc: "Complexidade da fatia" },
+              // Prioridade não leva prefixo: p0/p1/p2 são os nomes da doutrina.
+              { rotulo: "Prioridade",       prefixo: "",       cor: "B60205", desc: "Prioridade da fatia" },
+            ];
+
+            // Fatia o corpo em seções "### <rótulo>" -> conteúdo.
+            //
+            // Sem regex montada por concatenação: um padrão escrito como
+            // string passa por DUAS camadas de escape (a string e o regex), e
+            // um `\\s` que vira `s` casa "###s*Papel" em vez de "### Papel" —
+            // silenciosamente, extraindo zero campo. Regex literal não tem
+            // essa camada extra.
+            const secoes = {};
+            {
+              let atual = null, buf = [];
+              for (const linha of corpo.split(/\r?\n/)) {
+                const m = linha.match(/^###\s+(.*\S)\s*$/);
+                if (m) {
+                  if (atual) secoes[atual] = buf.join("\n").trim();
+                  atual = m[1]; buf = [];
+                } else if (atual !== null) {
+                  buf.push(linha);
+                }
+              }
+              if (atual) secoes[atual] = buf.join("\n").trim();
+            }
+
+            const ler = (rotulo) => {
+              const bruto = secoes[rotulo];
+              // "_No response_" é o que o GitHub grava em campo opcional vazio.
+              if (!bruto || bruto === "_No response_") return null;
+              const primeira = bruto.split("\n")[0].trim();
+              if (!primeira) return null;
+              // "p0 — crítico" -> "p0"; "backend" -> "backend"; "M" -> "M".
+              // Sem normalizar caixa: o valor vem de dropdown de opções fixas,
+              // e baixar a caixa quebraria a complexidade (tam:M viraria tam:m).
+              return primeira.split(/[\s—–-]/)[0].trim();
+            };
+
+            const { owner, repo } = context.repo;
+            const numero = context.payload.issue.number;
+
+            const garantirLabel = async (name, color, description) => {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name });
+              } catch (e) {
+                if (e.status !== 404) throw e;
+                await github.rest.issues.createLabel({ owner, repo, name, color, description });
+                core.info(`label criada: ${name}`);
+              }
+            };
+
+            const atuais = context.payload.issue.labels.map(l => l.name);
+            const querer = [];
+
+            for (const c of CAMPOS) {
+              const valor = ler(c.rotulo);
+              if (!valor) { core.info(`campo vazio, ignorado: ${c.rotulo}`); continue; }
+              querer.push(c.prefixo + valor);
+            }
+
+            // Tira as irmãs erradas ANTES de aplicar: trocar o dropdown de M
+            // para L não pode deixar as duas coladas na issue.
+            for (const c of CAMPOS) {
+              const nova = querer.find(n => c.prefixo ? n.startsWith(c.prefixo) : /^p[0-9]$/.test(n));
+              const irmas = atuais.filter(n =>
+                (c.prefixo ? n.startsWith(c.prefixo) : /^p[0-9]$/.test(n)) && n !== nova);
+              for (const velha of irmas) {
+                await github.rest.issues.removeLabel({ owner, repo, issue_number: numero, name: velha });
+                core.info(`label removida: ${velha}`);
+              }
+            }
+
+            const faltando = querer.filter(n => !atuais.includes(n));
+            if (faltando.length === 0) { core.info("labels já em dia"); return; }
+
+            for (const n of faltando) {
+              const c = CAMPOS.find(x => x.prefixo ? n.startsWith(x.prefixo) : /^p[0-9]$/.test(n));
+              await garantirLabel(n, c.cor, c.desc);
+            }
+            await github.rest.issues.addLabels({ owner, repo, issue_number: numero, labels: faltando });
+            core.info(`labels aplicadas: ${faltando.join(", ")}`);

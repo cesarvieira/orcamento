@@ -14,6 +14,11 @@ body:
         **O ticket é fino.** Ele aponta para a especificação e para a skill — não os reconta.
         O conteúdo profundo mora na EF e na skill de negócio, que têm dono e não envelhecem aqui.
 
+        > Os quatro primeiros campos viram **label** automaticamente
+        > (`papel:` · `modo:` · `p0/p1/p2` · `tam:`), pelo workflow
+        > `.github/workflows/fatia-labels.yml`. Responda aqui; não rotule à mão.
+        > Mudou de ideia? Edite o campo — a label acompanha.
+
   - type: dropdown
     id: role
     attributes:
@@ -152,5 +157,4 @@ body:
     attributes:
       value: |
         ---
-        Depois de criar: acrescente a label de prioridade (`p0` / `p1` / `p2`).
         Feche esta issue **somente** com o carimbo `PROVA_DE_COMPORTAMENTO=PASS` referenciado.
