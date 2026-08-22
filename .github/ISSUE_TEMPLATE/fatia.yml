@@ -82,6 +82,17 @@ body:
     validations:
       required: true
 
+  - type: input
+    id: tela
+    attributes:
+      label: Referência de tela
+      description: >-
+        Qual tela do design esta fatia constrói. Deixe vazio se a fatia não tem tela.
+        O ponteiro para o design do projeto — onde ele está e como se abre — mora no
+        CONTEXT.md do overlay; aqui vai só QUAL tela, para não repetir o endereço em
+        toda issue.
+      placeholder: "tela de orçamento do mês + folha de editar categoria"
+
   - type: textarea
     id: ef
     attributes:

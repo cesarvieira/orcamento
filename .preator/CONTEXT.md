@@ -45,6 +45,29 @@ Cada lançamento registra quem o criou.
 
 ---
 
+## O design é fonte, não ilustração
+
+As telas **não se improvisam**. O mockup foi feito no Claude Design e carrega a lógica de domínio
+inteira em JavaScript — é protótipo funcional, não wireframe. Toda fatia com tela constrói contra
+ele.
+
+> https://claude.ai/design/p/b7d13c37-0d57-4a92-9df6-c50357cb587d
+
+| Arquivo | O que é |
+|---|---|
+| `Orcamento Familiar.dc.html` | mobile — sete telas, tab bar, folhas e modais |
+| `Orcamento Familiar Desktop.dc.html` | as **mesmas** sete telas: sidebar no lugar da tab bar |
+| `support.js` | runtime gerado do dc-runtime — zero conteúdo de produto, **não portar** |
+
+**Como abrir:** pelos tools `mcp__claude-design__*`. Eles exigem consentimento **por sessão** — se
+derem erro de permissão, peça ao humano rodar `/design consent`. Não dá para aprovar
+automaticamente, e **improvisar a tela em vez de escalar é violação de processo**.
+
+⚠️ O protótipo tem seis armadilhas já corrigidas nos ADRs. Quem "segue o mockup" sem ler
+[docs/APRENDIZADOS.md](../docs/APRENDIZADOS.md) reintroduz todas.
+
+---
+
 ## As regras invioláveis deste projeto
 
 1. **O `familiaId` deriva do token, nunca do request** — e isso vale também no **WebSocket**: a
