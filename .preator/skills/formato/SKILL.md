@@ -1,66 +1,99 @@
 ---
-name: formato-<nome-do-projeto>
-tipo: formato-projeto            # tipo 2 — convenções DESTE projeto
-projeto: <nome-do-projeto>
-aplica-se-a: [<nome-do-projeto>]
-referencia-skills:               # skills de conhecimento (tipo 1) que este projeto adota
-  - linguagens/<stack>
-  - arquitetura/<estilo>
+name: formato-orcamento
+tipo: formato-projeto
+projeto: orcamento
+aplica-se-a: [orcamento]
+referencia-skills:
+  - linguagens/javascript-typescript
+  - arquitetura/clean-architecture
+  - backend-web/apis-rest
+  - frontend/frameworks-js
   - qualidade/codigo-limpo
   - qualidade/tdd
+  - seguranca/autenticacao-oauth
 status: ativa
 revisao: por-mudanca-de-decisao
 ---
 
-# Formato do Projeto — <nome-do-projeto>
+# Formato do Projeto — orcamento
 
-> **Skill de Formato (tipo 2).** O manual que TODO agente segue neste projeto. Diz *como se
-> constrói aqui*: a stack, o layout, as convenções, o gate. O conhecimento universal vem das
-> skills referenciadas; aqui ficam só as **decisões deste projeto** e os *overrides*.
+> **Skill de Formato (tipo 2).** O manual que TODO agente segue neste projeto. O conhecimento
+> universal vem das skills referenciadas; aqui ficam as **decisões deste projeto** e os
+> *overrides*.
+>
+> As convenções detalhadas vivem em [`docs/PADROES.md`](../../../docs/PADROES.md). Esta skill
+> aponta e destaca o que mais causa retrabalho.
 
 ## Stack fechada (não trocar sem ADR)
 
-| Camada | Tecnologia | Versão |
+| Camada | Tecnologia | Porta |
 |---|---|---|
-| Linguagem/runtime | <ex: PHP 8.3 / .NET 8 / Java 21> | |
-| Framework | <ex: Laravel 11 / ASP.NET / Spring> | |
-| Banco | <ex: PostgreSQL 16> | |
-| Frontend | <ex: gov.br DS + Vue> | |
-| Auth | <ex: Keycloak / gov.br login> | |
-| Infra/deploy | <ex: Docker + pipeline X> | |
+| Linguagem | TypeScript | — |
+| Backend | API REST + Prisma | `3000` |
+| Banco | PostgreSQL | `5432` |
+| Frontend | Nuxt (SSR) sobre Vite | `3001` |
+| Tempo real | WebSocket · Socket.IO · path `/realtime` | `3000` |
+| Auth | Google OAuth + email/senha, cookie `httpOnly` | — |
+| Infra | Docker Compose (dois arquivos) | — |
 
-## Layout de pastas
+Fechada por [ADR-001](../../../docs/decisoes/ADR-001-stack-e-infraestrutura.md) e
+[ADR-007](../../../docs/decisoes/ADR-007-tempo-real-por-websocket.md).
+
+## Layout
 
 ```
-<árvore de diretórios canônica do projeto — onde vai cada coisa>
+api/src/modulos/<modulo>/     rotas · servico · repositorio · schema · spec
+api/prisma/schema.prisma      migrations geradas daqui, nunca à mão
+web/                          Nuxt — pages, components, composables, middleware
+packages/contrato/            OpenAPI gerado. SAÍDA, não fonte.
+scripts/                      crawl-gate.mjs, seed.ts
+docker-compose.yml            stack completa — alvo dos gates
+docker-compose.dev.yml        só Postgres — loop de desenvolvimento
 ```
 
-## Convenções (o que o agente aplica sem perguntar)
+**Um módulo = uma pasta = um dono.** No fan-out, um worker por módulo. Módulo não importa de
+módulo irmão: a costura é explícita e tem dono.
 
-- **Nomenclatura:** <arquivos, classes, tabelas, endpoints, branches>
-- **Padrão de código:** herda `linguagens/<stack>` + `qualidade/codigo-limpo`; *overrides* deste projeto: <lista>
-- **Arquitetura:** herda `arquitetura/<estilo>`; fronteiras/camadas deste projeto: <descrição>
-- **API:** herda `backend-web/apis-rest`; versionamento/formato de erro deste projeto: <descrição>
-- **Testes:** herda `qualidade/tdd`; cobertura mínima e o que é obrigatório testar: <descrição>
-- **Frontend/UI:** design system e regras de acessibilidade: <ex: gov.br DS + eMAG/WCAG AA>
-- **Segurança:** herda `seguranca/autenticacao-oauth`; exigências deste projeto: <ex: LGPD, norma do órgão>
+## O que o agente aplica sem perguntar
+
+- **Dinheiro em centavos inteiros.** Nunca float. Divisão sempre com destino explícito do resíduo.
+- **Português no domínio.** `LancamentoServico`, `teto_centavos`, `valor_centavos`. Nunca
+  `TransactionService` ou `budget_limit`.
+- **`familiaId` do token.** Nunca de rota, query ou corpo.
+- **`data` e `competencia` são campos distintos.** Competência calculada na escrita e persistida.
+- **O front importa o tipo gerado** de `packages/contrato`. Não redeclara modelo.
+- **Nada em `web/server/`.** A API é o `api/`.
+- **Toda escrita emite invalidação** no socket. O cliente que recebe refaz a leitura — nunca
+  patcheia estado nem recalcula regra.
+- Tabela plural snake_case · arquivo kebab-case · componente Vue PascalCase · branch
+  `fatia/<n>-<slug>`.
 
 ## DoR — pronto para começar
-- <critérios de "requisito pronto" deste projeto>
 
-## DoD — pronto para liberar (o gate do diretor)
-- [ ] Código no formato acima + checklist da skill da linguagem passando
-- [ ] Testes exigidos verdes; cobertura ≥ <X>%
-- [ ] Code Review Agent sem bloqueante
-- [ ] Acessibilidade/segurança do projeto verificadas
-- [ ] <demais critérios do projeto>
+- [ ] A issue da fatia existe, com label `fatia`, e cita as RN envolvidas
+- [ ] As RN citadas existem em `docs/REGRAS-DE-NEGOCIO.md` — se falta regra, **para e escala**
+- [ ] Nenhuma regra financeira nova sem skill que a cubra
 
-## Fluxo de trabalho
-- **Branch/PR:** <estratégia — ex: trunk-based / feature branch + PR>
-- **Ambientes:** <dev / homolog / prod e como sobe>
-- **Esteira:** segue `preator/doutrina/02-PROCESSO.md` com o gate humano em cada portão.
+## DoD — pronto para liberar
 
-## Decisões do projeto (mini-ADRs)
-| # | Decisão | Motivo | Data |
-|---|---|---|---|
-| 001 | | | |
+- [ ] A regra está **aplicada** no handler, não só a entidade existindo — cace o motor órfão
+- [ ] Teste de **integração** real: HTTP → serviço → Postgres de verdade
+- [ ] Um teste por RN que a fatia toca, mais o isolamento entre famílias
+- [ ] **Dois clientes:** a mudança feita num aparece no outro sem refresh; outra família não recebe
+- [ ] A tela **abre** no artefato de deploy, com dado, zero erro de console e de rede
+- [ ] Migrations aplicam do zero em banco limpo
+- [ ] `PROVA_DE_COMPORTAMENTO=PASS` — o carimbo, não o auto-relato
+- [ ] Documentação as-built: o que foi construído, não o que a spec previa
+
+## Fluxo
+
+- **Branch por fatia**, PR para `main`. Commit referencia a issue.
+- **Push por checkpoint.** Trabalho que só existe local ainda não existe.
+- Fatias no **GitHub Issues** ([ADR-006](../../../docs/decisoes/ADR-006-fatias-no-github-issues.md)),
+  não em `.sdd/backlog/open/`.
+- Esteira conforme `preator/doutrina/02-PROCESSO.md`, com gate humano em cada portão.
+
+## Antes de codar
+
+Leia [`docs/APRENDIZADOS.md`](../../../docs/APRENDIZADOS.md). São seis armadilhas do protótipo
+que voltam a morder em quem "segue o mockup" sem saber o que já foi corrigido.
