@@ -1,11 +1,1 @@
-{
-  "mcpServers": {
-    "bernstein": {
-      "command": "C:\\Users\\gutov\\AppData\\Roaming\\uv\\tools\\bernstein\\Scripts\\python.exe",
-      "args": [
-        "-m",
-        "bernstein.mcp.server"
-      ]
-    }
-  }
-}
+{}
