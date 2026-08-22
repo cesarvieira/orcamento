@@ -1,0 +1,156 @@
+name: Fatia
+description: Uma fatia vertical — "o usuário faz X na tela Y". Tela e backend juntos, atravessando os dois portões.
+title: "Fatia · "
+labels: ["fatia"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Uma issue = uma fatia.** Ela é *atômica* (ou atravessa os dois portões, ou não está pronta)
+        e *vertical* (carrega tela + backend + o gate de navegação juntos).
+
+        > Capacidade de backend sem tela que a exponha é estoque invisível, não valor entregue.
+
+        **O ticket é fino.** Ele aponta para a especificação e para a skill — não os reconta.
+        O conteúdo profundo mora na EF e na skill de negócio, que têm dono e não envelhecem aqui.
+
+  - type: dropdown
+    id: role
+    attributes:
+      label: Papel que lidera
+      description: Quem conduz a fatia. Os outros papéis entram nas fases seguintes.
+      options:
+        - backend
+        - frontend
+        - architect
+        - qa
+        - reviewer
+        - security
+        - devops
+        - docs
+        - manager
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Modo
+      description: "construir = o código não existe. validar-reescrever = auditar o que já está lá."
+      options:
+        - construir
+        - validar-reescrever
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Prioridade
+      description: A esteira consome p0 antes de p1, e p1 antes de p2.
+      options:
+        - p0 — crítico
+        - p1 — importante
+        - p2 — depois
+    validations:
+      required: true
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Complexidade
+      options:
+        - S
+        - M
+        - L
+    validations:
+      required: true
+
+  - type: input
+    id: scope
+    attributes:
+      label: Escopo — a pasta
+      description: >-
+        Uma pasta DISJUNTA. No fan-out, um módulo é de um worker só: dois workers no mesmo módulo
+        já produziram implementações divergentes e migrations incompatíveis.
+      placeholder: "api/src/modulos/lancamentos"
+    validations:
+      required: true
+
+  - type: textarea
+    id: ef
+    attributes:
+      label: 1 · EF fechada — Portão A
+      description: >-
+        Aponte para a especificação JÁ fechada. Constrói-se contra ela: não se inventa regra e não
+        se co-evolui regra e código. Spec incompleta é motivo para parar, não para começar.
+      value: |
+        Referência: `<caminho da EF>`
+
+        Resumo:
+    validations:
+      required: true
+
+  - type: textarea
+    id: regra
+    attributes:
+      label: 2 · Regra de negócio — Regra #0
+      description: >-
+        Regra de negócio, fiscal, trabalhista, financeira ou legal vem SEMPRE da skill, carregada e
+        CITADA antes de agir. Responder de memória é violação. Skill vazia → PARE e escale.
+      value: |
+        Skill: `conhecimento/negocio/<domínio>/SKILL.md`
+
+        Regras que esta fatia aplica:
+        -
+    validations:
+      required: true
+
+  - type: textarea
+    id: escopo
+    attributes:
+      label: 3 · O que fazer — a fatia inteira
+      description: Dados → regra → contrato → tela. O contrato é gerado uma vez; o front não redeclara o modelo do back.
+      value: |
+        - [ ] **Dados:** entidade e migration — gerada do modelo, nunca escrita à mão
+        - [ ] **Regra:** o handler APLICA a regra (cace o motor órfão: entidade que existe sem quem a chame)
+        - [ ] **Contrato:** endpoint e tipo no OpenAPI
+        - [ ] **Tela:** reaproveite a existente; não abra caminho paralelo
+        - [ ] **Evidência:** comando + saída real, nunca a palavra "passou"
+    validations:
+      required: true
+
+  - type: textarea
+    id: dod
+    attributes:
+      label: 4 · Definition of Done — Portão B
+      description: >-
+        A máquina RE-EXECUTA; ela não confia no relato. Verde de build não fecha nada — só o carimbo
+        PROVA_DE_COMPORTAMENTO=PASS fecha.
+      value: |
+        - [ ] Regra implementada de verdade — o handler aplica, não só a entidade existe
+        - [ ] Teste de **integração** real: HTTP → banco de verdade (handler com fake não prova fiação)
+        - [ ] Isolamento entre tenants: quem não é dono não enxerga
+        - [ ] A tela **abre** no artefato de deploy, com dado, zero erro de console e de rede
+        - [ ] Migrations aplicam **do zero** em banco limpo
+        - [ ] Documentação as-built — o que foi construído, não o que a spec previa
+        - [ ] `PROVA_DE_COMPORTAMENTO=PASS`
+    validations:
+      required: true
+
+  - type: textarea
+    id: forks
+    attributes:
+      label: 5 · Forks — dúvida sem spec
+      description: >-
+        Escalar, nunca inventar. Toda dúvida sem especificação vira fork sinalizado ao humano, e a
+        decisão SOBE para a EF antes de virar código.
+      value: |
+        - (nenhum)
+
+  - type: markdown
+    attributes:
+      value: |
+        ---
+        Depois de criar: acrescente a label de prioridade (`p0` / `p1` / `p2`).
+        Feche esta issue **somente** com o carimbo `PROVA_DE_COMPORTAMENTO=PASS` referenciado.
