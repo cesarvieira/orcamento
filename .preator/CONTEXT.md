@@ -1,116 +1,123 @@
 # CONTEXT — a verdade deste produto
 
-> Preencha este arquivo antes de qualquer tarefa. Ele é o que a IA lê para saber **onde está** e
-> **o que não pode violar** neste projeto. O que é universal vem da fábrica; o que é deste produto
-> mora aqui.
+> O que a IA lê para saber **onde está** e **o que não pode violar**. Aqui só entra o que **não
+> se deriva** do código. Estrutura de pastas e versão de biblioteca a IA lê no repositório.
 >
-> Regra: aqui só entra o que **não se deriva do código**. Estrutura de pastas, nome de classe e
-> versão de biblioteca a IA lê no repositório — não duplique.
+> Decisões e especificações completas em [`docs/`](../docs/). Este arquivo aponta; não repete.
 
 ---
 
 ## O produto
 
-**Nome:**
-**Cliente:**
-**O que faz, em uma frase:**
-**Quem usa:** (perfis, e o que cada um faz no sistema)
+**Nome:** Orçamento Familiar
+**Cliente:** produto próprio
+**O que faz, em uma frase:** orçamento familiar **por envelope com lastro** — a família planeja o
+mês em categorias com teto, e o app se recusa a liberar plano que não tem dinheiro por trás.
+**Quem usa:** membros de uma família, todos com o mesmo poder sobre os dados compartilhados.
+Cada lançamento registra quem o criou.
+
+> **A pergunta que o produto responde não é *"quanto gastei?"*, é *"quanto posso gastar de
+> verdade?"*.** Quem não entendeu o **lastro** não entendeu o produto — está em
+> [EF-06](../docs/especificacoes/EF-06-lastro.md).
 
 ---
 
 ## A stack real
 
-> Os *comandos* de build, teste e deploy vivem em `preator-perfil.sh`, não aqui. Esta seção é para
-> o que um humano precisa saber e a máquina não infere.
+> Os *comandos* vivem em `preator-perfil.sh`. Decisões e o porquê em
+> [`docs/decisoes/`](../docs/decisoes/).
 
 | Camada | Tecnologia | Observação |
 |---|---|---|
-| Backend | | |
-| Frontend | | |
-| Banco | | |
-| Fila / eventos | | |
-| Infra | | |
+| Backend | TypeScript · API REST · Drizzle ORM | porta `3000` |
+| Frontend | TypeScript · Nuxt sobre Vite | porta `3001` · **SSR** — sessão em cookie `httpOnly` |
+| Banco | PostgreSQL | migrations geradas de `db/schema.ts`, nunca à mão |
+| Tempo real | WebSocket · Socket.IO | mesma porta da API, path `/realtime` |
+| Infra | Docker Compose | **dois** composes; o de produção é o alvo dos gates |
+| Auth | Google OAuth + email/senha | convite por email validado por identidade |
 
-**Integrações externas** (adaptador, config, credencial — cada uma é cidadã de primeira classe):
+**Integrações externas:**
 
 | Integração | O que faz | Onde está o adaptador |
 |---|---|---|
-| | | |
+| Email | entrega o convite de família | `api/src/modulos/familia/` · driver do `.env` · credencial no ambiente |
 
 ---
 
-## O design deste produto
+## O design é fonte, não ilustração
 
-> **Se existe mockup, ele é FONTE — não ilustração.** Toda história com tela constrói contra ele.
-> Improvisar a tela em vez de abrir o design é fork ao humano, igual a regra de negócio sem skill.
->
-> Preencher isto não é burocracia: num projeto real o protótipo carregava a lógica de domínio
-> inteira, e foi lendo-o que se descobriu que o produto era outro. Ver
-> `preator/doutrina/LICOES.md`, §9.
->
-> **Não tem design?** Escreva "não há" abaixo. Em branco parece esquecimento; "não há" é decisão.
+As telas **não se improvisam**. O mockup foi feito no Claude Design e carrega a lógica de domínio
+inteira em JavaScript — é protótipo funcional, não wireframe.
 
-**Onde está:** <URL ou caminho>
+> https://claude.ai/design/p/b7d13c37-0d57-4a92-9df6-c50357cb587d
 
 | Arquivo | O que é |
 |---|---|
-| | |
+| `Orcamento Familiar.dc.html` | mobile — sete telas, tab bar, folhas e modais |
+| `Orcamento Familiar Desktop.dc.html` | as **mesmas** sete telas: sidebar no lugar da tab bar |
+| `support.js` | runtime gerado do dc-runtime — zero conteúdo de produto, **não portar** |
 
-**Como se abre:** <ferramenta, e o que fazer se pedir permissão — ex.: "MCP de design da sua
-plataforma; exige consentimento por sessão; erro de permissão vira pedido ao humano, nunca
-improviso">
+**Como abrir:** tools `mcp__claude-design__*`. Exigem consentimento **por sessão** — erro de
+permissão vira pedido ao humano (`/design consent`), **nunca improviso**.
 
-**O que no design NÃO se copia:** <atalhos de protótipo já corrigidos em decisão — cada um com
-o ADR que o corrigiu>
+⚠️ O protótipo tem armadilhas já corrigidas nas EFs — ver a seção *"o que não se copia"* de cada
+uma. Quem segue o mockup cegamente as reintroduz.
 
 ---
 
 ## As regras invioláveis deste projeto
 
-> O que quebra o produto se for violado. Seja específico e diga **por quê** — uma regra sem motivo
-> é ignorada na primeira pressa.
-
-1.
-2.
-3.
+1. **O `familiaId` deriva do token, nunca do request** — e isso vale também no **WebSocket**: a
+   room é resolvida no handshake. Endpoint ou socket que aceite `familiaId` do cliente vaza dado
+   financeiro entre famílias. É bug de segurança, não conveniência.
+2. **Dinheiro é inteiro em centavos, em toda a pilha.** O rateio pró-rata do lastro e o
+   parcelamento dividem valores; com float, a soma das partes deixa de fechar com o todo.
+3. **Transferência não é despesa.** Pagar fatura e guardar em meta são movimento entre contas.
+   Contá-los como gasto corrompe teto, gasto e lastro de uma vez.
+4. **O front importa o contrato gerado; não redeclara o modelo do back.** Vale também para o
+   tempo real: o socket manda **invalidação**, e o cliente refaz a leitura — reproduzir o cálculo
+   do lastro no front criaria duas fontes da verdade para a regra que define o produto.
+5. **Não criar rota de servidor no Nuxt (`web/server/`).** A API é o `api/`. Um segundo backend
+   em paralelo é o caminho paralelo que a doutrina proíbe.
 
 ---
 
 ## Os domínios de negócio que este produto toca
 
-> A **Regra #0** vale aqui: nada de fiscal, trabalhista, financeiro ou legal sai de memória.
-> Liste os domínios e a skill correspondente da fábrica.
+> **Regra #0:** nada de financeiro sai de memória.
 
 | Domínio | Skill agnóstica (fábrica) | Overlay específico (aqui) |
 |---|---|---|
-| ex.: fiscal | `preator/conhecimento/negocio/fiscal/` | `skills/negocio/` |
+| Orçado × realizado, variação | `preator/conhecimento/negocio/financeiro/controladoria-orcamento` | `skills/negocio/` |
+| Parcelamento | `preator/conhecimento/negocio/financeiro/credito` | `skills/negocio/` |
+| Finanças pessoais, **lastro** | **não existe na fábrica** | `skills/negocio/` ← única fonte |
 
-**Regra que este cliente faz diferente do padrão do setor:**
-> Documente aqui, com o porquê. É o tipo de coisa que ninguém lembra em seis meses.
+O **lastro** não é conhecimento de domínio: é regra de produto, criada no mockup e decidida com o
+humano. ⛔ **Se encontrar outra regra financeira sem skill que a cubra: pare e escale.**
 
 ---
 
-## O que já decidimos (e não vamos rediscutir)
+## As especificações
 
-| Decisão | Quando | Por quê | ADR |
-|---|---|---|---|
-| | | | `decisoes/` |
+Uma EF por módulo, no formato canônico (dados → regras → telas):
+[`docs/especificacoes/`](../docs/especificacoes/). Cada EF tem uma história correspondente no
+GitHub Issues — a fila é lá, não em disco.
 
 ---
 
 ## O que está fora de escopo
 
-> Tão importante quanto o escopo. Sem isto, todo refinamento vira negociação.
-
--
+- **Foto do recibo / OCR** e **importar extrato** — botões no mockup que respondem com aviso.
+- **Open Finance / integração bancária** — fora do horizonte do MVP.
+- **Multi-moeda** — o produto é BRL.
+- **App nativo** — o front responsivo cobre mobile e desktop.
 
 ---
 
 ## Estado atual
 
-**Onde estamos:**
-**O que está em construção:**
-**O que está quebrado e conhecido:**
+**Nenhuma linha de produto escrita.** Existem: as decisões, as EFs e a fila em Issues.
 
-> Se este bloco envelhecer, ele passa a mentir — e um CONTEXT que mente é pior que um vazio.
-> Prefira apontar para o board do projeto a manter números aqui.
+`preator-perfil.sh` está comentado de propósito — o gate reporta `PARCIAL` com SKIPs bloqueantes,
+e isso é o veredito honesto enquanto não há stack. Ele é preenchido pela EF-00 (Plataforma),
+quando `api/` e `web/` existirem.
