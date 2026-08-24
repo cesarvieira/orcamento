@@ -75,7 +75,7 @@ OVERLAY=".preator"
 # ---------------------------------------------------------------------------
 # ONDE VIVEM SPEC E BOARD  —  opcional, usados pelos workflows
 # ---------------------------------------------------------------------------
-# ESPEC_DIR="docs/especificacoes"
+ESPEC_DIR="docs/especificacoes"
 # BOARD="docs/BOARD.md"
 
 # ---------------------------------------------------------------------------
