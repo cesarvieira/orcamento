@@ -1,0 +1,22 @@
+{
+  "name": "@orcamento/contrato",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Tipos gerados do OpenAPI da API. SAÍDA, não fonte — não edite.",
+  "types": "./src/index.ts",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./openapi.json": "./openapi.json"
+  },
+  "scripts": {
+    "gerar": "node gerar.mjs"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.4.0",
+    "typescript": "^5.7.0"
+  }
+}
