@@ -1,0 +1,31 @@
+{
+  "name": "orcamento",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Orçamento familiar por envelope com lastro — monorepo",
+  "workspaces": [
+    "api",
+    "web",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "npm run -w api build && npm run contrato:gerar",
+    "contrato:gerar": "npm run -w api openapi:emitir && npm run -w @orcamento/contrato gerar",
+    "teste": "npm run -w api teste",
+    "teste:contar": "node scripts/contar-testes.mjs",
+    "dev:banco": "docker compose -f docker-compose.dev.yml up -d",
+    "dev:api": "npm run -w api dev",
+    "dev:web": "npm run -w web dev",
+    "migrar": "npm run -w api migrar",
+    "semear": "npm run -w api semear",
+    "crawl:preparar": "playwright install chromium",
+    "crawl": "node scripts/crawl-gate.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.49.0",
+    "typescript": "^5.7.0"
+  }
+}

@@ -1,0 +1,107 @@
+# =============================================================================
+# docker-compose.yml — O ARTEFATO DE DEPLOY. É este que os gates provam.
+#
+# Sobe a stack completa nas imagens de produção: Postgres + migrate (one-shot)
+# + api + web. O gate `deploy-fresh` derruba os volumes, sobe do zero e cobra
+# migrate → seed → API 200 → front 200. Ver D-02.
+#
+#   docker compose up -d --build
+# =============================================================================
+name: orcamento
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-orcamento}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-orcamento}
+      POSTGRES_DB: ${POSTGRES_DB:-orcamento}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - dados:/var/lib/postgresql/data
+      - ./api/docker/criar-banco-de-teste.sql:/docker-entrypoint-initdb.d/10-teste.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-orcamento} -d ${POSTGRES_DB:-orcamento}"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  # One-shot. O nome CONTÉM "migrate" de propósito: o gate deploy-fresh procura
+  # um serviço com esse nome para distinguir "migration falhou" de "API demorou".
+  migrate:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    command: ["node", "dist/db/migrar.js"]
+    restart: "no"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://${POSTGRES_USER:-orcamento}:${POSTGRES_PASSWORD:-orcamento}@postgres:5432/${POSTGRES_DB:-orcamento}
+      # O migrate não assina sessão nenhuma, mas carrega o mesmo módulo de
+      # ambiente da API — sem isto ele avisa sobre um segredo que não usa, e
+      # aviso falso no log do deploy treina todo mundo a ignorar o log.
+      SESSAO_SEGREDO: ${SESSAO_SEGREDO:-troque-este-segredo-fora-do-gate}
+      # Semeia a família de teste depois de migrar. Sem isto o gate de navegação
+      # cobre a tela de login e nada mais — aqui tudo é área logada.
+      SEMEAR: ${SEMEAR:-true}
+      PREATOR_TEST_USER: ${PREATOR_TEST_USER:-ana@exemplo.test}
+      PREATOR_TEST_PASS: ${PREATOR_TEST_PASS:-orcamento-teste}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      API_PORT: 3000
+      DATABASE_URL: postgres://${POSTGRES_USER:-orcamento}:${POSTGRES_PASSWORD:-orcamento}@postgres:5432/${POSTGRES_DB:-orcamento}
+      SESSAO_SEGREDO: ${SESSAO_SEGREDO:-troque-este-segredo-fora-do-gate}
+      SESSAO_TTL_HORAS: ${SESSAO_TTL_HORAS:-720}
+      ORIGEM_WEB: ${ORIGEM_WEB:-http://localhost:3001}
+      MAIL_DRIVER: ${MAIL_DRIVER:-log}
+      MAIL_FROM: ${MAIL_FROM:-}
+      CONVITE_TTL_HORAS: ${CONVITE_TTL_HORAS:-72}
+    ports:
+      - "${API_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # SSR: o artefato do front é um servidor Node (.output/server/index.mjs),
+  # não HTML estático servido por nginx. Ver D-01.
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+      args:
+        # Vai para o HTML servido: é como o NAVEGADOR alcança a API.
+        API_BASE_PUBLICA: ${API_BASE_PUBLICA:-http://localhost:3000}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      NITRO_PORT: 3001
+      NITRO_HOST: 0.0.0.0
+      # Como o SSR alcança a API de dentro da rede do compose.
+      NUXT_API_BASE_INTERNA: http://api:3000
+      NUXT_PUBLIC_API_BASE: ${API_BASE_PUBLICA:-http://localhost:3000}
+    ports:
+      - "${FRONT_PORT:-3001}:3001"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  dados:
