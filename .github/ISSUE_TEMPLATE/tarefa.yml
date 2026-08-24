@@ -1,0 +1,108 @@
+name: Tarefa
+description: Uma tarefa de uma história — um papel, uma pasta disjunta, um worktree.
+title: "Tarefa · "
+labels: ["tarefa"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Uma tarefa pertence a uma história.** Ela é o que o condutor cria ao decompor, e
+        normalmente nasce por comando, não por este formulário — que existe para quando alguém
+        precisa abrir uma à mão, e para documentar o que uma tarefa carrega.
+
+        > **O `Escopo` é o campo que mais importa.** Uma tarefa = uma pasta = um worktree. Duas
+        > tarefas que compartilham pasta produzem implementações divergentes e migrations
+        > incompatíveis — já aconteceu. Se você não consegue declarar uma pasta disjunta, a
+        > decomposição está errada, não o formulário.
+
+        Sem tela, sem EF, sem Definition of Done: isso é da **história**. A tarefa é um pedaço
+        dela, e o que prova a entrega é o gate rodando sobre o worktree.
+
+  - type: input
+    id: historia
+    attributes:
+      label: História
+      description: O número da issue da história a que esta tarefa pertence.
+      placeholder: "#42"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: papel
+    attributes:
+      label: Papel
+      description: Quem executa. As skills que ele carrega estão em `preator/equipe/papeis/`.
+      options:
+        - backend
+        - frontend
+        - architect
+        - qa
+        - reviewer
+        - security
+        - devops
+        - docs
+    validations:
+      required: true
+
+  - type: input
+    id: escopo
+    attributes:
+      label: Escopo — a pasta
+      description: >
+        A pasta DISJUNTA que esta tarefa possui. Nenhuma outra tarefa da mesma história pode
+        declarar a mesma. É a trava contra dois agentes no mesmo módulo.
+      placeholder: "Modulos.Cadastros/Produto"
+    validations:
+      required: true
+
+  - type: textarea
+    id: sinal
+    attributes:
+      label: Sinal de conclusão
+      description: O que precisa ser verdade para esta tarefa estar pronta. Concreto, verificável.
+      placeholder: |
+        - endpoint POST /produtos aceita EAN-13 e rejeita duplicado com 409
+        - migration gerada do modelo, aplica em banco limpo
+    validations:
+      required: true
+
+  - type: input
+    id: depende
+    attributes:
+      label: Depende de
+      description: >
+        Issues que precisam fechar antes desta. Deixe vazio se ela pode começar já — é isso que
+        deixa o condutor spawná-la em paralelo.
+      placeholder: "#43, #44"
+
+  - type: input
+    id: modelo
+    attributes:
+      label: Modelo
+      description: >
+        Qual modelo executa, pelo tier do papel (`preator/esteira/motor/MODELOS.md`). Preenchido
+        pelo condutor na decomposição; entra na linhagem.
+      placeholder: "tier alto · <id do modelo>"
+
+  - type: textarea
+    id: fazer
+    attributes:
+      label: O que fazer
+      description: >
+        O caminho, na ordem que a fábrica constrói: dados → regras → contrato → tela. Aponte a
+        skill de negócio quando houver regra (Regra #0) — não a reconte aqui.
+      placeholder: |
+        - [ ] entidade + migration gerada do modelo
+        - [ ] regra citando `preator/conhecimento/negocio/<domínio>`
+        - [ ] contrato (OpenAPI) e tipo gerado
+    validations:
+      required: true
+
+  - type: textarea
+    id: forks
+    attributes:
+      label: Forks
+      description: >
+        Dúvida sem especificação. Escalar é o comportamento correto — inventar regra de negócio,
+        não. Se houver fork aberto, a tarefa leva a label `bloqueada`.
+      placeholder: "A regra de arredondamento não está na EF nem na skill — decisão de quem?"

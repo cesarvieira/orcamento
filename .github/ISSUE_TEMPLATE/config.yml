@@ -1,0 +1,8 @@
+# Issues em branco continuam permitidas: bug e dúvida não são histórias e não
+# devem ser espremidos no formulário da esteira.
+blank_issues_enabled: true
+
+contact_links:
+  - name: Como uma história atravessa a fábrica
+    url: https://github.com/cesarvieira/preator/blob/main/doutrina/02-PROCESSO.md
+    about: Os dois portões, as fases, o Definition of Done e o fan-out. Leia antes de abrir a primeira história.

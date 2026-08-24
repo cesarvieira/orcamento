@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Instalado por preator/adocao/instalar.sh. Bloqueia commit com segredo vazado.
+set -uo pipefail
+RAIZ="$(git rev-parse --show-toplevel)"
+FAB="$RAIZ/preator"
+[ -f "$FAB/esteira/raiz.sh" ] || exit 0
+# shellcheck disable=SC1091
+. "$FAB/esteira/raiz.sh" || exit 0
+vazou=0
+for f in $(git diff --cached --name-only --diff-filter=ACM | grep -vE '\.(png|jpg|jpeg|gif|pdf|xlsx|zip|ico|woff2?)$'); do
+  [ -f "$f" ] || continue
+  "$PY" "$FAB/esteira/ferramentas/seguranca/scan_segredos.py" "$f" >/dev/null 2>&1 || {
+    echo "  ⛔ segredo em $f"; vazou=1; }
+done
+[ "$vazou" = 1 ] && { echo "[fábrica] BLOQUEADO: segredo detectado."; exit 1; }
+exit 0
