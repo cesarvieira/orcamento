@@ -57,6 +57,22 @@ export default defineNuxtConfig({
     },
   },
 
+  /**
+   * O diretório de build. Existe como variável porque o GATE e o ambiente de
+   * DEV não podem disputar o mesmo `.nuxt`.
+   *
+   * Medido: `nuxt build` APAGA o `.nuxt/manifest/meta/dev.json` e escreve um
+   * manifesto de build no lugar. É o arquivo para onde o alias `#app-manifest`
+   * aponta em desenvolvimento — então rodar o gate com o `pnpm dev` no ar
+   * derrubava o front com "Failed to resolve import #app-manifest", e o
+   * sintoma não dizia nada sobre a causa.
+   *
+   * O gate passa `NUXT_BUILD_DIR=.nuxt-gate` (ver `preator-perfil.sh`) e
+   * compila num diretório só dele. Mesma razão das portas 3010/3011: o
+   * ambiente de dev fica no ar o tempo todo e a prova não pode atropelá-lo.
+   */
+  buildDir: process.env.NUXT_BUILD_DIR || '.nuxt',
+
   // O contrato é TypeScript vindo de um workspace: o Nitro precisa transpilá-lo
   // em vez de tentar carregá-lo como JavaScript já compilado.
   build: {

@@ -54,8 +54,14 @@ TEST_COUNT_CMD="node scripts/contar-testes.mjs"
 # FRONT  —  Nuxt em SSR sobre Vite
 # ---------------------------------------------------------------------------
 FRONT_DIR="web"
-FRONT_BUILD="pnpm run build"
-TYPECHECK_CMD="pnpm run typecheck"
+
+# `NUXT_BUILD_DIR` isola o build do gate do `.nuxt` que o `pnpm dev` usa.
+# Sem isso, `nuxt build` apaga o `.nuxt/manifest/meta/dev.json` — o alvo do
+# alias `#app-manifest` em desenvolvimento — e o front de dev quebra com um
+# erro que não diz nada sobre a causa. Mesma razão das portas 3010/3011: a
+# prova não atropela o ambiente que fica no ar.
+FRONT_BUILD="NUXT_BUILD_DIR=.nuxt-gate pnpm run build"
+TYPECHECK_CMD="NUXT_BUILD_DIR=.nuxt-gate pnpm run typecheck"
 
 # ---------------------------------------------------------------------------
 # SUBIR O SISTEMA  —  o gate que pega o que o build nunca vê

@@ -104,6 +104,8 @@ dist/
 build/
 .next/
 .nuxt/
+# O build do gate, isolado do `.nuxt` de dev (ver preator-perfil.sh).
+.nuxt-gate/
 .output/
 *.tsbuildinfo
 npm-debug.log*
