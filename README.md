@@ -40,9 +40,18 @@ pnpm run dev:banco             # só o Postgres, porta separada da stack de prov
 pnpm run migrar
 pnpm run semear                                   # exige PREATOR_TEST_USER/PASS
 
-pnpm run dev:api              # :3000  (realtime no mesmo processo, /realtime)
-pnpm run dev:web              # :3001
+pnpm dev                       # sobe o banco + api (:3000) e web (:3001) juntos
 ```
+
+`pnpm dev` é um comando só: garante o Postgres de pé (`dev:banco`, idempotente)
+e então roda os dois servidores em paralelo via Turborepo, com a saída de cada
+um rotulada. `dev:api` e `dev:web` continuam existindo para rodar um lado
+isolado. A API imprime, ao subir, a configuração que resolveu — portas, banco
+(sem a senha), CORS, driver de email e se o Google está ligado.
+
+> As portas de **dev** são 3000/3001; as da **stack de prova** são 3010/3011
+> (`preator-perfil.sh`), de propósito: o gate sobe e derruba a stack dele sem
+> nunca colidir com o ambiente de desenvolvimento que fica no ar.
 
 Para rodar a suíte de integração (`pnpm run teste`), copie também
 `cp .env.test.example .env.test` — mesma instância do Postgres de dev, banco

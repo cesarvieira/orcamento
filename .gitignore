@@ -108,6 +108,10 @@ build/
 *.tsbuildinfo
 npm-debug.log*
 
+# Turborepo: cache e logs por tarefa. `dev` não é cacheável (turbo.json), mas
+# o diretório aparece do mesmo jeito.
+.turbo/
+
 # Saída da suíte — o gate conta os testes a partir dela, não se versiona.
 api/relatorio-testes.json
 
