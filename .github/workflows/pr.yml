@@ -1,0 +1,65 @@
+name: PR
+
+# Só em pull_request — de propósito. Push direto em branch não roda isto;
+# quem faz isso é o gate local (.githooks/pre-push) e o gate mestre da
+# fábrica (preator/esteira/gates/prova-comportamento.sh), rodados à mão.
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  teste:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: orcamento
+          POSTGRES_PASSWORD: orcamento
+          POSTGRES_DB: orcamento_teste
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U orcamento"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # A suíte é de integração, com Postgres de verdade (protocolo-testes.md).
+      DATABASE_URL_TESTE: postgres://orcamento:orcamento@localhost:5432/orcamento_teste
+      # Só para o drizzle-kit (via knip) não recusar carregar o config — nada
+      # aqui conecta de verdade fora da suíte.
+      DATABASE_URL: postgres://orcamento:orcamento@localhost:5432/orcamento_teste
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run lint
+
+      - run: pnpm --filter @orcamento/api run typecheck
+      - run: pnpm --filter @orcamento/web run typecheck
+
+      - run: pnpm run knip
+
+      - run: pnpm run build
+      - run: pnpm --filter @orcamento/web run build
+
+      - run: pnpm run teste
