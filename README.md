@@ -53,6 +53,10 @@ isolado. A API imprime, ao subir, a configuração que resolveu — portas, banc
 > (`preator-perfil.sh`), de propósito: o gate sobe e derruba a stack dele sem
 > nunca colidir com o ambiente de desenvolvimento que fica no ar.
 
+O login por Google é opcional: sem `GOOGLE_CLIENT_ID` no ambiente, o botão fica
+inerte e o resto do app funciona igual. Para ligá-lo, siga
+[`.preator/playbooks/google-client-id.md`](.preator/playbooks/google-client-id.md).
+
 Para rodar a suíte de integração (`pnpm run teste`), copie também
 `cp .env.test.example .env.test` — mesma instância do Postgres de dev, banco
 separado (`orcamento_teste`).
