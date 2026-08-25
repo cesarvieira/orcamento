@@ -14,7 +14,13 @@
  */
 import type { Server as ServidorHttp } from 'node:http';
 
-import cookie from 'cookie';
+// Import NOMEADO, não default: o pacote `cookie` (v1) marca `__esModule: true`
+// mas não exporta `default`. Com `esModuleInterop`, `import cookie from 'cookie'`
+// compila para algo cujo `.default` é `undefined` — e `cookie.parse` estourava
+// em TODO handshake, derrubando o tempo real inteiro em dev e em produção. A
+// suíte não pegava porque o esbuild do Vitest resolve o default de outro jeito:
+// o verde do teste não valia para o artefato que roda de verdade.
+import { parse as analisarCookies } from 'cookie';
 import { Server as ServidorSocket } from 'socket.io';
 
 import { ambiente } from '../config/ambiente';
@@ -41,6 +47,17 @@ declare module 'socket.io' {
 
 let io: ServidorSocket | null = null;
 
+/**
+ * O tempo real é invisível quando funciona — e mais invisível ainda quando
+ * NÃO funciona: um handshake recusado só aparece como "a tela não atualiza".
+ * Em desenvolvimento, cada transição vira uma linha. Fora dele, silêncio.
+ */
+function logRt(mensagem: string): void {
+  if (ambiente.NODE_ENV !== 'development') return;
+  // eslint-disable-next-line no-console
+  console.log(`[realtime] ${mensagem}`);
+}
+
 export function criarServidorDeTempoReal(http: ServidorHttp): ServidorSocket {
   io = new ServidorSocket(http, {
     path: CAMINHO_REALTIME,
@@ -56,10 +73,15 @@ export function criarServidorDeTempoReal(http: ServidorHttp): ServidorSocket {
   io.use(async (socket, proximo) => {
     try {
       const cabecalho = socket.handshake.headers.cookie ?? '';
-      const cookies = cookie.parse(cabecalho);
+      const cookies = analisarCookies(cabecalho);
       const contexto = await resolverSessaoPorToken(db, cookies[COOKIE_SESSAO]);
 
       if (!contexto) {
+        logRt(
+          `handshake RECUSADO (sem sessão válida no cookie) · origem=${
+            socket.handshake.headers.origin ?? '?'
+          }`,
+        );
         proximo(new Error('sessao_ausente'));
         return;
       }
@@ -67,6 +89,7 @@ export function criarServidorDeTempoReal(http: ServidorHttp): ServidorSocket {
       socket.contexto = contexto;
       proximo();
     } catch (erro) {
+      logRt(`handshake ERRO · ${(erro as Error).message}`);
       proximo(erro as Error);
     }
   });
@@ -82,6 +105,20 @@ export function criarServidorDeTempoReal(http: ServidorHttp): ServidorSocket {
 
     // A única entrada em room do sistema inteiro.
     void socket.join(salaDaFamilia(contexto.familiaId));
+
+    logRt(
+      `conectou · ${contexto.membroEmail} @ ${contexto.familiaNome} · sala=${salaDaFamilia(
+        contexto.familiaId,
+      )} · abertos=${io?.engine.clientsCount ?? '?'}`,
+    );
+
+    socket.on('disconnect', (motivo) => {
+      logRt(
+        `desconectou · ${contexto.membroEmail} · motivo=${motivo} · abertos=${
+          io?.engine.clientsCount ?? '?'
+        }`,
+      );
+    });
 
     // O cliente pode PERGUNTAR quem ele é; não pode DIZER quem ele é.
     socket.on('sessao', (responder?: (dados: unknown) => void) => {

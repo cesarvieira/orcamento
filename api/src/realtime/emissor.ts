@@ -12,6 +12,7 @@
  * você está prestes a acrescentar um número aqui, o que você quer é que o
  * cliente refaça a leitura — que é exatamente o que ele já faz ao receber isto.
  */
+import { ambiente } from '../config/ambiente';
 import type { Invalidacao } from '../openapi/esquemas';
 import {
   EVENTO_INVALIDACAO,
@@ -37,9 +38,24 @@ export function emitirInvalidacao(pedido: PedidoDeInvalidacao): void {
     origemClienteId: pedido.origemClienteId ?? null,
   };
 
-  servidorDeTempoReal()
-    .to(salaDaFamilia(pedido.familiaId))
-    .emit(EVENTO_INVALIDACAO, evento);
+  const sala = salaDaFamilia(pedido.familiaId);
+  const io = servidorDeTempoReal();
+
+  io.to(sala).emit(EVENTO_INVALIDACAO, evento);
+
+  // Quantos sockets havia na sala importa tanto quanto o evento: "emiti e
+  // ninguém atualizou" quase sempre é `ouvintes=0`, não bug de cliente.
+  if (ambiente.NODE_ENV === 'development') void logarInvalidacao(sala, evento);
+}
+
+async function logarInvalidacao(sala: string, evento: Invalidacao): Promise<void> {
+  const sockets = await servidorDeTempoReal().in(sala).fetchSockets();
+  // eslint-disable-next-line no-console
+  console.log(
+    `[realtime] invalidou ${evento.recurso}${
+      evento.competencia ? `/${evento.competencia}` : ''
+    } · sala=${sala} · ouvintes=${sockets.length}`,
+  );
 }
 
 /**
