@@ -12,19 +12,19 @@ name: orcamento-dev
 services:
   postgres:
     image: postgres:17-alpine
-    restart: unless-stopped
+    restart: no
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-orcamento}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-orcamento}
       POSTGRES_DB: ${POSTGRES_DB:-orcamento}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - '${POSTGRES_PORT:-5432}:5432'
     volumes:
       - dados-dev:/var/lib/postgresql/data
       # A suíte de integração usa um banco separado, criado na primeira subida.
       - ./api/docker/criar-banco-de-teste.sql:/docker-entrypoint-initdb.d/10-teste.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-orcamento} -d ${POSTGRES_DB:-orcamento}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-orcamento} -d ${POSTGRES_DB:-orcamento}']
       interval: 3s
       timeout: 3s
       retries: 20

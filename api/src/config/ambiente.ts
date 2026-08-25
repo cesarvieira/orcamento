@@ -5,20 +5,15 @@
  * processo que sobe com metade da config e quebra na primeira requisição custa
  * mais caro que um que não sobe.
  *
- * O `dotenv` carrega `.env` para `process.env` ANTES da validação — fora do
- * compose (que injeta variável direto), nada mais faz isso. O caminho é
- * resolvido a partir DESTE arquivo, nunca do cwd: `pnpm --filter @orcamento/api
- * run migrar` roda com cwd em `api/`, e o `.env` mora na raiz do monorepo —
- * mesma armadilha que `pastaDasMigrations()` documenta em `db/migrar.ts`. Em
- * produção não há `.env` na imagem (.dockerignore + .gitignore) e o pacote
- * fica em silêncio quando não acha o arquivo; carregar sempre é seguro.
+ * O dotenv carrega `.env` + `.env.${NODE_ENV}` para `process.env` ANTES da
+ * validação — fora do compose (que injeta variável direto), nada mais faz
+ * isso. Ver `carregar-dotenv.ts` para a ordem das camadas.
  */
-import path from 'node:path';
-
-import { config as carregarEnv } from 'dotenv';
 import { z } from 'zod';
 
-carregarEnv({ path: path.resolve(__dirname, '..', '..', '..', '.env'), quiet: true });
+import { carregarAmbiente } from './carregar-dotenv';
+
+carregarAmbiente();
 
 const esquema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
