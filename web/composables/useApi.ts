@@ -32,3 +32,14 @@ export function useApi() {
 export function useApiBasePublica(): string {
   return useRuntimeConfig().public.apiBase as string;
 }
+
+/**
+ * A mensagem que a API mandou num erro do `$fetch` (formato `Erro` do
+ * contrato: `{ erro, mensagem }`). Nunca inventa um texto diferente do que a
+ * API decidiu — RN-02/RN-03 do domínio de acesso são exemplos de regra cuja
+ * palavra final é do backend, não do front.
+ */
+export function mensagemDoErro(erro: unknown, generica = 'Algo deu errado. Tente de novo.'): string {
+  const dados = (erro as { data?: { mensagem?: string } } | undefined)?.data;
+  return dados?.mensagem ?? generica;
+}

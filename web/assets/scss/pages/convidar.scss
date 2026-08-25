@@ -1,0 +1,88 @@
+// Mesma linguagem visual de `entrar.scss`: cartão com campo rotulado e botão
+// cheio. Aqui não há painel de marca — a tela já vive dentro do shell logado.
+
+.convidar__intro {
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--texto-medio);
+}
+
+.convidar__campos {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.campo {
+  height: 52px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--superficie);
+  border: 1px solid var(--borda-media);
+  border-radius: var(--raio);
+}
+
+.campo__icone {
+  font-size: 18px;
+  color: var(--texto-fraco);
+  flex: none;
+}
+
+.campo__texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.campo__rotulo {
+  display: block;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--texto-fraco);
+}
+
+.campo__entrada {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--texto);
+  padding: 0;
+}
+
+.convidar__mensagem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--sucesso);
+
+  &--erro {
+    color: var(--alerta);
+  }
+}
+
+.botao {
+  width: 100%;
+  height: 48px;
+  border: none;
+  border-radius: 9999px;
+  background: var(--tinta);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:disabled {
+    background: #aab2be;
+    cursor: default;
+  }
+}
