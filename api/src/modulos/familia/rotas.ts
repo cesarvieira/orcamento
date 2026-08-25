@@ -21,7 +21,13 @@ import {
   familiaDaRequisicao,
 } from '../../http/middleware/tenant';
 import { CABECALHO_ORIGEM_CLIENTE, emitirInvalidacao } from '../../realtime/emissor';
-import { ErroDeConvite, convitePendente, criarConvite, marcarConviteUsado } from './convites';
+import {
+  ErroDeConvite,
+  convitePendente,
+  criarConvite,
+  listarConvitesPendentes,
+  marcarConviteUsado,
+} from './convites';
 import { enviarConvitePorEmail } from './email';
 import {
   EsquemaAceitarConvite,
@@ -302,6 +308,44 @@ rotasDeFamilia.post('/convites', exigirSessao, async (req, res, next) => {
       id: convite.id,
       email: convite.email,
       expiraEm: convite.expiraEm.toISOString(),
+    });
+  } catch (erro) {
+    next(erro);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// GET /convites — os convites pendentes da família da SESSÃO
+// ---------------------------------------------------------------------------
+//
+// EF01-MC-001. RN-01: a familiaId vem de `familiaDaRequisicao`, nunca do
+// request — igual a `GET /familia`. Só lista PENDENTES (RN-03): um convite
+// já aceito (`usadoEm`) ou já expirado não aparece, porque quem convida quer
+// saber "quem eu ainda estou esperando", não o histórico inteiro.
+
+registrarRota({
+  metodo: 'get',
+  caminho: '/convites',
+  resumo: 'Os convites pendentes da família da sessão',
+  etiquetas: ['acesso'],
+  exigeSessao: true,
+  respostas: [
+    { status: 200, descricao: 'Os convites pendentes', esquema: 'ConvitesPendentes' },
+    { status: 401, descricao: 'Sem sessão', esquema: 'Erro' },
+  ],
+});
+
+rotasDeFamilia.get('/convites', exigirSessao, async (req, res, next) => {
+  try {
+    const familiaId = familiaDaRequisicao(req);
+    const pendentes = await listarConvitesPendentes(db, familiaId);
+
+    res.json({
+      convites: pendentes.map(convite => ({
+        id: convite.id,
+        email: convite.email,
+        expiraEm: convite.expiraEm.toISOString(),
+      })),
     });
   } catch (erro) {
     next(erro);

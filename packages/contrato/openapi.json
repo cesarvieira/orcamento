@@ -237,6 +237,60 @@
         ],
         "additionalProperties": false
       },
+      "ConvitePendente": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "expiraEm": {
+            "type": "string",
+            "description": "ISO 8601 — quando o convite deixa de valer (RN-03)."
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "expiraEm"
+        ],
+        "additionalProperties": false
+      },
+      "ConvitesPendentes": {
+        "type": "object",
+        "properties": {
+          "convites": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "email": {
+                  "type": "string"
+                },
+                "expiraEm": {
+                  "type": "string",
+                  "description": "ISO 8601 — quando o convite deixa de valer (RN-03)."
+                }
+              },
+              "required": [
+                "id",
+                "email",
+                "expiraEm"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "convites"
+        ],
+        "additionalProperties": false
+      },
       "AceitarConvite": {
         "oneOf": [
           {
@@ -582,6 +636,40 @@
           },
           "422": {
             "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Os convites pendentes da família da sessão",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "get_convites",
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Os convites pendentes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConvitesPendentes"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
             "content": {
               "application/json": {
                 "schema": {
