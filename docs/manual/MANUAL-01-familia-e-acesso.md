@@ -4,10 +4,10 @@
 > módulo sem ler o código. Ver [EF-01](../especificacoes/EF-01-familia-e-acesso.md) (o contrato) e
 > [MC-01](../especificacoes/MC-01-familia-e-acesso.md) (o que falta).
 
-- **Identificação:** Família e acesso · EF-01 · história [#15](https://github.com/cesarvieira/orcamento/issues/15) · tarefas [#32](https://github.com/cesarvieira/orcamento/issues/32) (backend) e [#33](https://github.com/cesarvieira/orcamento/issues/33) (frontend)
+- **Identificação:** Família e acesso · EF-01 · história [#15](https://github.com/cesarvieira/orcamento/issues/15) · tarefas [#32](https://github.com/cesarvieira/orcamento/issues/32)/[#33](https://github.com/cesarvieira/orcamento/issues/33) (fechamento inicial) e [#35](https://github.com/cesarvieira/orcamento/issues/35)/[#36](https://github.com/cesarvieira/orcamento/issues/36) (addendum — fechou `EF01-MC-001`, ainda antes do merge do PR)
 - **Construído por:** agentes `backend` e `frontend` (Sonnet 5, tier padrão), em worktrees isolados
-- **Data:** 2026-08-25 · **Commits:** `9bac267` (T1) → mesclado em `e1340db`; `da44fee` (T2) →
-  mesclado em `e56c54a`
+- **Data:** 2026-08-25 · **Commits:** `9bac267` (T1) → `e1340db`; `da44fee` (T2) → `e56c54a`;
+  `b9aa7f4` (T3, `GET /convites`) → `acc2445`; `b433391` (T4, lista no front) → mesclado
 - **Confiança:** Alta (código + gate re-executado pelo condutor, independente do relato dos
   agentes — inclusive depois de um agente travar por watchdog no meio da tarefa, ver abaixo)
 
@@ -46,7 +46,8 @@ gsi/client`) **sob demanda**, só quando `useRuntimeConfig().public.googleClient
 - **`useConvite.ts`** (novo): `criarConvite()` e `aceitarConvite()`, ambos tipados pelo contrato
   gerado (`CriarConvite`/`ConviteCriado`/`AceitarConvite`), sem redeclarar modelo.
 - **`web/pages/mais/convidar.vue`** (novo): campo de email, `POST /convites`, mensagem de sucesso
-  ("Convite enviado para X — expira em breve"). Sem lista persistente — ver MC-01 EF01-MC-001.
+  ("Convite enviado para X — expira em breve"), e lista de convites pendentes da família (ver
+  addendum abaixo — a listagem foi fechada em #35/#36, depois do fechamento inicial da história).
 - **`web/pages/convite/[token].vue`** (novo): formulário nome/email/senha ou Google, `POST /convites/
 :token/aceitar`. Mensagens de erro de RN-02/RN-03 vêm **sempre** da resposta da API, nunca
   pré-validadas no cliente.
@@ -62,6 +63,26 @@ convidar` casava a URL mas renderizava o conteúdo de `mais.vue`. Renomear para 
   resolve sem mudar a rota pública (`/mais` continua igual).
 - **`entrar.vue`:** botão Google real; Apple, "esqueci senha" e "criar conta da família" continuam
   inertes — não estão no escopo da EF-01 fechada (§3 só lista entrar · convidar · aceitar).
+
+## Addendum — listagem de convites pendentes (#35/#36)
+
+Fechado o pedido inicial da história, a lacuna `EF01-MC-001` (sem forma de listar convites
+pendentes) foi identificada e corrigida ainda dentro da mesma história, antes do merge do PR #34:
+
+- **`GET /convites`** (`api/src/modulos/familia/rotas.ts`, tarefa #35): autenticado, lista os
+  convites da família da sessão (`familiaId` de `familiaDaRequisicao`, nunca do request — RN-01)
+  que não foram usados nem expiraram, mais recente primeiro. Serviço
+  `listarConvitesPendentes(db, familiaId)` em `convites.ts`. Schemas novos no contrato:
+  `ConvitePendente` (`{id, email, expiraEm}`) e `ConvitesPendentes` (wrapper `{convites: [...]}`,
+  mesmo padrão de `FamiliaAtual`). 5 testes novos de integração (isolamento entre famílias, convite
+  usado/expirado não aparece, ordem).
+- **Frontend** (tarefa #36): `useConvite.ts` ganhou `listarConvitesPendentes()`; `convidar.vue`
+  carrega a lista ao montar e insere o convite novo no topo, localmente, ao enviar com sucesso
+  (sem nova ida à API) — email e data de expiração formatada, reaproveitando a linguagem visual de
+  `mais.vue` (`.lista`/`.linha`), sem componente novo.
+
+Ambas re-verificadas de forma independente pelo condutor (gate mestre re-executado do zero + script
+Playwright ad hoc confirmando a lista carregando e atualizando na tela real).
 
 ## O que a EF-00 já tinha deixado pronto (não foi refeito)
 
@@ -80,11 +101,19 @@ Re-executada pelo condutor, **independente do relato dos agentes**, em três ní
    re-executou do zero, mesmo veredito, e ainda verificou manualmente (script Playwright ad hoc)
    as duas telas que o crawler não cobre (`/mais/convidar`, `/convite/:token`).
 3. História inteira (branch `historia/15-ef-01-familia-e-acesso`), **do zero**, depois do merge das
-   duas tarefas — `PROVA_DE_COMPORTAMENTO=PASS`.
+   duas tarefas — `PROVA_DE_COMPORTAMENTO=PASS`. Neste ponto o condutor também restaurou uma
+   modificação local não commitada em `preator/` (o checkout do repo principal tinha o gate mestre
+   com quase tudo comentado, de uma sessão anterior não relacionada) — sem isso, o carimbo da
+   história teria saído com apenas 1 de 6 checagens.
+4. Tarefa #35 (branch `tarefa/35-convites-listagem`): re-executado do zero, `PASS`, 56 testes (5
+   novos).
+5. Tarefa #36 (branch `tarefa/36-convites-lista-frontend`): re-executado do zero, `PASS`, mais
+   verificação manual (Playwright ad hoc) confirmando a lista carregando e atualizando em
+   `/mais/convidar` de verdade.
 
 ```
 build        PASS  (bloqueante)
-test(N>0)    PASS  (bloqueante) — 51 testes executados
+test(N>0)    PASS  (bloqueante) — 56 testes executados (após #35/#36; 51 no fechamento inicial)
 front        PASS  (bloqueante)
 typecheck    PASS
 contrato     PASS  (bloqueante)

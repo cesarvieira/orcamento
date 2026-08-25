@@ -46,11 +46,11 @@ se burla sem nunca ser aceito.
 única EF cuja superfície não vem do desenho.** Construir no mesmo sistema visual do shell
 (EF-00), sem inventar linguagem nova.
 
-| Recurso  | Rota              | Fluxo                                                                                   |
-| -------- | ----------------- | --------------------------------------------------------------------------------------- |
-| Entrar   | `/entrar`         | Google ou email+senha → cookie `httpOnly` → tela do mês                                 |
-| Convidar | dentro de _Mais_  | email → envia → confirmação de envio (ver §6 — sem listagem persistente nesta história) |
-| Aceitar  | `/convite/:token` | valida email → cria membro → entra                                                      |
+| Recurso  | Rota              | Fluxo                                                                |
+| -------- | ----------------- | -------------------------------------------------------------------- |
+| Entrar   | `/entrar`         | Google ou email+senha → cookie `httpOnly` → tela do mês              |
+| Convidar | dentro de _Mais_  | email → envia → confirmação + lista de convites pendentes da família |
+| Aceitar  | `/convite/:token` | valida email → cria membro → entra                                   |
 
 ---
 
@@ -63,11 +63,12 @@ número fixo de membros.
 
 ## §6 — O que não foi construído nesta história
 
-- **Listagem de convites pendentes.** O backend (#32) implementou criar/enviar e aceitar convite,
-  mas não uma listagem (`GET /convites`). A tela de convidar (#33) envia e confirma, sem lista
-  persistente. Lacuna registrada em [MC-01](MC-01-familia-e-acesso.md).
 - **"Criar conta da família", "Esqueci minha senha", login por Apple.** Ficam inertes ("em breve")
   em `/entrar` — não estão no escopo desta EF (§3 só cobre entrar · convidar · aceitar).
+
+> Listagem de convites pendentes (`GET /convites`) foi identificada como lacuna após o primeiro
+> fechamento desta história e fechada em seguida, ainda antes do merge do PR — tarefas #35
+> (backend) e #36 (frontend). Ver [MC-01](MC-01-familia-e-acesso.md).
 
 ## §5 — Definition of Done
 
