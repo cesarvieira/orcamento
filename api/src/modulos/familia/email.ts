@@ -16,6 +16,7 @@
  * relatório da tarefa.
  */
 import { ambiente } from '../../config/ambiente';
+import { montarEmailHtml } from './email-modelo';
 
 export interface ConviteParaEnviar {
   para: string;
@@ -33,6 +34,31 @@ function assuntoDoConvite(familiaNome: string): string {
 
 function corpoDoConvite(convite: ConviteParaEnviar): string {
   return `Você foi convidado para a família "${convite.familiaNome}" no Orçamento Familiar.\n\nAceite o convite em: ${convite.link}`;
+}
+
+/**
+ * A versão HTML, no layout do design. O texto acima NÃO é descartado: todo
+ * email sai com as duas partes. Cliente que bloqueia HTML, leitor de tela e
+ * filtro de spam leem a de texto — mandar só HTML piora entrega e acessibilidade.
+ */
+function corpoHtmlDoConvite(convite: ConviteParaEnviar): string {
+  return montarEmailHtml({
+    sobretitulo: 'Convite',
+    titulo: `Você foi convidado para a família ${convite.familiaNome}`,
+    paragrafos: [
+      'Alguém da família criou um acesso para você no Orçamento da casa — o lugar onde vocês ' +
+      'planejam o mês por categoria e acompanham o que realmente dá para gastar.',
+      'Para entrar, aceite o convite e crie sua senha (ou entre com o Google).',
+    ],
+    destaque: {
+      rotulo: 'Vale por tempo limitado:',
+      texto: 'este convite expira e serve para um único uso. Se ele vencer, peça outro a quem te convidou.',
+    },
+    acao: { rotulo: 'Aceitar convite', url: convite.link },
+    rodape:
+      'Você recebeu este email porque alguém do Orçamento da casa convidou este endereço. ' +
+      'Se não foi você quem esperava este convite, pode ignorar esta mensagem — sem aceitar, nada é criado.',
+  });
 }
 
 /** Registra a TENTATIVA de envio — nenhum email sai de verdade (D-07). */
@@ -58,6 +84,7 @@ const driverSmtp: DriverDeEmail = {
       to: convite.para,
       subject: assuntoDoConvite(convite.familiaNome),
       text: corpoDoConvite(convite),
+      html: corpoHtmlDoConvite(convite),
     });
   },
 };
@@ -75,6 +102,7 @@ const driverResend: DriverDeEmail = {
         to: [convite.para],
         subject: assuntoDoConvite(convite.familiaNome),
         text: corpoDoConvite(convite),
+        html: corpoHtmlDoConvite(convite),
       }),
     });
     if (!resposta.ok) {
