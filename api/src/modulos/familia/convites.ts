@@ -8,7 +8,7 @@
  * RN-03: convite expira (`CONVITE_TTL_HORAS`, parâmetro de ambiente — D-07)
  * e é de uso único (`usadoEm`).
  */
-import { eq } from 'drizzle-orm';
+import { and, desc, eq, gt, isNull } from 'drizzle-orm';
 
 import { ambiente } from '../../config/ambiente';
 import type { Db } from '../../db';
@@ -68,4 +68,21 @@ export async function convitePendente(db: Db, token: string): Promise<Convite> {
 
 export async function marcarConviteUsado(db: Db, conviteId: string): Promise<void> {
   await db.update(convites).set({ usadoEm: new Date() }).where(eq(convites.id, conviteId));
+}
+
+/**
+ * EF01-MC-001: os convites PENDENTES da família — não usados e não
+ * expirados (RN-03), do mais recente para o mais antigo. `familiaId` chega
+ * já resolvido do TOKEN da sessão (RN-01), igual às demais funções deste
+ * arquivo.
+ */
+export async function listarConvitesPendentes(db: Db, familiaId: string): Promise<Convite[]> {
+  const agora = new Date();
+  return db
+    .select()
+    .from(convites)
+    .where(
+      and(eq(convites.familiaId, familiaId), isNull(convites.usadoEm), gt(convites.expiraEm, agora)),
+    )
+    .orderBy(desc(convites.criadoEm));
 }

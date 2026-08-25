@@ -241,6 +241,82 @@ describe('aceitar convite', () => {
   });
 });
 
+describe('listar convites pendentes', () => {
+  it('exige sessão', async () => {
+    const resposta = await request(app).get('/convites');
+    expect(resposta.status).toBe(401);
+  });
+
+  it('EF01-MC-001/RN-01: só lista os pendentes da família da SESSÃO, isolado da outra família', async () => {
+    const emailPendenteA = 'pendente-a@exemplo.test';
+    const emailPendenteB = 'pendente-b@exemplo.test';
+    await request(app).post('/convites').set('Cookie', cookieA).send({ email: emailPendenteA });
+    await request(app).post('/convites').set('Cookie', cookieB).send({ email: emailPendenteB });
+
+    const listaA = await request(app).get('/convites').set('Cookie', cookieA);
+    expect(listaA.status).toBe(200);
+    const emailsA = (listaA.body.convites as { email: string }[]).map(c => c.email);
+    expect(emailsA).toContain(emailPendenteA);
+    expect(emailsA).not.toContain(emailPendenteB);
+
+    const listaB = await request(app).get('/convites').set('Cookie', cookieB);
+    const emailsB = (listaB.body.convites as { email: string }[]).map(c => c.email);
+    expect(emailsB).toContain(emailPendenteB);
+    expect(emailsB).not.toContain(emailPendenteA);
+  });
+
+  it('convite já aceito (usado) não aparece na lista', async () => {
+    const email = 'usado-nao-lista@exemplo.test';
+    await request(app).post('/convites').set('Cookie', cookieA).send({ email });
+    const convite = await convitePorEmail(email);
+    if (!convite) throw new Error('setup: convite não persistiu');
+
+    const aceite = await request(app).post(`/convites/${convite.token}/aceitar`).send({
+      metodo: 'senha',
+      nome: 'Já Aceitou',
+      email,
+      senha: SENHA_DE_TESTE,
+    });
+    expect(aceite.status).toBe(201);
+
+    const lista = await request(app).get('/convites').set('Cookie', cookieA);
+    const emails = (lista.body.convites as { email: string }[]).map(c => c.email);
+    expect(emails).not.toContain(email);
+  });
+
+  it('convite expirado não aparece na lista', async () => {
+    const email = 'expirado-nao-lista@exemplo.test';
+    const [linha] = await db
+      .insert(convites)
+      .values({
+        familiaId: familiaA.familiaId,
+        email,
+        token: ['token', 'de', 'convite', 'expirado', 'na', 'lista'].join('-'),
+        expiraEm: new Date(Date.now() - 3600_000), // uma hora no passado
+      })
+      .returning();
+    if (!linha) throw new Error('setup: não consegui inserir convite expirado');
+
+    const lista = await request(app).get('/convites').set('Cookie', cookieA);
+    const emails = (lista.body.convites as { email: string }[]).map(c => c.email);
+    expect(emails).not.toContain(email);
+  });
+
+  it('mais recente primeiro', async () => {
+    const emailMaisAntigo = 'ordem-antigo@exemplo.test';
+    const emailMaisRecente = 'ordem-recente@exemplo.test';
+    await request(app).post('/convites').set('Cookie', cookieA).send({ email: emailMaisAntigo });
+    await request(app).post('/convites').set('Cookie', cookieA).send({ email: emailMaisRecente });
+
+    const lista = await request(app).get('/convites').set('Cookie', cookieA);
+    const emails = (lista.body.convites as { email: string }[]).map(c => c.email);
+    const posAntigo = emails.indexOf(emailMaisAntigo);
+    const posRecente = emails.indexOf(emailMaisRecente);
+    expect(posRecente).toBeGreaterThanOrEqual(0);
+    expect(posAntigo).toBeGreaterThan(posRecente);
+  });
+});
+
 describe('isolamento do convite (REST e socket)', () => {
   const abertos: Socket[] = [];
 

@@ -102,7 +102,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Os convites pendentes da família da sessão */
+        get: operations["get_convites"];
         put?: never;
         /** Convida um novo membro para a família da sessão */
         post: operations["post_convites"];
@@ -191,6 +192,20 @@ export interface components {
             email: string;
             /** @description ISO 8601 — quando o convite deixa de valer (RN-03). */
             expiraEm: string;
+        };
+        ConvitePendente: {
+            id: string;
+            email: string;
+            /** @description ISO 8601 — quando o convite deixa de valer (RN-03). */
+            expiraEm: string;
+        };
+        ConvitesPendentes: {
+            convites: {
+                id: string;
+                email: string;
+                /** @description ISO 8601 — quando o convite deixa de valer (RN-03). */
+                expiraEm: string;
+            }[];
         };
         AceitarConvite: {
             /** @enum {string} */
@@ -397,6 +412,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FamiliaAtual"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    get_convites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Os convites pendentes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConvitesPendentes"];
                 };
             };
             /** @description Sem sessão */

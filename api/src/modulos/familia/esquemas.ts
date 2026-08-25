@@ -32,6 +32,35 @@ export const EsquemaConviteCriado = registrarEsquema(
 );
 
 /**
+ * Um item da listagem de pendentes (EF01-MC-001) — mesma forma de
+ * `ConviteCriado`, nome próprio porque semanticamente é outra coisa: um
+ * convite já existente, não o resultado de criar um.
+ *
+ * @fundacao consumido pelo contrato gerado (front), não por import dentro deste repo.
+ */
+export const EsquemaConvitePendente = registrarEsquema(
+  'ConvitePendente',
+  z.object({
+    id: z.string(),
+    email: z.string(),
+    expiraEm: z.string().meta({ description: 'ISO 8601 — quando o convite deixa de valer (RN-03).' }),
+  }),
+);
+
+/**
+ * A resposta de `GET /convites` — lista embutida, mesmo padrão de
+ * `FamiliaAtual` (`openapi/esquemas.ts`).
+ *
+ * @fundacao consumido pelo contrato gerado (front), não por import dentro deste repo.
+ */
+export const EsquemaConvitesPendentes = registrarEsquema(
+  'ConvitesPendentes',
+  z.object({
+    convites: z.array(EsquemaConvitePendente),
+  }),
+);
+
+/**
  * Aceite por senha: o email vem do CORPO porque, ao contrário do login, não
  * há sessão ainda para derivá-lo — é o próprio `email` que RN-02 confere
  * contra `convite.email`. Aceite por Google ignora este campo por completo:
