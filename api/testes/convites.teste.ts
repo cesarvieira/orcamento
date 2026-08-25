@@ -114,6 +114,29 @@ describe('criar convite', () => {
     }
   });
 
+  it('em teste o driver é `log` MESMO se o ambiente pedir outro (trava de segurança)', async () => {
+    // Se esta trava cair, um `MAIL_DRIVER=resend` no `.env` de alguém faz a
+    // suíte mandar email de verdade para endereços inventados, toda execução.
+    const original = ambiente.MAIL_DRIVER;
+    const espiao = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+    try {
+      ambiente.MAIL_DRIVER = 'resend';
+
+      const resposta = await request(app)
+        .post('/convites')
+        .set('Cookie', cookieA)
+        .send({ email: 'trava-driver@exemplo.test' });
+
+      // `resend` sem credencial estouraria; `log` responde 201 e registra.
+      expect(resposta.status).toBe(201);
+      const chamadas = espiao.mock.calls.map(args => args.map(String).join(' '));
+      expect(chamadas.some(linha => linha.includes('[email:log]'))).toBe(true);
+    } finally {
+      ambiente.MAIL_DRIVER = original;
+      espiao.mockRestore();
+    }
+  });
+
   it('corpo sem email válido responde 422', async () => {
     const resposta = await request(app).post('/convites').set('Cookie', cookieA).send({ email: 'a' });
     expect(resposta.status).toBe(422);

@@ -103,6 +103,17 @@ const drivers: Record<typeof ambiente.MAIL_DRIVER, DriverDeEmail> = {
 };
 
 function driverDeEmail(): DriverDeEmail {
+  // Em TESTE o driver é `log` SEMPRE, aconteça o que acontecer com o ambiente.
+  // Sem esta trava, um `MAIL_DRIVER=resend` (ou `smtp`) no `.env` de alguém
+  // faria a suíte de integração mandar email DE VERDADE, para endereços
+  // inventados, a cada execução — e a conta chegaria para o fornecedor.
+  //
+  // Fixar isso no `.env.test` não resolveria: ele é local e ignorado pelo Git,
+  // então a garantia dependeria de cada máquina ter o arquivo certo. Garantia
+  // que depende de arquivo não versionado não é garantia. Aqui é código, vale
+  // para todo mundo, e o gate a re-executa.
+  if (ambiente.NODE_ENV === 'test') return driverLog;
+
   return drivers[ambiente.MAIL_DRIVER];
 }
 
