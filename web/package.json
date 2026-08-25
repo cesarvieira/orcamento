@@ -23,6 +23,6 @@
   "devDependencies": {
     "sass": "^1.83.0",
     "typescript": "^5.7.0",
-    "vue-tsc": "^2.2.0"
+    "vue-tsc": "^3.3.11"
   }
 }
