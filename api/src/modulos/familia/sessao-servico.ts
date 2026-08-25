@@ -39,9 +39,8 @@ function hashDoToken(token: string): string {
 }
 
 /**
- * @fundacao gerador genérico de token seguro — reaproveitável por qualquer
- * módulo que precise de um (ex.: `convites.token`, na EF-01). Só a sessão o
- * usa hoje.
+ * Gerador genérico de token seguro. A sessão o usa para o cookie; o convite
+ * (EF-01, `modulos/familia/convites.ts`) o reaproveita para o próprio token.
  */
 export function gerarToken(): string {
   return randomBytes(32).toString('base64url');

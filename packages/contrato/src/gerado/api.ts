@@ -43,6 +43,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sessoes/google": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Abre uma sessão com um ID token do Google */
+        post: operations["post_sessoes_google"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sessoes/atual": {
         parameters: {
             query?: never;
@@ -72,6 +89,40 @@ export interface paths {
         get: operations["get_familia"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/convites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Convida um novo membro para a família da sessão */
+        post: operations["post_convites"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/convites/{token}/aceitar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Aceita um convite e abre sessão na família dele */
+        post: operations["post_convites__token__aceitar"];
         delete?: never;
         options?: never;
         head?: never;
@@ -127,6 +178,30 @@ export interface components {
             competencia: string | null;
             /** @description Quem provocou a mudança. O cliente descarta o próprio eco (R5). */
             origemClienteId: string | null;
+        };
+        LoginGoogle: {
+            /** @description O ID token que o Google Identity Services devolveu ao cliente. */
+            idToken: string;
+        };
+        CriarConvite: {
+            email: string;
+        };
+        ConviteCriado: {
+            id: string;
+            email: string;
+            /** @description ISO 8601 — quando o convite deixa de valer (RN-03). */
+            expiraEm: string;
+        };
+        AceitarConvite: {
+            /** @enum {string} */
+            metodo: "senha";
+            nome: string;
+            email: string;
+            senha: string;
+        } | {
+            /** @enum {string} */
+            metodo: "google";
+            idToken: string;
         };
     };
     responses: never;
@@ -189,6 +264,48 @@ export interface operations {
                 };
             };
             /** @description Email ou senha não conferem */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Corpo inválido */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    post_sessoes_google: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginGoogle"];
+            };
+        };
+        responses: {
+            /** @description Sessão aberta; cookie httpOnly definido */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessaoAtual"];
+                };
+            };
+            /** @description Token inválido, email não verificado ou sem conta */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -284,6 +401,128 @@ export interface operations {
             };
             /** @description Sem sessão */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    post_convites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CriarConvite"];
+            };
+        };
+        responses: {
+            /** @description Convite criado e despachado por email */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConviteCriado"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Corpo inválido */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    post_convites__token__aceitar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AceitarConvite"];
+            };
+        };
+        responses: {
+            /** @description Convite aceito; sessão aberta */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessaoAtual"];
+                };
+            };
+            /** @description Token do Google inválido ou email não verificado */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Email divergente do convidado (RN-02) */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Convite inexistente */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Convite já usado, ou email de outra família */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Convite expirado (RN-03) */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Corpo inválido */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

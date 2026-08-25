@@ -34,7 +34,21 @@ const esquema = z.object({
 
   MAIL_DRIVER: z.enum(['log', 'smtp', 'resend', 'ses']).default('log'),
   MAIL_FROM: z.string().default(''),
+  /** Credencial do provedor de API (Resend/SES). Vazia quando MAIL_DRIVER=log|smtp. */
+  MAIL_API_KEY: z.string().default(''),
+  /** Só usados quando MAIL_DRIVER=smtp — qualquer fornecedor que fale o protocolo. */
+  SMTP_HOST: z.string().default(''),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_USER: z.string().default(''),
+  SMTP_PASS: z.string().default(''),
   CONVITE_TTL_HORAS: z.coerce.number().int().positive().default(72),
+
+  /**
+   * O client id OAuth do Google — não é segredo (viaja no próprio token), mas
+   * é a AUDIÊNCIA que a verificação do ID token exige (EF-01). Vazio desliga
+   * o login por Google com um erro claro, em vez de aceitar qualquer token.
+   */
+  GOOGLE_CLIENT_ID: z.string().default(''),
 });
 
 const analise = esquema.safeParse(process.env);
