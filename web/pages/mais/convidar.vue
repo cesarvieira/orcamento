@@ -2,18 +2,49 @@
 /**
  * CONVIDAR — dentro de Mais (EF-01, §3).
  *
- * Fluxo: email → `POST /convites` → mensagem de sucesso. Não existe uma lista
- * de convites pendentes aqui: a API (#32) tem `POST /convites` mas não tem
- * `GET /convites` — não há endpoint para listar. Isso é uma lacuna conhecida
- * da história, registrada pelo condutor na matriz de completude — não um fork
- * desta tarefa.
+ * Fluxo: email → `POST /convites` → mensagem de sucesso, e a lista de
+ * convites pendentes (`GET /convites`, #35) aparece logo abaixo — fecha a
+ * lacuna EF01-MC-001. Ao enviar um novo convite com sucesso, ele entra na
+ * lista local direto (o corpo de `ConviteCriado` já tem o mesmo formato de
+ * `ConvitePendente`), sem precisar de uma segunda ida à API.
  */
-const { criarConvite } = useConvite();
+import type { ConvitePendente } from '@orcamento/contrato';
+
+const { criarConvite, listarConvitesPendentes } = useConvite();
 
 const email = ref('');
 const enviando = ref(false);
 const mensagem = ref<string | null>(null);
 const ehErro = ref(false);
+
+const convites = ref<ConvitePendente[]>([]);
+const carregandoConvites = ref(true);
+
+async function carregarConvites(): Promise<void> {
+  carregandoConvites.value = true;
+  try {
+    convites.value = await listarConvitesPendentes();
+  } catch {
+    // A lista é informativa — se falhar, a tela ainda funciona para enviar
+    // convites novos, só sem mostrar os pendentes.
+    convites.value = [];
+  } finally {
+    carregandoConvites.value = false;
+  }
+}
+
+onMounted(carregarConvites);
+
+/** Ex.: "25/08/2026, 14:30". Formato local do navegador, sem lib nova. */
+function formatarData(iso: string): string {
+  return new Date(iso).toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
 async function enviar(): Promise<void> {
   if (enviando.value) return;
@@ -24,6 +55,7 @@ async function enviar(): Promise<void> {
     const convite = await criarConvite(email.value.trim());
     mensagem.value = `Convite enviado para ${convite.email} — expira em breve.`;
     email.value = '';
+    convites.value = [convite, ...convites.value];
   } catch (erro) {
     ehErro.value = true;
     mensagem.value = mensagemDoErro(erro, 'Não consegui enviar o convite.');
@@ -65,6 +97,24 @@ async function enviar(): Promise<void> {
         {{ enviando ? 'Enviando…' : 'Enviar convite' }}
       </button>
     </form>
+
+    <h3 class="convidar__subtitulo">Convites pendentes</h3>
+
+    <p v-if="carregandoConvites" class="convidar__vazio">Carregando…</p>
+
+    <p v-else-if="convites.length === 0" class="convidar__vazio">
+      Nenhum convite pendente no momento.
+    </p>
+
+    <ul v-else class="lista">
+      <li v-for="convite in convites" :key="convite.id" class="linha">
+        <span class="linha__icone"><i class="ti ti-mail"></i></span>
+        <span class="linha__texto">
+          <span class="linha__titulo">{{ convite.email }}</span>
+          <span class="linha__sub">Expira em {{ formatarData(convite.expiraEm) }}</span>
+        </span>
+      </li>
+    </ul>
   </section>
 </template>
 

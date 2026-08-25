@@ -1,11 +1,18 @@
 /**
  * Convidar e aceitar convite (EF-01).
  *
- * Os tipos vêm do CONTRATO GERADO — não redeclarados aqui (D-03). `criarConvite`
- * não devolve lista nenhuma: a API (#32) só tem `POST /convites`, não
- * `GET /convites` — não há como listar convites pendentes ainda.
+ * Os tipos vêm do CONTRATO GERADO — não redeclarados aqui (D-03). A API (#35)
+ * já tem `GET /convites`, que lista os convites pendentes da família da
+ * sessão atual — fecha a lacuna registrada em EF01-MC-001.
  */
-import type { AceitarConvite, ConviteCriado, CriarConvite, SessaoAtual } from '@orcamento/contrato';
+import type {
+  AceitarConvite,
+  ConvitePendente,
+  ConviteCriado,
+  ConvitesPendentes,
+  CriarConvite,
+  SessaoAtual,
+} from '@orcamento/contrato';
 
 export function useConvite() {
   const api = useApi();
@@ -18,6 +25,12 @@ export function useConvite() {
       method: 'POST',
       body: corpo,
     });
+  }
+
+  /** Lista os convites pendentes da família da sessão atual. */
+  async function listarConvitesPendentes(): Promise<ConvitePendente[]> {
+    const resposta = await api<ConvitesPendentes>('/convites');
+    return resposta.convites;
   }
 
   /**
@@ -33,5 +46,5 @@ export function useConvite() {
     return nova;
   }
 
-  return { criarConvite, aceitarConvite };
+  return { criarConvite, listarConvitesPendentes, aceitarConvite };
 }
