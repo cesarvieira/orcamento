@@ -55,7 +55,7 @@ const RUIDO_ACEITO = [
 ];
 
 function ehRuido(texto) {
-  return RUIDO_ACEITO.some((rx) => rx.test(texto));
+  return RUIDO_ACEITO.some(rx => rx.test(texto));
 }
 
 async function entrar(pagina) {
@@ -63,7 +63,7 @@ async function entrar(pagina) {
   await pagina.fill('input[name="email"]', USUARIO);
   await pagina.fill('input[name="senha"]', SENHA);
   await Promise.all([
-    pagina.waitForURL((u) => !u.pathname.startsWith(ROTA_PUBLICA), { timeout: ESPERA }),
+    pagina.waitForURL(u => !u.pathname.startsWith(ROTA_PUBLICA), { timeout: ESPERA }),
     pagina.click('button[type="submit"]'),
   ]);
 }
@@ -130,7 +130,7 @@ async function principal() {
   if (!temCredenciais) {
     console.log(
       'AVISO: PREATOR_TEST_USER/PREATOR_TEST_PASS ausentes do ambiente — ' +
-        'a ÁREA LOGADA NÃO FOI COBERTA. Só a tela de login foi verificada.',
+      'a ÁREA LOGADA NÃO FOI COBERTA. Só a tela de login foi verificada.',
     );
   }
 
@@ -208,10 +208,11 @@ async function principal() {
   return quebradas === 0 ? 0 : 1;
 }
 
-principal()
-  .then((codigo) => process.exit(codigo))
-  .catch((erro) => {
-    console.error(erro);
-    console.log('rotas:0 quebradas:1');
-    process.exit(1);
-  });
+try {
+  const codigo = await principal();
+  process.exit(codigo);
+} catch (erro) {
+  console.error(erro);
+  console.log('rotas:0 quebradas:1');
+  process.exit(1);
+}

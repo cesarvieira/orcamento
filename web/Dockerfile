@@ -11,13 +11,15 @@
 FROM node:22-alpine AS dependencias
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+RUN corepack enable && corepack prepare pnpm@11.10.0 --activate
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY api/package.json api/
 COPY web/package.json web/
 COPY packages/contrato/package.json packages/contrato/
 
 # `nuxt prepare` do postinstall precisa do fonte do web; ainda não copiamos.
-RUN npm ci --ignore-scripts
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # -----------------------------------------------------------------------------
 FROM dependencias AS build
@@ -32,7 +34,7 @@ COPY tsconfig.base.json ./
 COPY packages/contrato packages/contrato
 COPY web/ web/
 
-RUN npm run -w web build
+RUN pnpm --filter @orcamento/web run build
 
 # -----------------------------------------------------------------------------
 FROM node:22-alpine AS producao

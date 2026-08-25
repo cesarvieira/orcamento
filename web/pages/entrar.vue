@@ -34,7 +34,7 @@ async function submeter() {
 <template>
   <div class="entrar">
     <div class="entrar__marca">
-      <span class="entrar__selo"><i class="ti ti-home-dollar" /></span>
+      <span class="entrar__selo"><i class="ti ti-home-dollar"></i></span>
       <div>
         <h1 class="entrar__titulo">Orçamento da casa</h1>
         <p class="entrar__sub">Quanto dá para gastar de verdade.</p>
@@ -75,102 +75,4 @@ async function submeter() {
   </div>
 </template>
 
-<style scoped>
-.entrar__marca {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 18px;
-}
-
-.entrar__selo {
-  width: 44px;
-  height: 44px;
-  flex: none;
-  border-radius: 12px;
-  background: var(--tinta);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 23px;
-}
-
-.entrar__titulo {
-  margin: 0;
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-}
-
-.entrar__sub {
-  margin: 2px 0 0;
-  font-size: 12px;
-  color: var(--texto-fraco);
-}
-
-.cartao {
-  background: var(--superficie);
-  border: 1px solid var(--borda);
-  border-radius: var(--raio-grande);
-  padding: 18px;
-  box-shadow: var(--sombra-carta);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.campo {
-  display: block;
-}
-
-.campo__rotulo {
-  display: block;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  color: var(--texto-fraco);
-  margin-bottom: 4px;
-}
-
-.campo__entrada {
-  width: 100%;
-  height: 46px;
-  padding: 0 13px;
-  border: 1px solid var(--borda-media);
-  border-radius: 12px;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--texto);
-  background: var(--superficie);
-  outline: none;
-}
-
-.campo__entrada:focus {
-  border-color: var(--tinta);
-}
-
-.erro {
-  margin: 0;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--alerta);
-}
-
-.botao {
-  height: 48px;
-  border: none;
-  border-radius: 9999px;
-  background: var(--tinta);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.botao:disabled {
-  background: #aab2be;
-  cursor: default;
-}
-</style>
+<style lang="scss" src="~/assets/scss/pages/entrar.scss" scoped></style>

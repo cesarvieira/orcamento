@@ -22,9 +22,9 @@ export default async function preparar(): Promise<void> {
   if (!url) {
     throw new Error(
       'DATABASE_URL_TESTE não está no ambiente.\n' +
-        '  A suíte é de integração e precisa de um Postgres de verdade.\n' +
-        '  Suba o banco:  docker compose -f docker-compose.dev.yml up -d\n' +
-        '  E exporte a URL do banco de teste (ver .env.example).',
+      '  A suíte é de integração e precisa de um Postgres de verdade.\n' +
+      '  Suba o banco:  docker compose -f docker-compose.dev.yml up -d\n' +
+      '  E exporte a URL do banco de teste (ver .env.example).',
     );
   }
 

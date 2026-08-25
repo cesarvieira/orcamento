@@ -33,7 +33,12 @@ export function useSessao() {
   }
 
   async function sair(): Promise<void> {
-    await api('/sessoes/atual', { method: 'DELETE' }).catch(() => undefined);
+    try {
+      await api('/sessoes/atual', { method: 'DELETE' });
+    } catch {
+      // Encerra localmente mesmo se a chamada falhar — sair não pode travar
+      // numa API fora do ar.
+    }
     sessao.value = null;
   }
 

@@ -13,6 +13,7 @@
  */
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import type { Express } from 'express';
 import express from 'express';
 
 import { ambiente } from './config/ambiente';
@@ -26,7 +27,7 @@ import { rotasDeFamilia } from './modulos/familia/rotas';
 import { construirDocumento } from './openapi/registro';
 import './openapi/esquemas';
 
-export function criarApp() {
+export function criarApp(): Express {
   const app = express();
 
   app.disable('x-powered-by');

@@ -5,7 +5,7 @@
  * Editar aqui é criar a segunda declaração do modelo — exatamente o que o
  * contrato gerado existe para impedir (D-03). Mude o Zod da API e regenere:
  *
- *   npm run contrato:gerar
+ *   pnpm run contrato:gerar
  */
 
 import type { components, operations, paths } from './gerado/api';

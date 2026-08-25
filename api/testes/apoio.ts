@@ -89,7 +89,7 @@ export async function subirServidorComRealtime(): Promise<StackDeTempoReal> {
   const http = createServer(criarApp());
   criarServidorDeTempoReal(http);
 
-  await new Promise<void>((resolver) => http.listen(0, '127.0.0.1', resolver));
+  await new Promise<void>(resolver => http.listen(0, '127.0.0.1', resolver));
   const { port } = http.address() as AddressInfo;
 
   return {
@@ -97,7 +97,7 @@ export async function subirServidorComRealtime(): Promise<StackDeTempoReal> {
     url: `http://127.0.0.1:${port}`,
     encerrar: async () => {
       await fecharTempoReal();
-      await new Promise<void>((resolver) => http.close(() => resolver()));
+      await new Promise<void>(resolver => http.close(() => resolver()));
     },
   };
 }

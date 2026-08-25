@@ -45,7 +45,7 @@ export const CAMPOS_PROIBIDOS = ['familiaId', 'familia_id'] as const;
 
 function temProibido(alvo: unknown): string[] {
   if (!alvo || typeof alvo !== 'object') return [];
-  return CAMPOS_PROIBIDOS.filter((campo) =>
+  return CAMPOS_PROIBIDOS.filter(campo =>
     Object.prototype.hasOwnProperty.call(alvo, campo),
   );
 }
@@ -165,4 +165,18 @@ export function membroDaRequisicao(req: Request): string {
     );
   }
   return membroId;
+}
+
+/**
+ * O contexto inteiro, quando o handler precisa de mais de um campo dele.
+ * Mesma garantia de `familiaDaRequisicao`/`membroDaRequisicao` — não é `!`,
+ * é uma verificação real que aponta a causa quando falta `exigirSessao`.
+ */
+export function contextoDaRequisicao(req: Request): ContextoDaSessao {
+  if (!req.contexto) {
+    throw new Error(
+      'contextoDaRequisicao chamado sem sessão — falta `exigirSessao` nesta rota',
+    );
+  }
+  return req.contexto;
 }

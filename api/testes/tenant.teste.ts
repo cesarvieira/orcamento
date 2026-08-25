@@ -139,7 +139,7 @@ describe('middleware de tenant', () => {
   it('a família A não enxerga membro da família B', async () => {
     const resposta = await request(app).get('/familia').set('Cookie', cookieA);
 
-    const emails = (resposta.body.membros as Array<{ email: string }>).map((m) => m.email);
+    const emails = (resposta.body.membros as { email: string }[]).map(m => m.email);
     expect(emails).toContain(familiaA.email);
     expect(emails).not.toContain(familiaB.email);
   });

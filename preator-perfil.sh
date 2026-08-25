@@ -35,14 +35,14 @@ OVERLAY=".preator"
 # ---------------------------------------------------------------------------
 # A geração do contrato faz parte do build de propósito: ela precisa acontecer
 # antes do typecheck do front (D-03), senão o front compila contra o tipo velho.
-BUILD_CMD="npm run build"
+BUILD_CMD="pnpm run build"
 
 # ---------------------------------------------------------------------------
 # TESTE  —  integração, com Postgres de verdade. O gate EXIGE N>0 executados.
 # ---------------------------------------------------------------------------
 # Handler com fake não prova fiação. Aqui há banco, migration e HTTP reais.
 # Precisa de DATABASE_URL_TESTE no ambiente (ver .env.example).
-TEST_CMD="npm run teste"
+TEST_CMD="pnpm run teste"
 
 # O vitest não imprime o resumo em nenhum dos formatos que o gate reconhece —
 # ele acabaria somando "Test Files" com "Tests" e inflando a conta. Este comando
@@ -53,8 +53,8 @@ TEST_COUNT_CMD="node scripts/contar-testes.mjs"
 # FRONT  —  Nuxt em SSR sobre Vite
 # ---------------------------------------------------------------------------
 FRONT_DIR="web"
-FRONT_BUILD="npm run build"
-TYPECHECK_CMD="npm run typecheck"
+FRONT_BUILD="pnpm run build"
+TYPECHECK_CMD="pnpm run typecheck"
 
 # ---------------------------------------------------------------------------
 # SUBIR O SISTEMA  —  o gate que pega o que o build nunca vê
@@ -79,7 +79,7 @@ OPENAPI_URL="$API_BASE/openapi.json"
 # sem elas, declara que cobriu só a tela de login.
 #
 # O gate roda o comando de dentro de FRONT_DIR — daí o `../`.
-# Antes da primeira execução:  npm run crawl:preparar
+# Antes da primeira execução:  pnpm run crawl:preparar
 CRAWL_CMD="node ../scripts/crawl-gate.mjs"
 MAX_QUEBRADAS=0
 

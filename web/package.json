@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@fontsource/manrope": "^5.1.0",
-    "@orcamento/contrato": "*",
+    "@orcamento/contrato": "workspace:*",
     "@tabler/icons-webfont": "^3.31.0",
     "nuxt": "^3.15.0",
     "socket.io-client": "^4.8.0",
@@ -21,6 +21,7 @@
     "vue-router": "^4.5.0"
   },
   "devDependencies": {
+    "sass": "^1.83.0",
     "typescript": "^5.7.0",
     "vue-tsc": "^2.2.0"
   }

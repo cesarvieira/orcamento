@@ -12,7 +12,7 @@
  *
  * O índice também é gerado de propósito: esquema novo na API aparece no front
  * sem ninguém lembrar de exportá-lo à mão. Nada aqui se edita — quem quer mudar
- * o contrato muda o Zod da API e roda `npm run contrato:gerar`.
+ * o contrato muda o Zod da API e roda `pnpm run contrato:gerar`.
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -32,7 +32,7 @@ const AVISO = `/**
  * Editar aqui é criar a segunda declaração do modelo — exatamente o que o
  * contrato gerado existe para impedir (D-03). Mude o Zod da API e regenere:
  *
- *   npm run contrato:gerar
+ *   pnpm run contrato:gerar
  */
 `;
 
@@ -48,12 +48,12 @@ const nomes = Object.keys(documento.components?.schemas ?? {}).sort();
 
 const linhas = [
   AVISO,
-  "import type { components, operations, paths } from './gerado/api';",
+  'import type { components, operations, paths } from \'./gerado/api\';',
   '',
   'export type { components, operations, paths };',
   '',
   '/** Todo valor monetário nestes tipos é INTEIRO EM CENTAVOS (D-06). */',
-  ...nomes.map((n) => `export type ${n} = components['schemas']['${n}'];`),
+  ...nomes.map(n => `export type ${n} = components['schemas']['${n}'];`),
   '',
 ];
 

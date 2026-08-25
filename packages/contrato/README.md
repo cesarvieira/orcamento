@@ -6,21 +6,21 @@
 api (zod → OpenAPI)  →  packages/contrato (gerado)  →  web (importa)
 ```
 
-| Arquivo | O que é |
-|---|---|
-| `openapi.json` | o documento OpenAPI, emitido do registro da API |
+| Arquivo             | O que é                                           |
+| ------------------- | ------------------------------------------------- |
+| `openapi.json`      | o documento OpenAPI, emitido do registro da API   |
 | `src/gerado/api.ts` | a tradução crua do OpenAPI (`openapi-typescript`) |
-| `src/index.ts` | os apelidos por nome de esquema, também gerados |
-| `gerar.mjs` | o gerador — este sim é código |
+| `src/index.ts`      | os apelidos por nome de esquema, também gerados   |
+| `gerar.mjs`         | o gerador — este sim é código                     |
 
 ## Regenerar
 
 ```bash
-npm run contrato:gerar
+pnpm run contrato:gerar
 ```
 
 Roda `api → openapi:emitir` e depois a geração. O passo já está dentro de
-`npm run build`, porque ele **precisa acontecer antes do typecheck do front**.
+`pnpm run build`, porque ele **precisa acontecer antes do typecheck do front**.
 
 ## Por que existe
 

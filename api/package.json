@@ -6,6 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
     "dev": "tsx watch src/index.ts",
     "migracao:gerar": "drizzle-kit generate",
     "migrar": "tsx src/db/migrar.ts",

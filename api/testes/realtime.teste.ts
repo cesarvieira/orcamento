@@ -42,7 +42,7 @@ function conectar(cookie: string | null): Socket {
 function esperarConexao(socket: Socket): Promise<void> {
   return new Promise((resolver, rejeitar) => {
     socket.once('connect', () => resolver());
-    socket.once('connect_error', (erro) => rejeitar(erro));
+    socket.once('connect_error', erro => rejeitar(erro));
     setTimeout(() => rejeitar(new Error('timeout de conexão')), 8000);
   });
 }
@@ -92,8 +92,8 @@ describe('tempo real', () => {
 
     const recebidoPorA: unknown[] = [];
     const recebidoPorB: unknown[] = [];
-    socketA.on('recurso.alterado', (e) => recebidoPorA.push(e));
-    socketB.on('recurso.alterado', (e) => recebidoPorB.push(e));
+    socketA.on('recurso.alterado', e => recebidoPorA.push(e));
+    socketB.on('recurso.alterado', e => recebidoPorB.push(e));
 
     emitirInvalidacao({
       familiaId: familiaA.familiaId,
@@ -102,7 +102,7 @@ describe('tempo real', () => {
       origemClienteId: 'cliente-da-ana',
     });
 
-    await new Promise((r) => setTimeout(r, 400));
+    await new Promise(r => setTimeout(r, 400));
 
     expect(recebidoPorA).toHaveLength(1);
     expect(recebidoPorB).toHaveLength(0);

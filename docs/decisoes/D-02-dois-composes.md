@@ -8,15 +8,15 @@
 A doutrina exige que a tela abra **no artefato de deploy, não no dev-build**. Ao mesmo tempo,
 subir a stack inteira em container a cada alteração destrói o ciclo de desenvolvimento.
 
-Se os gates rodassem contra `npm run dev`, eles provariam um artefato que ninguém publica: o selo
+Se os gates rodassem contra `pnpm run dev`, eles provariam um artefato que ninguém publica: o selo
 pareceria verde e não significaria nada.
 
 ## Decisão
 
-| Arquivo | Sobe | Para quê |
-|---|---|---|
-| `docker-compose.dev.yml` | só PostgreSQL | loop de desenvolvimento; `api` e `web` rodam nativos |
-| `docker-compose.yml` | PostgreSQL + `api` + `web` | **o artefato de deploy**, nas imagens de produção |
+| Arquivo                  | Sobe                       | Para quê                                             |
+| ------------------------ | -------------------------- | ---------------------------------------------------- |
+| `docker-compose.dev.yml` | só PostgreSQL              | loop de desenvolvimento; `api` e `web` rodam nativos |
+| `docker-compose.yml`     | PostgreSQL + `api` + `web` | **o artefato de deploy**, nas imagens de produção    |
 
 `COMPOSE` no `preator-perfil.sh` aponta para o segundo. O primeiro nunca é alvo de gate.
 
@@ -28,8 +28,8 @@ desenvolvimento inviável.
 **Um compose só, com o banco, provando o dev-build.** Descartado por conflito direto com o
 Portão B — é exatamente o "verde stale" que a estrutura de portões existe para impedir.
 
-**Postgres gerenciado na nuvem, sem compose.** Descartado: o selo *"migrations aplicam do zero em
-banco limpo"* fica frágil quando o banco é acumulado e compartilhado.
+**Postgres gerenciado na nuvem, sem compose.** Descartado: o selo _"migrations aplicam do zero em
+banco limpo"_ fica frágil quando o banco é acumulado e compartilhado.
 
 ## Consequências
 

@@ -20,9 +20,32 @@ packages/contrato   saída do OpenAPI da api — o front importa daqui, nunca re
 scripts/        seed.ts · crawl-gate.mjs · contar-testes.mjs
 ```
 
-`npm` workspaces na raiz (`package.json`) amarram os três. `BUILD_CMD` roda `tsc` na API e, na
-mesma passada, emite o OpenAPI e gera `packages/contrato` — de propósito, para o front nunca
-compilar contra um tipo velho (D-03).
+`pnpm` (workspace em `pnpm-workspace.yaml`) amarra os três — migrado de `npm` depois do fechamento
+inicial da história, a pedido do humano. `BUILD_CMD` roda `tsc` na API e, na mesma passada, emite o
+OpenAPI e gera `packages/contrato` — de propósito, para o front nunca compilar contra um tipo velho
+(D-03). Os dois `Dockerfile` usam `corepack prepare pnpm@11.10.0` e `--ignore-scripts` nos estágios
+de imagem (não há `.git` nem `scripts/` no contexto de build, então o hook de git da raiz não tem
+o que religar ali).
+
+## Qualidade — lint, format e hooks
+
+- **ESLint** (flat config, `eslint.config.mjs` + `eslint.shared.rules.mjs` na raiz) cobre o
+  monorepo inteiro num só arquivo — sem turbo aqui, um config resolve para api/web/packages/scripts
+  sem duplicar por pacote. Regras carregadas do projeto `leilaodeumminuto` como referência
+  (stylistic, TypeScript, Vue/Nuxt). `packages/contrato/src/gerado/**` e `src/index.ts` (saída do
+  OpenAPI) ficam fora do lint — são gerados, não se editam.
+- **Prettier** cobre `json/md/yml/yaml/scss/css`; TypeScript/Vue ficam com o ESLint (`@stylistic`),
+  para não ter duas ferramentas competindo pela mesma formatação.
+- **`.githooks/pre-commit`** ganhou um segundo bloco (o primeiro, do scanner de segredo, é da
+  fábrica e não se toca): `pnpm exec lint-staged` nos arquivos staged. **`.githooks/pre-push`**
+  (novo) roda lint completo + typecheck (api e web) + build antes de liberar o push — mais barato
+  que o gate mestre (sem banco, sem stack de pé), mais caro que o pre-commit. `scripts/
+instalar-hooks.mjs` (script `prepare` do `package.json`) fixa `core.hooksPath=.githooks` a cada
+  `pnpm install`, para o segundo bloco nunca depender de alguém lembrar de religar.
+- **CSS não vive mais em `.vue`.** Todo `<style scoped>` virou `<style lang="scss" src="~/assets/
+scss/..." scoped>`, apontando para um parcial em `web/assets/scss/{layouts,pages,components}/`.
+  `web/assets/css/base.css` virou `web/assets/scss/base.scss`. Precisa do pacote `sass` (dart-sass)
+  como devDependency do `web` — o Vite não compila `.scss` sem ele.
 
 ## Banco de dados
 
@@ -35,7 +58,7 @@ compilar contra um tipo velho (D-03).
   `public`. Relevante para quem escrever setup de teste: derrubar só `public` não reseta o
   histórico de migrations — a segunda execução da suíte encontrava "já apliquei" contra tabelas que
   não existiam mais. `api/testes/preparar-banco.ts` derruba o schema inteiro (`DROP SCHEMA public,
-  drizzle CASCADE`) por isso.
+drizzle CASCADE`) por isso.
 
 ## Tenant e sessão
 
@@ -69,7 +92,7 @@ compilar contra um tipo velho (D-03).
 
 - `web/layouts/default.vue` — tab bar (< 768px) / sidebar (≥ 768px), extraído do mockup: sidebar
   252px `#14325a`, item 42px, ativo em branco; tab bar grid `1fr 1fr 76px 1fr 1fr` com FAB central;
-  topo 76px. Fontes (Manrope) e ícones (Tabler) empacotados via `npm`, não CDN — o gate de
+  topo 76px. Fontes (Manrope) e ícones (Tabler) empacotados via `pnpm`, não CDN — o gate de
   navegação cobra zero erro de rede.
 - `web/layouts/limpo.vue` — layout sem moldura, usado por `entrar.vue`.
 - `web/config/navegacao.ts` — as sete rotas de domínio num só lugar (fonte para tab bar e sidebar).
@@ -104,8 +127,8 @@ Re-executada pelo condutor, **independente do relato do agente**, três vezes:
 
 1. Na branch `tarefa/24-ef-00-plataforma`, duas execuções seguidas (para descartar flakiness de
    ordem) — `PROVA_DE_COMPORTAMENTO=PASS` nas duas, 32 testes.
-2. Na branch `historia/14-ef-00-plataforma`, **do zero**: `npm install` fresco, `docker compose
-   down -v` + `up -d --build` (banco limpo, imagens reconstruídas) — `PROVA_DE_COMPORTAMENTO=PASS`.
+2. Na branch `historia/14-ef-00-plataforma`, **do zero**: `pnpm install` fresco, `docker compose
+down -v` + `up -d --build` (banco limpo, imagens reconstruídas) — `PROVA_DE_COMPORTAMENTO=PASS`.
 
 ```
 build        PASS  (bloqueante)

@@ -33,7 +33,7 @@ const analise = esquema.safeParse(process.env);
 
 if (!analise.success) {
   const problemas = analise.error.issues
-    .map((i) => `  · ${i.path.join('.')}: ${i.message}`)
+    .map(i => `  · ${i.path.join('.')}: ${i.message}`)
     .join('\n');
   throw new Error(`Configuração de ambiente inválida:\n${problemas}`);
 }

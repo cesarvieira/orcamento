@@ -1,7 +1,7 @@
 /**
  * `scripts/seed.ts` — a porta de entrada do seed pela linha de comando.
  *
- *   npm run semear
+ *   pnpm run semear
  *
  * A lógica vive em `api/src/db/semear.ts` porque ela precisa estar DENTRO da
  * imagem da API: o serviço `migrate` do compose semeia logo depois de migrar,
@@ -14,17 +14,20 @@ import { db, fecharBanco } from '../api/src/db';
 import { semear } from '../api/src/db/semear';
 
 async function principal(): Promise<void> {
-  const resumo = await semear(db);
-  console.log(`[seed] ${resumo}`);
-}
-
-principal()
-  .then(async () => {
+  try {
+    const resumo = await semear(db);
+    console.log(`[seed] ${resumo}`);
     await fecharBanco();
     process.exit(0);
-  })
-  .catch(async (erro) => {
+  } catch (erro) {
     console.error('[seed] FALHOU:', erro);
-    await fecharBanco().catch(() => undefined);
+    try {
+      await fecharBanco();
+    } catch {
+      // banco já pode estar inacessível — o processo sai de qualquer forma
+    }
     process.exit(1);
-  });
+  }
+}
+
+await principal();

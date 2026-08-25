@@ -66,7 +66,7 @@ export async function semear(db: Db): Promise<string> {
   if (!usuario || !senha) {
     throw new Error(
       'seed: PREATOR_TEST_USER e PREATOR_TEST_PASS precisam estar no ambiente — ' +
-        'sem eles o gate de navegação não alcança a área logada, que aqui é o app inteiro.',
+      'sem eles o gate de navegação não alcança a área logada, que aqui é o app inteiro.',
     );
   }
   const email = usuario.trim().toLowerCase();

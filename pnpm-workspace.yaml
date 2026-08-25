@@ -1,0 +1,16 @@
+packages:
+  - 'api'
+  - 'web'
+  - 'packages/*'
+allowBuilds:
+  # Binários nativos que dependências reais precisam para funcionar — watcher
+  # de arquivo do Vite/Nuxt e o compilador do esbuild. Sem rodar o postinstall,
+  # o build falha ou produz artefato incompleto.
+  '@parcel/watcher': true
+  esbuild: true
+  # Transitiva de `svgtofont`, dentro de `@tabler/icons-webfont` — só é usada
+  # se ELE regenerar fontes a partir de SVG. Consumimos o `dist/` já
+  # pré-compilado do pacote, então nunca chamamos essa etapa; e o binário não
+  # compila nesta máquina (exige Visual Studio C++ que não está instalado).
+  # Falso: barato de reverter se algum dia precisarmos regenerar ícones aqui.
+  ttf2woff2: false

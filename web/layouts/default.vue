@@ -42,7 +42,7 @@ const rotaDeLancamento = '/extrato';
     <!-- ── SIDEBAR · ≥ 768px ────────────────────────────────────────────── -->
     <aside class="sidebar">
       <div class="marca">
-        <span class="marca__selo"><i class="ti ti-home-dollar" /></span>
+        <span class="marca__selo"><i class="ti ti-home-dollar"></i></span>
         <span class="marca__texto">
           <span class="marca__titulo">Orçamento da casa</span>
           <span class="marca__sub">{{ sessao?.familiaNome ?? '—' }}</span>
@@ -58,13 +58,13 @@ const rotaDeLancamento = '/extrato';
           :class="{ 'sidebar__item--ativo': destinoAtivo?.id === destino.id }"
           :aria-current="destinoAtivo?.id === destino.id ? 'page' : undefined"
         >
-          <i class="ti" :class="destino.icone" />
+          <i class="ti" :class="destino.icone"></i>
           <span class="sidebar__rotulo">{{ destino.rotulo }}</span>
         </NuxtLink>
       </nav>
 
       <NuxtLink :to="rotaDeLancamento" class="sidebar__acao">
-        <i class="ti ti-plus" />
+        <i class="ti ti-plus"></i>
         Novo lançamento
       </NuxtLink>
 
@@ -88,7 +88,7 @@ const rotaDeLancamento = '/extrato';
       </header>
 
       <main class="conteudo">
-        <slot />
+        <slot></slot>
       </main>
     </div>
 
@@ -102,13 +102,13 @@ const rotaDeLancamento = '/extrato';
         :class="{ 'tabbar__aba--ativa': destinoAtivo?.id === destino.id }"
         :aria-current="destinoAtivo?.id === destino.id ? 'page' : undefined"
       >
-        <i class="ti" :class="destino.icone" />
+        <i class="ti" :class="destino.icone"></i>
         <span>{{ destino.rotuloCurto }}</span>
       </NuxtLink>
 
       <div class="tabbar__centro">
         <NuxtLink :to="rotaDeLancamento" class="tabbar__fab" aria-label="Novo lançamento">
-          <i class="ti ti-plus" />
+          <i class="ti ti-plus"></i>
         </NuxtLink>
       </div>
 
@@ -118,272 +118,11 @@ const rotaDeLancamento = '/extrato';
         :class="{ 'tabbar__aba--ativa': maisEstaAtivo }"
         :aria-current="maisEstaAtivo ? 'page' : undefined"
       >
-        <i class="ti ti-dots" />
+        <i class="ti ti-dots"></i>
         <span>Mais</span>
       </NuxtLink>
     </nav>
   </div>
 </template>
 
-<style scoped>
-/* ─────────────────────────────────────────────────────────────────────────
-   MOBILE PRIMEIRO. A sidebar não existe abaixo de 768px; a tab bar não
-   existe acima. Uma das duas está sempre em `display:none`, nunca as duas.
-   ───────────────────────────────────────────────────────────────────────── */
-
-.shell {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.sidebar {
-  display: none;
-}
-
-.corpo {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  /* Espaço para a tab bar não cobrir o fim do conteúdo. */
-  padding-bottom: var(--altura-tabbar);
-}
-
-.topo {
-  padding: 14px 18px 0;
-}
-
-.topo__titulo {
-  margin: 0;
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-}
-
-.conteudo {
-  flex: 1;
-  padding: 6px 18px 24px;
-}
-
-/* ── tab bar ───────────────────────────────────────────────────────────── */
-
-.tabbar {
-  position: fixed;
-  inset: auto 0 0 0;
-  z-index: 30;
-  height: var(--altura-tabbar);
-  background: var(--superficie);
-  border-top: 1px solid var(--borda-topo);
-  display: grid;
-  grid-template-columns: 1fr 1fr 76px 1fr 1fr;
-  align-items: center;
-  padding-bottom: 10px;
-}
-
-.tabbar__aba {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  color: var(--texto-fraco);
-  font-size: 10.5px;
-  font-weight: 700;
-}
-
-.tabbar__aba i {
-  font-size: 23px;
-}
-
-.tabbar__aba--ativa,
-.tabbar__aba--ativa:hover {
-  color: var(--tinta);
-}
-
-.tabbar__centro {
-  display: flex;
-  justify-content: center;
-}
-
-.tabbar__fab {
-  width: 56px;
-  height: 56px;
-  margin-top: -14px;
-  border-radius: 9999px;
-  background: var(--tinta);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: var(--sombra-flutuante);
-}
-
-.tabbar__fab i {
-  font-size: 26px;
-}
-
-.tabbar__fab:hover {
-  color: #fff;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   DESKTOP · a partir de 768px
-   ───────────────────────────────────────────────────────────────────────── */
-
-@media (min-width: 768px) {
-  .shell {
-    flex-direction: row;
-  }
-
-  .tabbar {
-    display: none;
-  }
-
-  .sidebar {
-    display: flex;
-    flex-direction: column;
-    gap: 22px;
-    width: var(--largura-sidebar);
-    flex: none;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    padding: 22px 16px;
-    background: var(--tinta);
-    color: #fff;
-  }
-
-  .marca {
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    padding: 0 6px;
-  }
-
-  .marca__selo {
-    width: 38px;
-    height: 38px;
-    flex: none;
-    border-radius: 11px;
-    background: rgba(255, 255, 255, 0.14);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 21px;
-  }
-
-  .marca__texto {
-    min-width: 0;
-  }
-
-  .marca__titulo {
-    display: block;
-    font-size: 14px;
-    font-weight: 800;
-    letter-spacing: -0.01em;
-  }
-
-  .marca__sub {
-    display: block;
-    font-size: 11px;
-    opacity: 0.62;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .sidebar__nav {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-
-  .sidebar__item {
-    height: 42px;
-    padding: 0 12px;
-    display: flex;
-    align-items: center;
-    gap: 11px;
-    border-radius: var(--raio-pequeno);
-    font-size: 13.5px;
-    font-weight: 700;
-    color: rgba(255, 255, 255, 0.82);
-    background: transparent;
-  }
-
-  .sidebar__item i {
-    font-size: 19px;
-  }
-
-  .sidebar__item:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.08);
-  }
-
-  .sidebar__item--ativo,
-  .sidebar__item--ativo:hover {
-    background: #fff;
-    color: var(--tinta);
-  }
-
-  .sidebar__rotulo {
-    flex: 1;
-  }
-
-  .sidebar__acao {
-    height: 46px;
-    border-radius: 12px;
-    background: #fff;
-    color: var(--tinta);
-    font-size: 13.5px;
-    font-weight: 800;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-  }
-
-  .sidebar__acao i {
-    font-size: 18px;
-  }
-
-  .sidebar__rodape {
-    margin-top: auto;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 12px;
-    padding: 14px;
-    font-size: 11px;
-  }
-
-  .sidebar__rodape-vazio {
-    opacity: 0.62;
-    line-height: 1.5;
-  }
-
-  .corpo {
-    padding-bottom: 0;
-  }
-
-  .topo {
-    height: var(--altura-topo);
-    flex: none;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 0 30px;
-    background: var(--superficie);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.07);
-    position: sticky;
-    top: 0;
-    z-index: 20;
-  }
-
-  .topo__titulo {
-    font-size: 20px;
-  }
-
-  .conteudo {
-    padding: 26px 30px 40px;
-  }
-}
-</style>
+<style lang="scss" src="~/assets/scss/layouts/default.scss" scoped></style>

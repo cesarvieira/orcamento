@@ -23,9 +23,17 @@ http.listen(ambiente.API_PORT, () => {
 
 async function encerrar(sinal: string): Promise<void> {
   console.log(`[api] ${sinal} — encerrando`);
-  await fecharTempoReal().catch(() => undefined);
+  try {
+    await fecharTempoReal();
+  } catch {
+    // encerrando de qualquer forma
+  }
   http.close();
-  await fecharBanco().catch(() => undefined);
+  try {
+    await fecharBanco();
+  } catch {
+    // encerrando de qualquer forma
+  }
   process.exit(0);
 }
 

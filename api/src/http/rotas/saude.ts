@@ -4,12 +4,13 @@
  * responde 200 sem conseguir consultar não subiu, subiu pela metade.
  */
 import { sql } from 'drizzle-orm';
+import type { Router as RouterType } from 'express';
 import { Router } from 'express';
 
 import { db } from '../../db';
 import { registrarRota } from '../../openapi/registro';
 
-export const rotasDeSaude = Router();
+export const rotasDeSaude: RouterType = Router();
 
 registrarRota({
   metodo: 'get',

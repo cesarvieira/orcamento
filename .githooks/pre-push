@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Gate local antes do push: mais caro que o pre-commit (roda no repo inteiro,
+# não só no staged), mais barato que `gate-motor.sh` (sem banco, sem stack de
+# pé — isso é dos testes de integração e do gate de navegação, que continuam
+# sendo a autoridade final, rodados por `bash preator/esteira/gates/prova-comportamento.sh .`).
+#
+# Falta pnpm ou node_modules: não bloqueia — mesmo raciocínio do pre-commit,
+# clone fresco sem `pnpm install` não pode travar em outro gate.
+set -uo pipefail
+RAIZ="$(git rev-parse --show-toplevel)"
+
+[ -f "$RAIZ/package.json" ] && [ -d "$RAIZ/node_modules" ] && command -v pnpm >/dev/null 2>&1 || exit 0
+
+cd "$RAIZ" || exit 1
+
+echo "[pre-push] lint"
+pnpm run lint || { echo "[pre-push] BLOQUEADO: lint falhou."; exit 1; }
+
+echo "[pre-push] typecheck (api)"
+pnpm --filter @orcamento/api run typecheck || { echo "[pre-push] BLOQUEADO: typecheck da api falhou."; exit 1; }
+
+echo "[pre-push] typecheck (web)"
+pnpm --filter @orcamento/web run typecheck || { echo "[pre-push] BLOQUEADO: typecheck do web falhou."; exit 1; }
+
+echo "[pre-push] build"
+pnpm run build || { echo "[pre-push] BLOQUEADO: build falhou."; exit 1; }
+
+echo "[pre-push] front build"
+pnpm --filter @orcamento/web run build || { echo "[pre-push] BLOQUEADO: build do web falhou."; exit 1; }
+
+exit 0

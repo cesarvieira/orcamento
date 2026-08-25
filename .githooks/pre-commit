@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# Instalado por preator/adocao/instalar.sh. Bloqueia commit com segredo vazado.
+# Bloco 1 instalado por preator/adocao/instalar.sh — bloqueia commit com segredo
+# vazado. Não editar esse bloco por reflexo: um rerun do instalador o
+# REESCREVE (ele não conhece o bloco 2 abaixo). Se isso acontecer, reaplique o
+# bloco 2 a partir de `git log -p -- .githooks/pre-commit`.
 set -uo pipefail
 RAIZ="$(git rev-parse --show-toplevel)"
 FAB="$RAIZ/preator"
@@ -13,4 +16,12 @@ for f in $(git diff --cached --name-only --diff-filter=ACM | grep -vE '\.(png|jp
     echo "  ⛔ segredo em $f"; vazou=1; }
 done
 [ "$vazou" = 1 ] && { echo "[fábrica] BLOQUEADO: segredo detectado."; exit 1; }
+
+# ─── Bloco 2 — do projeto (não é da fábrica) ────────────────────────────────
+# Lint + format nos arquivos staged, via lint-staged. Só roda se pnpm e o
+# node_modules existirem — clone fresco sem `pnpm install` ainda não trava.
+if [ -f "$RAIZ/package.json" ] && [ -d "$RAIZ/node_modules" ] && command -v pnpm >/dev/null 2>&1; then
+  ( cd "$RAIZ" && pnpm exec lint-staged ) || exit 1
+fi
+
 exit 0

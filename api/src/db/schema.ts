@@ -78,7 +78,7 @@ export const membros = pgTable(
     criadoEm: criadoEm(),
     atualizadoEm: atualizadoEm(),
   },
-  (t) => [
+  t => [
     uniqueIndex('membros_email_unico').on(t.email),
     index('membros_por_familia').on(t.familiaId),
   ],
@@ -113,7 +113,7 @@ export const identidades = pgTable(
     criadoEm: criadoEm(),
     atualizadoEm: atualizadoEm(),
   },
-  (t) => [
+  t => [
     uniqueIndex('identidades_provedor_email_unico').on(t.provedor, t.email),
     index('identidades_por_membro').on(t.membroId),
   ],
@@ -142,7 +142,7 @@ export const convites = pgTable(
     usadoEm: timestamp('usado_em', { withTimezone: true }),
     criadoEm: criadoEm(),
   },
-  (t) => [
+  t => [
     uniqueIndex('convites_token_unico').on(t.token),
     index('convites_por_familia').on(t.familiaId),
   ],
@@ -176,7 +176,7 @@ export const sessoes = pgTable(
     encerradaEm: timestamp('encerrada_em', { withTimezone: true }),
     criadoEm: criadoEm(),
   },
-  (t) => [
+  t => [
     uniqueIndex('sessoes_token_unico').on(t.tokenHash),
     index('sessoes_por_membro').on(t.membroId),
   ],

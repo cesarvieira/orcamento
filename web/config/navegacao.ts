@@ -109,14 +109,14 @@ export const ROTA_DE_ENTRADA = '/entrar';
 /** A tela-índice do mobile, onde entram os destinos que não cabem na tab bar. */
 export const ROTA_MAIS = '/mais';
 
-export const ABAS_DO_MOBILE = DESTINOS.filter((d) => d.abaNoMobile);
-export const DESTINOS_EM_MAIS = DESTINOS.filter((d) => !d.abaNoMobile);
+export const ABAS_DO_MOBILE = DESTINOS.filter(d => d.abaNoMobile);
+export const DESTINOS_EM_MAIS = DESTINOS.filter(d => !d.abaNoMobile);
 
 /** O destino ativo para uma rota. `/contas/123` continua sendo *Contas*. */
 export function destinoDaRota(rota: string): Destino | undefined {
-  const exato = DESTINOS.find((d) => d.rota === rota);
+  const exato = DESTINOS.find(d => d.rota === rota);
   if (exato) return exato;
-  return DESTINOS.filter((d) => d.rota !== '/').find((d) =>
+  return DESTINOS.filter(d => d.rota !== '/').find(d =>
     rota.startsWith(`${d.rota}/`),
   );
 }

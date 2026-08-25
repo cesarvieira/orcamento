@@ -9,14 +9,16 @@
  * schema; os fluxos são de lá.
  */
 import { eq } from 'drizzle-orm';
+import type { Router as RouterType } from 'express';
 import { Router } from 'express';
-import { z } from 'zod';
+import type { z } from 'zod';
 
 import { db } from '../../db';
 import { identidades, membros } from '../../db/schema';
 import { registrarRota } from '../../openapi/registro';
 import { EsquemaCredenciais } from '../../openapi/esquemas';
 import {
+  contextoDaRequisicao,
   exigirSessao,
   familiaDaRequisicao,
 } from '../../http/middleware/tenant';
@@ -28,7 +30,7 @@ import {
   opcoesDoCookie,
 } from './sessao-servico';
 
-export const rotasDeFamilia = Router();
+export const rotasDeFamilia: RouterType = Router();
 
 // ---------------------------------------------------------------------------
 // POST /sessoes — entrar com email + senha
@@ -103,7 +105,7 @@ registrarRota({
 });
 
 rotasDeFamilia.get('/sessoes/atual', exigirSessao, (req, res) => {
-  const contexto = req.contexto!;
+  const contexto = contextoDaRequisicao(req);
   res.json({
     membroId: contexto.membroId,
     membroNome: contexto.membroNome,
@@ -131,7 +133,7 @@ registrarRota({
 
 rotasDeFamilia.delete('/sessoes/atual', exigirSessao, async (req, res, next) => {
   try {
-    await encerrarSessao(db, req.contexto!.sessaoId);
+    await encerrarSessao(db, contextoDaRequisicao(req).sessaoId);
     res.clearCookie(COOKIE_SESSAO, { path: '/' });
     res.status(204).end();
   } catch (erro) {
@@ -171,7 +173,7 @@ rotasDeFamilia.get('/familia', exigirSessao, async (req, res, next) => {
 
     res.json({
       id: familiaId,
-      nome: req.contexto!.familiaNome,
+      nome: contextoDaRequisicao(req).familiaNome,
       membros: lista,
     });
   } catch (erro) {

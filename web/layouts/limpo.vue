@@ -8,29 +8,9 @@
 <template>
   <div class="limpo">
     <div class="limpo__caixa">
-      <slot />
+      <slot></slot>
     </div>
   </div>
 </template>
 
-<style scoped>
-.limpo {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px 18px;
-  background: var(--fundo);
-}
-
-.limpo__caixa {
-  width: 100%;
-  max-width: 380px;
-}
-
-@media (min-width: 768px) {
-  .limpo {
-    background: var(--fundo-desktop);
-  }
-}
-</style>
+<style lang="scss" src="~/assets/scss/layouts/limpo.scss" scoped></style>

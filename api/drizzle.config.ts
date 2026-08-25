@@ -1,7 +1,7 @@
 /**
  * Configuração do drizzle-kit.
  *
- * `npm run -w api migracao:gerar` lê `src/db/schema.ts` e ESCREVE o SQL em
+ * `pnpm --filter @orcamento/api run migracao:gerar` lê `src/db/schema.ts` e ESCREVE o SQL em
  * `drizzle/`. O SQL é versionado e nunca editado à mão — quem muda o banco
  * muda o schema e regenera.
  */

@@ -35,13 +35,20 @@ async function principal(): Promise<void> {
   }
 }
 
-principal()
-  .then(async () => {
+// IIFE, não top-level await: este arquivo compila em CommonJS (`tsc`), que
+// não aceita top-level await.
+void (async () => {
+  try {
+    await principal();
     await fecharBanco();
     process.exit(0);
-  })
-  .catch(async (erro) => {
+  } catch (erro) {
     console.error('[migrar] FALHOU:', erro);
-    await fecharBanco().catch(() => undefined);
+    try {
+      await fecharBanco();
+    } catch {
+      // banco já pode estar inacessível — o processo sai de qualquer forma
+    }
     process.exit(1);
-  });
+  }
+})();

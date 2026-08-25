@@ -29,7 +29,7 @@ afterAll(async () => {
 });
 
 function cookieDaResposta(cabecalho: string[] | undefined): string {
-  const bruto = cabecalho?.find((c) => c.startsWith('orcamento_sessao='));
+  const bruto = cabecalho?.find(c => c.startsWith('orcamento_sessao='));
   if (!bruto) throw new Error('a resposta não trouxe o cookie de sessão');
   return bruto;
 }

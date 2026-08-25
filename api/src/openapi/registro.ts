@@ -50,7 +50,7 @@ export function registrarEsquema<T extends z.ZodType>(nome: string, esquema: T):
 
 export function registrarRota(rota: Rota): void {
   const chave = `${rota.metodo} ${rota.caminho}`;
-  if (rotas.some((r) => `${r.metodo} ${r.caminho}` === chave)) {
+  if (rotas.some(r => `${r.metodo} ${r.caminho}` === chave)) {
     throw new Error(`rota duplicada no contrato: ${chave}`);
   }
 
@@ -80,8 +80,8 @@ function caminhoOpenApi(caminho: string): string {
 }
 
 function parametrosDeCaminho(caminho: string) {
-  const nomes = [...caminho.matchAll(/:([A-Za-z0-9_]+)/g)].map((m) => m[1]);
-  return nomes.map((nome) => ({
+  const nomes = [...caminho.matchAll(/:([A-Za-z0-9_]+)/g)].map(m => m[1]);
+  return nomes.map(nome => ({
     name: nome as string,
     in: 'path' as const,
     required: true,
@@ -161,6 +161,6 @@ export function construirDocumento(): Record<string, unknown> {
 }
 
 /** Só para os testes: garante que o registro está limpo entre execuções. */
-export function _rotasRegistradas(): ReadonlyArray<Rota> {
+export function rotasRegistradas(): readonly Rota[] {
   return rotas;
 }
