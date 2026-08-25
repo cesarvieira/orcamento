@@ -22,6 +22,9 @@ import { char, date, integer, timestamp } from 'drizzle-orm/pg-core';
  *   valorCentavos: 31240  →  R$ 312,40
  *
  * A formatação para exibição acontece só na borda, no componente.
+ *
+ * @fundacao ninguém usa ainda — a EF-00 não tem entidade de domínio. É pra
+ * EF-02 em diante.
  */
 export const dinheiroCentavos = (nome: string) => integer(nome);
 
@@ -30,6 +33,9 @@ export const dinheiroCentavos = (nome: string) => integer(nome);
  *
  * É deliberadamente distinta da competência: uma compra do dia 31 pode
  * pertencer à competência do mês seguinte. Ver `competencia` abaixo.
+ *
+ * @fundacao ninguém usa ainda — a EF-00 não tem entidade de domínio. É pra
+ * EF-02 em diante.
  */
 export const dataDoFato = (nome: string) => date(nome);
 
@@ -40,6 +46,9 @@ export const dataDoFato = (nome: string) => date(nome);
  * competência de uma compra no cartão depende do fechamento da fatura vigente
  * naquele dia, e esse fechamento pode mudar depois. Recalcular na leitura
  * reescreveria o passado.
+ *
+ * @fundacao ninguém usa ainda — a EF-00 não tem entidade de domínio. É pra
+ * EF-02 em diante.
  */
 export const competencia = (nome: string) => char(nome, { length: 7 });
 

@@ -14,7 +14,13 @@ import path from 'node:path';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
+import { config as carregarEnv } from 'dotenv';
 import { Pool } from 'pg';
+
+// Carrega `.env` a partir DESTE arquivo, não do cwd (mesma razão de
+// `api/src/config/ambiente.ts`) — `pnpm run teste`/`pnpm --filter @orcamento/api
+// run teste` roda com cwd em `api/`, e o `.env` mora na raiz do monorepo.
+carregarEnv({ path: path.resolve(__dirname, '..', '..', '.env'), quiet: true });
 
 export default async function preparar(): Promise<void> {
   const url = process.env.DATABASE_URL_TESTE;

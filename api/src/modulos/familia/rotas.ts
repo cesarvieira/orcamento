@@ -11,7 +11,6 @@
 import { eq } from 'drizzle-orm';
 import type { Router as RouterType } from 'express';
 import { Router } from 'express';
-import type { z } from 'zod';
 
 import { db } from '../../db';
 import { identidades, membros } from '../../db/schema';
@@ -180,6 +179,3 @@ rotasDeFamilia.get('/familia', exigirSessao, async (req, res, next) => {
     next(erro);
   }
 });
-
-/** Reexportado só para manter o `z` usado nas anotações desta camada. */
-export type CorpoDeCredenciais = z.infer<typeof EsquemaCredenciais>;

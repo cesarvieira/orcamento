@@ -1,0 +1,47 @@
+version: 2
+
+updates:
+  # Workspace pnpm inteiro (api/, web/, packages/contrato) — o Dependabot
+  # entende pnpm-workspace.yaml a partir da raiz, não precisa de uma entrada
+  # por pacote.
+  - package-ecosystem: npm
+    directory: '/'
+    schedule:
+      interval: weekly
+    groups:
+      patch-e-minor:
+        update-types:
+          - minor
+          - patch
+    labels:
+      - dependencies
+    ignore:
+      # Major de linguagem é decisão do time, não PR automático.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: docker
+    directory: /api
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+    ignore:
+      # Major do Node é decisão do time — os dois Dockerfile fixam a mesma
+      # versão de propósito (ver comentário em cada um).
+      - dependency-name: node
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: docker
+    directory: /web
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+    ignore:
+      - dependency-name: node
+        update-types: [version-update:semver-major]
+
+  # preator/ é o submódulo da fábrica — lido, nunca escrito (AGENTS.md). O
+  # commit em que ele está pinado se atualiza pelo instalador da fábrica, não
+  # por PR de dependência.

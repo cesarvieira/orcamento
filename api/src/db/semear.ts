@@ -28,14 +28,20 @@ import type { Db } from './index';
 import { familias, identidades, membros } from './schema';
 import { gerarHashDeSenha } from '../modulos/familia/senha';
 
-/** O contrato que cada módulo cumpre para semear os seus 1–3 registros. */
+/**
+ * O contrato que cada módulo cumpre para semear os seus 1–3 registros.
+ * @fundacao ninguém implementa ainda — é pra EF-02 em diante.
+ */
 export interface SemeadorDeModulo {
   /** O módulo, para o log. Ex.: `contas`, `orcamento`. */
   modulo: string;
   semear: (db: Db, contexto: ContextoDoSeed) => Promise<number>;
 }
 
-/** O que a plataforma entrega pronto a quem semeia depois dela. */
+/**
+ * O que a plataforma entrega pronto a quem semeia depois dela.
+ * @fundacao ninguém consome ainda — é pra EF-02 em diante.
+ */
 export interface ContextoDoSeed {
   familiaId: string;
   membroId: string;
@@ -47,6 +53,8 @@ export interface ContextoDoSeed {
  * Os semeadores dos módulos. EF-02 a EF-08 acrescentam os seus aqui.
  * Vazio na EF-00 porque não há entidade de domínio ainda — e um seed que
  * fingisse ter é pior que um seed honesto e curto.
+ *
+ * @fundacao vazio de propósito — ver MC-00.
  */
 export const SEMEADORES_DE_MODULO: SemeadorDeModulo[] = [];
 
@@ -133,7 +141,7 @@ export async function semear(db: Db): Promise<string> {
     competencia: competenciaDeHoje(),
   };
 
-  const partes: string[] = [`família de teste + membro aceito (${email})`];
+  const partes: string[] = [`família de teste + membro aceito (${email} / ${senha})`];
 
   for (const semeador of SEMEADORES_DE_MODULO) {
     const quantos = await semeador.semear(db, contexto);

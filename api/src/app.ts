@@ -59,5 +59,3 @@ export function criarApp(): Express {
 
   return app;
 }
-
-export type App = ReturnType<typeof criarApp>;

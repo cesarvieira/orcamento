@@ -7,11 +7,18 @@
  *
  * Módulos de domínio registram os seus próprios esquemas nos seus arquivos;
  * aqui ficam só os da fundação.
+ *
+ * Os exports abaixo marcados `@fundacao` (exceto `EsquemaCredenciais`, já
+ * consumido em `rotas.ts`) só são usados aqui dentro, no registro — o valor
+ * deles é o `.meta()`/`registrarEsquema()` que roda ao importar o módulo,
+ * publicando a forma no OpenAPI. Um handler futuro que precise validar contra
+ * um desses tipos importa daqui em vez de redeclarar.
  */
 import { z } from 'zod';
 
 import { registrarEsquema } from './registro';
 
+/** @fundacao */
 export const EsquemaErro = registrarEsquema(
   'Erro',
   z.object({
@@ -20,6 +27,7 @@ export const EsquemaErro = registrarEsquema(
   }),
 );
 
+/** @fundacao */
 export const EsquemaSaude = registrarEsquema(
   'Saude',
   z.object({
@@ -37,6 +45,7 @@ export const EsquemaCredenciais = registrarEsquema(
   }),
 );
 
+/** @fundacao */
 export const EsquemaMembroDaFamilia = registrarEsquema(
   'MembroDaFamilia',
   z.object({
@@ -50,6 +59,8 @@ export const EsquemaMembroDaFamilia = registrarEsquema(
  * A sessão como o front a enxerga. Note o que NÃO está aqui: nada que permita
  * ao cliente escolher família. O `familiaId` é informativo — o servidor o lê do
  * token, não deste objeto.
+ *
+ * @fundacao
  */
 export const EsquemaSessaoAtual = registrarEsquema(
   'SessaoAtual',
@@ -62,6 +73,7 @@ export const EsquemaSessaoAtual = registrarEsquema(
   }),
 );
 
+/** @fundacao */
 export const EsquemaFamiliaAtual = registrarEsquema(
   'FamiliaAtual',
   z.object({
@@ -81,6 +93,8 @@ export const EsquemaFamiliaAtual = registrarEsquema(
  * A tentação de mandar o estado novo aqui é grande e está descartada com
  * convicção: para aplicar um diff útil o cliente precisaria conhecer a fórmula
  * do lastro — ou seja, reimplementar no front a regra que DEFINE o produto.
+ *
+ * @fundacao
  */
 export const EsquemaInvalidacao = registrarEsquema(
   'Invalidacao',
@@ -103,4 +117,6 @@ export const EsquemaInvalidacao = registrarEsquema(
 );
 
 export type Invalidacao = z.infer<typeof EsquemaInvalidacao>;
+
+/** @fundacao */
 export type ContextoSessaoPublico = z.infer<typeof EsquemaSessaoAtual>;

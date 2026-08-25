@@ -38,6 +38,11 @@ function hashDoToken(token: string): string {
   return createHmac('sha256', ambiente.SESSAO_SEGREDO).update(token).digest('hex');
 }
 
+/**
+ * @fundacao gerador genérico de token seguro — reaproveitável por qualquer
+ * módulo que precise de um (ex.: `convites.token`, na EF-01). Só a sessão o
+ * usa hoje.
+ */
 export function gerarToken(): string {
   return randomBytes(32).toString('base64url');
 }

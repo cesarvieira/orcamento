@@ -30,4 +30,10 @@ async function principal(): Promise<void> {
   }
 }
 
-await principal();
+// IIFE, não top-level await: nem a raiz nem `api/` declaram `"type": "module"`
+// no `package.json`, e o `tsx` decide CJS/ESM por isso — top-level await
+// quebra com "not supported with the cjs output format" (mesma causa do IIFE
+// em `api/src/db/migrar.ts`).
+void (async () => {
+  await principal();
+})();

@@ -22,6 +22,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "knip": "knip",
     "prepare": "node scripts/instalar-hooks.mjs"
   },
   "devDependencies": {
@@ -32,6 +33,7 @@
     "@stylistic/eslint-plugin": "^5.10.0",
     "eslint": "^10.8.0",
     "eslint-plugin-vue": "^10.10.0",
+    "knip": "^6.32.2",
     "lint-staged": "^17.3.0",
     "playwright": "^1.49.0",
     "prettier": "^3.9.6",

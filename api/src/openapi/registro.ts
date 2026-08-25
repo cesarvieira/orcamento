@@ -160,7 +160,10 @@ export function construirDocumento(): Record<string, unknown> {
   };
 }
 
-/** Só para os testes: garante que o registro está limpo entre execuções. */
+/**
+ * Só para os testes: garante que o registro está limpo entre execuções.
+ * @fundacao nenhuma suíte usa ainda.
+ */
 export function rotasRegistradas(): readonly Rota[] {
   return rotas;
 }

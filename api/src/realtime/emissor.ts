@@ -46,5 +46,10 @@ export function emitirInvalidacao(pedido: PedidoDeInvalidacao): void {
  * O cabeçalho pelo qual o cliente se identifica ao mutar. Vai junto na
  * invalidação para que quem agiu descarte o próprio eco: ele já recebeu o
  * estado recomputado na resposta HTTP e não precisa refazer a leitura.
+ *
+ * @fundacao ainda sem handler que leia este cabeçalho — nenhum módulo de
+ * domínio que MUTA dado existe ainda (EF-01 em diante). Quem escrever o
+ * primeiro `POST`/`PUT` de domínio lê `req.headers[CABECALHO_ORIGEM_CLIENTE]`
+ * e passa como `origemClienteId` para `emitirInvalidacao`.
  */
 export const CABECALHO_ORIGEM_CLIENTE = 'x-origem-cliente';

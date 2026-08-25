@@ -40,7 +40,10 @@ declare global {
   }
 }
 
-/** Os nomes que o cliente NÃO pode usar para escolher tenant. */
+/**
+ * Os nomes que o cliente NÃO pode usar para escolher tenant.
+ * @fundacao exportado para um futuro teste de segurança iterar sobre a lista.
+ */
 export const CAMPOS_PROIBIDOS = ['familiaId', 'familia_id'] as const;
 
 function temProibido(alvo: unknown): string[] {
@@ -156,7 +159,10 @@ export function familiaDaRequisicao(req: Request): string {
   return familiaId;
 }
 
-/** O membro autenticado — autor imutável de tudo que a requisição criar. */
+/**
+ * O membro autenticado — autor imutável de tudo que a requisição criar.
+ * @fundacao ninguém usa ainda — é pra EF-04 (lançamentos) registrar quem criou.
+ */
 export function membroDaRequisicao(req: Request): string {
   const membroId = req.contexto?.membroId;
   if (!membroId) {

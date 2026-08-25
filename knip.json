@@ -1,0 +1,28 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "tags": ["-@fundacao"],
+  "workspaces": {
+    ".": {
+      "entry": ["*.mjs", "scripts/*.{mjs,ts}"],
+      "project": ["*.mjs", "scripts/**/*.{mjs,ts}"]
+    },
+    "api": {
+      "entry": ["testes/**/*.teste.ts"],
+      "project": ["src/**/*.ts", "testes/**/*.ts"]
+    },
+    "web": {
+      "entry": ["composables/useRealtime.ts"],
+      "project": ["**/*.{ts,vue}"],
+      "ignoreDependencies": [
+        "@fontsource/manrope",
+        "@tabler/icons-webfont",
+        "vue-router",
+        "vue-tsc"
+      ]
+    },
+    "packages/contrato": {
+      "project": ["gerar.mjs"]
+    }
+  },
+  "ignoreDependencies": ["lint-staged"]
+}
