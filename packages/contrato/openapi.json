@@ -188,6 +188,108 @@
           "origemClienteId"
         ],
         "additionalProperties": false
+      },
+      "LoginGoogle": {
+        "type": "object",
+        "properties": {
+          "idToken": {
+            "type": "string",
+            "minLength": 1,
+            "description": "O ID token que o Google Identity Services devolveu ao cliente."
+          }
+        },
+        "required": [
+          "idToken"
+        ],
+        "additionalProperties": false
+      },
+      "CriarConvite": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 3
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "additionalProperties": false
+      },
+      "ConviteCriado": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "expiraEm": {
+            "type": "string",
+            "description": "ISO 8601 — quando o convite deixa de valer (RN-03)."
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "expiraEm"
+        ],
+        "additionalProperties": false
+      },
+      "AceitarConvite": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "metodo": {
+                "type": "string",
+                "enum": [
+                  "senha"
+                ]
+              },
+              "nome": {
+                "type": "string",
+                "minLength": 1
+              },
+              "email": {
+                "type": "string",
+                "minLength": 3
+              },
+              "senha": {
+                "type": "string",
+                "minLength": 8
+              }
+            },
+            "required": [
+              "metodo",
+              "nome",
+              "email",
+              "senha"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "metodo": {
+                "type": "string",
+                "enum": [
+                  "google"
+                ]
+              },
+              "idToken": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "metodo",
+              "idToken"
+            ],
+            "additionalProperties": false
+          }
+        ]
       }
     },
     "securitySchemes": {
@@ -263,6 +365,58 @@
           },
           "401": {
             "description": "Email ou senha não conferem",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessoes/google": {
+      "post": {
+        "summary": "Abre uma sessão com um ID token do Google",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "post_sessoes_google",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginGoogle"
+              }
+            }
+          }
+        },
+        "security": [],
+        "responses": {
+          "201": {
+            "description": "Sessão aberta; cookie httpOnly definido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessaoAtual"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token inválido, email não verificado ou sem conta",
             "content": {
               "application/json": {
                 "schema": {
@@ -372,6 +526,164 @@
           },
           "401": {
             "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/convites": {
+      "post": {
+        "summary": "Convida um novo membro para a família da sessão",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "post_convites",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CriarConvite"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Convite criado e despachado por email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConviteCriado"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/convites/{token}/aceitar": {
+      "post": {
+        "summary": "Aceita um convite e abre sessão na família dele",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "post_convites__token__aceitar",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AceitarConvite"
+              }
+            }
+          }
+        },
+        "security": [],
+        "responses": {
+          "201": {
+            "description": "Convite aceito; sessão aberta",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessaoAtual"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token do Google inválido ou email não verificado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Email divergente do convidado (RN-02)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Convite inexistente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Convite já usado, ou email de outra família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Convite expirado (RN-03)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
             "content": {
               "application/json": {
                 "schema": {

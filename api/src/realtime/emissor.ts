@@ -47,9 +47,8 @@ export function emitirInvalidacao(pedido: PedidoDeInvalidacao): void {
  * invalidação para que quem agiu descarte o próprio eco: ele já recebeu o
  * estado recomputado na resposta HTTP e não precisa refazer a leitura.
  *
- * @fundacao ainda sem handler que leia este cabeçalho — nenhum módulo de
- * domínio que MUTA dado existe ainda (EF-01 em diante). Quem escrever o
- * primeiro `POST`/`PUT` de domínio lê `req.headers[CABECALHO_ORIGEM_CLIENTE]`
- * e passa como `origemClienteId` para `emitirInvalidacao`.
+ * O primeiro handler de domínio a lê-lo é o aceite de convite (EF-01,
+ * `modulos/familia/rotas.ts`) — `req.headers[CABECALHO_ORIGEM_CLIENTE]` vira
+ * `origemClienteId` na chamada a `emitirInvalidacao`.
  */
 export const CABECALHO_ORIGEM_CLIENTE = 'x-origem-cliente';
