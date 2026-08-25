@@ -1,30 +1,49 @@
 <script setup lang="ts">
 /**
- * ENTRAR — o mínimo para autenticar, no sistema visual do shell.
+ * ENTRAR — visual atualizado do mockup (Claude Design, projeto
+ * b7d13c37-0d57-4a92-9df6-c50357cb587d), com painel de marca no desktop.
  *
- * ⚠️ ESCOPO: esta tela é da EF-01. A EF-00 entrega só o caminho de email +
- * senha, porque sem ele o seed não vira sessão e o gate de navegação não passa
- * da porta. **Google OAuth, convite e aceite são da EF-01** — que substitui
- * esta página, sem inventar linguagem nova (o mockup não tem tela de login).
+ * ⚠️ ESCOPO: só email + senha é REAL. Google/Apple, "criar conta da família"
+ * e "esqueci minha senha" existem no mockup mas são da EF-01 (Google OAuth,
+ * convite, cadastro da família) — que ainda não tem especificação escrita.
+ * Aqui eles aparecem como no desenho, mas inertes: clicar mostra "em breve"
+ * em vez de abrir um fluxo que não existe. Decisão do humano (2026-08-24):
+ * visual completo, sem inventar lógica atrás do que não foi especificado.
  */
-definePageMeta({ layout: 'limpo' });
+definePageMeta({ layout: false });
 
 const { entrar } = useSessao();
 
 const email = ref('');
 const senha = ref('');
+const verSenha = ref(false);
+const lembrar = ref(false);
 const enviando = ref(false);
-const erro = ref<string | null>(null);
+const mensagem = ref<string | null>(null);
+const ehErro = ref(false);
 
-async function submeter() {
+const MARCAS = [
+  { icone: 'ti-lock-dollar', texto: 'Só mostra o que tem lastro de verdade' },
+  { icone: 'ti-credit-card', texto: 'Cartão abate a categoria no mesmo dia' },
+  { icone: 'ti-users', texto: 'Duas pessoas, um orçamento só' },
+];
+
+function emBreve(nome: string): void {
+  ehErro.value = false;
+  mensagem.value = `${nome}: em breve.`;
+}
+
+async function submeter(): Promise<void> {
   if (enviando.value) return;
-  erro.value = null;
+  mensagem.value = null;
+  ehErro.value = false;
   enviando.value = true;
   try {
     await entrar(email.value.trim(), senha.value);
     await navigateTo('/');
   } catch {
-    erro.value = 'Email ou senha não conferem.';
+    ehErro.value = true;
+    mensagem.value = 'Email ou senha não conferem.';
   } finally {
     enviando.value = false;
   }
@@ -33,45 +52,117 @@ async function submeter() {
 
 <template>
   <div class="entrar">
-    <div class="entrar__marca">
-      <span class="entrar__selo"><i class="ti ti-home-dollar"></i></span>
-      <div>
-        <h1 class="entrar__titulo">Orçamento da casa</h1>
-        <p class="entrar__sub">Quanto dá para gastar de verdade.</p>
+    <!-- ── painel de marca · só desktop ─────────────────────────────────── -->
+    <aside class="entrar__marca">
+      <div class="entrar__marca-topo">
+        <span class="entrar__selo"><i class="ti ti-home-dollar"></i></span>
+        <span class="entrar__marca-nome">Orçamento da casa</span>
+      </div>
+
+      <div class="entrar__marca-meio">
+        <h1 class="entrar__headline">O dinheiro dos dois,<br>num lugar só.</h1>
+        <p class="entrar__tagline">
+          Tetos por categoria, cartão abatendo na hora e um saldo que nunca promete o que não existe.
+        </p>
+        <ul class="entrar__lista-marcas">
+          <li v-for="marca in MARCAS" :key="marca.texto">
+            <i class="ti" :class="marca.icone"></i>
+            <span>{{ marca.texto }}</span>
+          </li>
+        </ul>
+      </div>
+
+      <p class="entrar__marca-rodape">Orçamento Familiar</p>
+    </aside>
+
+    <!-- ── coluna do formulário ─────────────────────────────────────────── -->
+    <div class="entrar__coluna">
+      <!-- hero só mobile: o painel de marca acima já cobre o desktop -->
+      <div class="entrar__hero">
+        <span class="entrar__selo"><i class="ti ti-home-dollar"></i></span>
+        <h1 class="entrar__hero-titulo">Orçamento<br>da casa</h1>
+        <p class="entrar__hero-sub">Um lugar só para o dinheiro de vocês dois.</p>
+      </div>
+
+      <div class="entrar__cartao">
+        <h2 class="entrar__titulo">Entrar</h2>
+        <p class="entrar__subtitulo">Bem-vinda de volta.</p>
+
+        <form class="entrar__campos" @submit.prevent="submeter">
+          <label class="campo">
+            <i class="ti ti-mail campo__icone"></i>
+            <span class="campo__texto">
+              <span class="campo__rotulo">EMAIL</span>
+              <input
+                v-model="email"
+                type="email"
+                name="email"
+                autocomplete="username"
+                placeholder="voce@email.com"
+                required
+                class="campo__entrada"
+              >
+            </span>
+          </label>
+
+          <label class="campo">
+            <i class="ti ti-lock campo__icone"></i>
+            <span class="campo__texto">
+              <span class="campo__rotulo">SENHA</span>
+              <input
+                v-model="senha"
+                :type="verSenha ? 'text' : 'password'"
+                name="senha"
+                autocomplete="current-password"
+                placeholder="••••••••"
+                required
+                class="campo__entrada"
+              >
+            </span>
+            <button type="button" class="campo__olho" @click="verSenha = !verSenha">
+              <i class="ti" :class="verSenha ? 'ti-eye-off' : 'ti-eye'"></i>
+            </button>
+          </label>
+
+          <div class="entrar__linha">
+            <button type="button" class="entrar__lembrar" @click="lembrar = !lembrar">
+              <span class="entrar__checkbox" :class="{ 'entrar__checkbox--ativo': lembrar }">
+                <i v-if="lembrar" class="ti ti-check"></i>
+              </span>
+              <span>Manter conectada</span>
+            </button>
+            <button type="button" class="entrar__link" @click="emBreve('Recuperação de senha')">
+              Esqueci minha senha
+            </button>
+          </div>
+
+          <p v-if="mensagem" class="entrar__mensagem" :class="{ 'entrar__mensagem--erro': ehErro }" role="status">
+            <i class="ti" :class="ehErro ? 'ti-alert-circle' : 'ti-info-circle'"></i>
+            <span>{{ mensagem }}</span>
+          </p>
+
+          <button type="submit" class="botao" :disabled="enviando">
+            {{ enviando ? 'Entrando…' : 'Entrar' }}
+          </button>
+        </form>
+
+        <div class="entrar__divisor"><span></span><span>ou</span><span></span></div>
+
+        <div class="entrar__social">
+          <button type="button" @click="emBreve('Entrar com Google')">
+            <i class="ti ti-brand-google"></i><span>Google</span>
+          </button>
+          <button type="button" @click="emBreve('Entrar com Apple')">
+            <i class="ti ti-brand-apple"></i><span>Apple</span>
+          </button>
+        </div>
+
+        <p class="entrar__criar-conta">
+          <span class="entrar__criar-conta-pergunta">Ainda não tem conta?</span>
+          <button type="button" @click="emBreve('Criar conta da família')">Criar conta da família</button>
+        </p>
       </div>
     </div>
-
-    <form class="cartao" @submit.prevent="submeter">
-      <label class="campo">
-        <span class="campo__rotulo">EMAIL</span>
-        <input
-          v-model="email"
-          type="email"
-          name="email"
-          autocomplete="username"
-          required
-          class="campo__entrada"
-        >
-      </label>
-
-      <label class="campo">
-        <span class="campo__rotulo">SENHA</span>
-        <input
-          v-model="senha"
-          type="password"
-          name="senha"
-          autocomplete="current-password"
-          required
-          class="campo__entrada"
-        >
-      </label>
-
-      <p v-if="erro" class="erro" role="alert">{{ erro }}</p>
-
-      <button type="submit" class="botao" :disabled="enviando">
-        {{ enviando ? 'Entrando…' : 'Entrar' }}
-      </button>
-    </form>
   </div>
 </template>
 

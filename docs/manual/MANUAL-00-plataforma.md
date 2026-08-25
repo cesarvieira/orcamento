@@ -94,7 +94,18 @@ drizzle CASCADE`) por isso.
   252px `#14325a`, item 42px, ativo em branco; tab bar grid `1fr 1fr 76px 1fr 1fr` com FAB central;
   topo 76px. Fontes (Manrope) e ícones (Tabler) empacotados via `pnpm`, não CDN — o gate de
   navegação cobra zero erro de rede.
-- `web/layouts/limpo.vue` — layout sem moldura, usado por `entrar.vue`.
+- `web/layouts/limpo.vue` — layout sem moldura, disponível para telas pré-família (`entrar.vue`
+  não usa mais: o visual novo do mockup é full-bleed, incompatível com o wrapper centralizado de
+  380px do `limpo`). Segue reservado para a EF-01 (aceite de convite), que decide seu próprio
+  visual quando tiver mockup.
+- `web/pages/entrar.vue` — atualizado 2026-08-24 contra o mockup (Claude Design, projeto
+  `b7d13c37-0d57-4a92-9df6-c50357cb587d`): mobile com hero escuro + cartão branco flutuante;
+  desktop com painel de marca (44%, `#14325a`, headline + 3 bullets) e cartão centralizado
+  (412px). **Só email+senha é real.** Google, Apple, "criar conta da família" e "esqueci minha
+  senha" aparecem como no mockup mas são inertes — clicar mostra "em breve" em vez de abrir um
+  fluxo que não existe (Google OAuth, cadastro de família e recuperação de senha são da EF-01,
+  ainda sem EF escrita). Decisão do humano, não da IA: visual completo, lógica só do que está
+  especificado.
 - `web/config/navegacao.ts` — as sete rotas de domínio num só lugar (fonte para tab bar e sidebar).
 - `web/components/MolduraDeModulo.vue` — cada `web/pages/*.vue` de domínio (`orcamento`, `contas`,
   `extrato`, `faturas`, `metas`, `fechamento`, `mais`) é hoje essa moldura, marcando de quem é a
