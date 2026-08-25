@@ -119,29 +119,28 @@ mostra a requisição e quem entrou:
 
 ---
 
-## ⚠️ Ainda falta fiação para a stack de prova e produção
+## Na stack de prova e em produção
 
-Hoje `GOOGLE_CLIENT_ID` **não é repassado** para nenhum serviço do `docker-compose.yml`. Ou seja:
-o passo acima faz o Google funcionar em **dev**, mas na stack que o gate prova (e num deploy real)
-o botão continua inerte, porque nem a API nem o front recebem a variável.
+O `docker-compose.yml` repassa a mesma variável para os dois serviços — uma só no seu ambiente,
+dois destinos:
 
-Para fechar isso, `docker-compose.yml` precisa de duas linhas — no serviço `api`:
+| Serviço | Variável no container          | Vem de                  |
+| ------- | ------------------------------ | ----------------------- |
+| `api`   | `GOOGLE_CLIENT_ID`             | `${GOOGLE_CLIENT_ID:-}` |
+| `web`   | `NUXT_PUBLIC_GOOGLE_CLIENT_ID` | `${GOOGLE_CLIENT_ID:-}` |
 
-```yaml
-GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-```
+Basta ter `GOOGLE_CLIENT_ID` no ambiente (ou no `.env`, que o compose lê) na hora do
+`docker compose up`. **Trocar a credencial não pede rebuild da imagem:** `NUXT_PUBLIC_*`
+sobrescreve `runtimeConfig.public` em tempo de execução — medido, servindo o `/entrar` do
+container e conferindo o valor no HTML.
 
-e no serviço `web` (o Nuxt aceita sobrescrever `runtimeConfig.public` em tempo de execução pelo
-prefixo `NUXT_PUBLIC_`, então **não** é preciso reconstruir a imagem):
+> Se as duas divergirem, **todo login por Google falha com 401**: o front assina com um client id
+> e a API espera outro como audiência. Por isso as duas saem da mesma variável.
 
-```yaml
-NUXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-```
-
-Está registrado como lacuna `EF01-MC-002` em
-[MC-01](../../docs/especificacoes/MC-01-familia-e-acesso.md), junto do fato de que o caminho feliz
-do Google **nunca roda no gate** — sem credencial no ambiente de prova, só o caminho "vazio" é
-exercitado automaticamente.
+**O padrão continua sendo desligado.** Sem `GOOGLE_CLIENT_ID` no ambiente, as duas chegam vazias,
+o botão fica inerte e o resto do app funciona igual — é assim que o gate roda. O que **não** é
+coberto por gate é o caminho feliz do Google (exige credencial real e interação com o Google):
+lacuna `EF01-MC-002` em [MC-01](../../docs/especificacoes/MC-01-familia-e-acesso.md).
 
 ---
 

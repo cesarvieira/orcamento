@@ -54,9 +54,13 @@ gsi/client`) **sob demanda**, só quando `useRuntimeConfig().public.googleClient
 - **`web/middleware/sessao.global.ts`**: `/convite/*` virou rota pública (junto de `/entrar`) —
   necessário para quem chega por link de convite sem sessão nenhuma.
 - **`web/nuxt.config.ts`**: novo `runtimeConfig.public.googleClientId`, mesmo padrão de `apiBase`,
-  lido de `GOOGLE_CLIENT_ID`/`NUXT_PUBLIC_GOOGLE_CLIENT_ID`. **Não** foi plumbado em
-  `docker-compose.yml` (raiz, fora do escopo desta tarefa) — quando alguém configurar a credencial
-  de verdade, falta esse fio para produção.
+  lido de `GOOGLE_CLIENT_ID`/`NUXT_PUBLIC_GOOGLE_CLIENT_ID`. Plumbado em `docker-compose.yml`
+  depois (fora do escopo original da tarefa, a pedido do humano): `GOOGLE_CLIENT_ID` no serviço
+  `api` e `NUXT_PUBLIC_GOOGLE_CLIENT_ID` no `web`, ambos da mesma variável — se divergirem, todo
+  token é recusado por audiência. Medido: com a variável no ambiente, o valor aparece no HTML
+  servido pelo container **sem rebuild** (`NUXT_PUBLIC_*` sobrescreve `runtimeConfig.public` em
+  tempo de execução); sem ela, chega vazia e o botão segue inerte — que é como o gate roda. Como
+  obter a credencial: [playbook](../../.preator/playbooks/google-client-id.md).
 - **`web/pages/mais.vue` → `web/pages/mais/index.vue`:** renomeado. Nuxt trata um arquivo `mais.vue`
   coexistindo com uma pasta `mais/` como pai/filho de rota; sem `<NuxtPage/>` em `mais.vue`, `/mais/
 convidar` casava a URL mas renderizava o conteúdo de `mais.vue`. Renomear para `mais/index.vue`
