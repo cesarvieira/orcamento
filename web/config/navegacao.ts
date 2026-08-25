@@ -1,9 +1,11 @@
 /**
- * A NAVEGAÇÃO — os sete destinos, num lugar só.
+ * A NAVEGAÇÃO — os destinos, num lugar só.
  *
- * Extraídos do mockup: `nav` (tab bar do mobile) e `navDesktop` (sidebar) são
- * as MESMAS sete telas, não dois produtos. Aqui elas são uma lista, e o layout
- * decide como desenhá-la em cada largura.
+ * Sete deles vêm do mockup: `nav` (tab bar do mobile) e `navDesktop`
+ * (sidebar) são as MESMAS sete telas, não dois produtos. Um oitavo —
+ * *Convidar* — não vem do mockup: é EF-01, a única EF cuja superfície não sai
+ * do desenho (§3 da EF). Aqui eles são uma lista só, e o layout decide como
+ * desenhá-la em cada largura.
  *
  * Acrescentar destino é editar este arquivo — e só ele. Um destino que apareça
  * na sidebar e não na tab bar (ou vice-versa) é bug de layout, não de dado.
@@ -100,6 +102,16 @@ export const DESTINOS: readonly Destino[] = [
     abaNoMobile: false,
     especificacao: 'EF-08',
     descricao: 'sobra projetada e o fechamento do mês',
+  },
+  {
+    id: 'convidar',
+    rotuloCurto: 'Convidar',
+    rotulo: 'Convidar',
+    rota: '/mais/convidar',
+    icone: 'ti-user-plus',
+    abaNoMobile: false,
+    especificacao: 'EF-01',
+    descricao: 'convide alguém para a família por email',
   },
 ] as const;
 

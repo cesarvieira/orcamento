@@ -8,8 +8,14 @@
  * desktop é um link quebrado esperando acontecer.
  *
  * É navegação, não domínio: a lista vem inteira de `config/navegacao.ts`.
+ *
+ * ⚠️ Vive em `mais/index.vue`, não em `mais.vue`: agora que `mais/convidar.vue`
+ * existe (EF-01), um `mais.vue` ao lado de `mais/` viraria pai de rota sem
+ * `<NuxtPage />` — Nuxt casa `/mais/convidar` mas não tem onde montar o filho,
+ * e a URL certa renderiza o conteúdo ERRADO (o desta tela, não o do convite).
+ * Como `mais/index.vue`, os dois são IRMÃOS: sem ambiguidade de rota pai/filho.
  */
-import { DESTINOS_EM_MAIS } from '../config/navegacao';
+import { DESTINOS_EM_MAIS } from '../../config/navegacao';
 
 const { sessao, sair } = useSessao();
 

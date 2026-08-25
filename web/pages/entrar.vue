@@ -3,16 +3,17 @@
  * ENTRAR — visual atualizado do mockup (Claude Design, projeto
  * b7d13c37-0d57-4a92-9df6-c50357cb587d), com painel de marca no desktop.
  *
- * ⚠️ ESCOPO: só email + senha é REAL. Google/Apple, "criar conta da família"
- * e "esqueci minha senha" existem no mockup mas são da EF-01 (Google OAuth,
- * convite, cadastro da família) — que ainda não tem especificação escrita.
- * Aqui eles aparecem como no desenho, mas inertes: clicar mostra "em breve"
- * em vez de abrir um fluxo que não existe. Decisão do humano (2026-08-24):
- * visual completo, sem inventar lógica atrás do que não foi especificado.
+ * ⚠️ ESCOPO: email + senha e Google são REAIS (EF-01, fechada). Apple,
+ * "esqueci minha senha" e "criar conta da família" existem no mockup mas
+ * ficam FORA da EF-01 fechada — ela não tem rota nem regra para "criar a
+ * família" nem "recuperar senha" (§3). Aqui eles aparecem como no desenho,
+ * mas inertes: clicar mostra "em breve" em vez de abrir um fluxo que a EF não
+ * especificou.
  */
 definePageMeta({ layout: false });
 
-const { entrar } = useSessao();
+const { entrar, entrarComGoogle } = useSessao();
+const { disponivel: googleDisponivel, obterIdToken } = useGoogle();
 
 const email = ref('');
 const senha = ref('');
@@ -44,6 +45,27 @@ async function submeter(): Promise<void> {
   } catch {
     ehErro.value = true;
     mensagem.value = 'Email ou senha não conferem.';
+  } finally {
+    enviando.value = false;
+  }
+}
+
+async function comGoogle(): Promise<void> {
+  if (!googleDisponivel) {
+    emBreve('Entrar com Google');
+    return;
+  }
+  if (enviando.value) return;
+  mensagem.value = null;
+  ehErro.value = false;
+  enviando.value = true;
+  try {
+    const idToken = await obterIdToken();
+    await entrarComGoogle(idToken);
+    await navigateTo('/');
+  } catch (erro) {
+    ehErro.value = true;
+    mensagem.value = mensagemDoErro(erro, 'Não consegui entrar com o Google.');
   } finally {
     enviando.value = false;
   }
@@ -149,7 +171,7 @@ async function submeter(): Promise<void> {
         <div class="entrar__divisor"><span></span><span>ou</span><span></span></div>
 
         <div class="entrar__social">
-          <button type="button" @click="emBreve('Entrar com Google')">
+          <button type="button" @click="comGoogle">
             <i class="ti ti-brand-google"></i><span>Google</span>
           </button>
           <button type="button" @click="emBreve('Entrar com Apple')">

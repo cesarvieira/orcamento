@@ -49,6 +49,11 @@ export default defineNuxtConfig({
       // Público — vai para o HTML. É como o NAVEGADOR alcança a API, e também
       // a origem do socket. Sobrescrito por NUXT_PUBLIC_API_BASE.
       apiBase: 'http://localhost:3000',
+      // Público — o client id do Google Identity Services. Vazio por padrão:
+      // sem segredo configurado neste ambiente, o botão "Entrar com Google"
+      // fica inerte em vez de tentar carregar um script sem client id.
+      // Sobrescrito por NUXT_PUBLIC_GOOGLE_CLIENT_ID.
+      googleClientId: process.env.GOOGLE_CLIENT_ID ?? '',
     },
   },
 
