@@ -6,15 +6,14 @@
  * muda o schema e regenera.
  *
  * Também é carregado pelo plugin Drizzle do knip — por isso o `.env` precisa
- * carregar aqui também, resolvido a partir DESTE arquivo (nunca do cwd, ver
- * `api/src/config/ambiente.ts`), e não só via `ambiente.ts`.
+ * carregar aqui também, e não só via `ambiente.ts`. Mesma carga em camadas
+ * dos dois (ver `api/src/config/carregar-dotenv.ts`).
  */
-import path from 'node:path';
-
-import { config as carregarEnv } from 'dotenv';
 import { defineConfig } from 'drizzle-kit';
 
-carregarEnv({ path: path.resolve(__dirname, '..', '.env'), quiet: true });
+import { carregarAmbiente } from './src/config/carregar-dotenv';
+
+carregarAmbiente();
 
 // Sem default: credencial vem do ambiente, nunca de arquivo versionado (D-07).
 // Falhar aqui é melhor que gerar migration contra o banco errado.

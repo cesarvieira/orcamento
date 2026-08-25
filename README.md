@@ -32,16 +32,21 @@ escrita**), e o contrato entre projeto e fábrica é o
 ## Rodar
 
 ```bash
-cp .env.example .env          # e preencha
+cp .env.example .env                              # e preencha
+cp .env.dev.example .env.dev                      # e preencha
 pnpm install
 
-docker compose -f docker-compose.dev.yml up -d   # só o Postgres
+pnpm run dev:banco             # só o Postgres, porta separada da stack de prova (D-02)
 pnpm run migrar
 pnpm run semear                                   # exige PREATOR_TEST_USER/PASS
 
 pnpm run dev:api              # :3000  (realtime no mesmo processo, /realtime)
 pnpm run dev:web              # :3001
 ```
+
+Para rodar a suíte de integração (`pnpm run teste`), copie também
+`cp .env.test.example .env.test` — mesma instância do Postgres de dev, banco
+separado (`orcamento_teste`).
 
 ## Provar
 

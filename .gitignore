@@ -16,6 +16,8 @@
 .env
 .env.*
 !.env.example
+!.env.dev.example
+!.env.test.example
 *.pem
 *.key
 *.pfx

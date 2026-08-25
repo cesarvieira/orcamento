@@ -8,19 +8,20 @@
  * O banco é o `DATABASE_URL_TESTE`, separado do de desenvolvimento: a suíte
  * derruba o schema a cada execução, e derrubar o banco que o gate de navegação
  * acabou de semear transformaria um teste verde numa tela vazia.
+ *
+ * `DATABASE_URL_TESTE` mora em `.env.test`, carregado por cima do `.env` base
+ * (o Vitest define `NODE_ENV=test` sozinho — ver `carregar-dotenv.ts`).
  */
 import path from 'node:path';
 
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
-import { config as carregarEnv } from 'dotenv';
 import { Pool } from 'pg';
 
-// Carrega `.env` a partir DESTE arquivo, não do cwd (mesma razão de
-// `api/src/config/ambiente.ts`) — `pnpm run teste`/`pnpm --filter @orcamento/api
-// run teste` roda com cwd em `api/`, e o `.env` mora na raiz do monorepo.
-carregarEnv({ path: path.resolve(__dirname, '..', '..', '.env'), quiet: true });
+import { carregarAmbiente } from '../src/config/carregar-dotenv';
+
+carregarAmbiente();
 
 export default async function preparar(): Promise<void> {
   const url = process.env.DATABASE_URL_TESTE;
@@ -29,8 +30,8 @@ export default async function preparar(): Promise<void> {
     throw new Error(
       'DATABASE_URL_TESTE não está no ambiente.\n' +
       '  A suíte é de integração e precisa de um Postgres de verdade.\n' +
-      '  Suba o banco:  docker compose -f docker-compose.dev.yml up -d\n' +
-      '  E exporte a URL do banco de teste (ver .env.example).',
+      '  Suba o banco:  docker compose -f docker-compose.dev.yml --env-file .env.dev up -d\n' +
+      '  E copie .env.test.example para .env.test (ver .env.test.example).',
     );
   }
 
