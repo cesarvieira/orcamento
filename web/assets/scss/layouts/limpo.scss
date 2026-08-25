@@ -1,0 +1,17 @@
+.limpo {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 18px;
+  background: var(--fundo);
+
+  @media (min-width: 768px) {
+    background: var(--fundo-desktop);
+  }
+}
+
+.limpo__caixa {
+  width: 100%;
+  max-width: 380px;
+}

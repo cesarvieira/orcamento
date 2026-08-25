@@ -1,0 +1,42 @@
+{
+  "name": "@orcamento/api",
+  "private": true,
+  "version": "0.0.0",
+  "description": "API REST + tempo real do Orçamento Familiar",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "dev": "tsx watch src/index.ts",
+    "migracao:gerar": "drizzle-kit generate",
+    "migrar": "tsx src/db/migrar.ts",
+    "semear": "tsx ../scripts/seed.ts",
+    "openapi:emitir": "tsx src/openapi/emitir.ts",
+    "teste": "vitest run --reporter=default --reporter=json --outputFile.json=./relatorio-testes.json"
+  },
+  "dependencies": {
+    "cookie": "^1.0.2",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.44.0",
+    "express": "^5.0.1",
+    "pg": "^8.13.0",
+    "socket.io": "^4.8.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/cookie-parser": "^1.4.8",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.11.10",
+    "@types/supertest": "^6.0.2",
+    "drizzle-kit": "^0.31.0",
+    "socket.io-client": "^4.8.0",
+    "supertest": "^7.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

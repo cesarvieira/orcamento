@@ -1,87 +1,90 @@
 #!/usr/bin/env bash
 # ============================================================================
-# preator-perfil.sh — o CONTRATO entre o seu projeto e a fábrica.
+# preator-perfil.sh — o CONTRATO entre este projeto e a fábrica.
 #
-# Copie este arquivo para a RAIZ do seu projeto com o nome `preator-perfil.sh`
-# e ajuste os valores. É o único ponto de contato entre os dois lados.
+# A fábrica não conhece Node, Drizzle ou Nuxt. Ela sabe que existe *um comando
+# de build* e pergunta ao projeto qual é. Este arquivo é a resposta.
 #
-# A fábrica não conhece .NET, Node, Java, Python ou Go. Ela sabe que existe
-# *um comando de build* e pergunta ao projeto qual é. Por isso o mesmo conjunto
-# de gates serve para qualquer stack.
+# Preenchido pela EF-00 (Plataforma). Antes dela estava comentado de propósito:
+# o gate reportava PARCIAL com SKIPs bloqueantes, e esse era o veredito honesto
+# enquanto não havia stack.
 #
-# Um gate que não encontra o que precisa reporta SKIP explícito — e SKIP de gate
-# bloqueante rebaixa o veredito a PARCIAL, nunca vira PASS silencioso. Deixar um
-# campo em branco é uma escolha visível, não um atalho.
-# ============================================================================
+# ⛔ Credencial, token, senha e string de conexão NÃO entram aqui. O gate de
+# navegação lê o usuário de teste de PREATOR_TEST_USER / PREATOR_TEST_PASS no
+# AMBIENTE — e, se não achar, declara no veredito que não cobriu a área logada.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# ANTES DE RODAR O GATE MESTRE: a stack precisa estar DE PÉ.
+#
+# Os gates `contrato` e `navegacao` consultam a API e o front RODANDO, e o gate
+# `test` é de integração contra Postgres de verdade. O gate mestre não sobe
+# nada sozinho (só `deploy-fresh` sobe, e ele é destrutivo e opcional):
+#
+#     docker compose up -d --build
+#     bash preator/esteira/gates/prova-comportamento.sh .
+#
+# ─────────────────────────────────────────────────────────────────────────────
 
 # ---------------------------------------------------------------------------
 # ONDE ESTE PROJETO GUARDA SEU OVERLAY
 # ---------------------------------------------------------------------------
-# O overlay são as skills DESTE projeto: formato (convenções, templates de
-# código), negócio específico e playbooks. Elas vivem no SEU repositório —
-# a fábrica não prescreve caminho, só pergunta onde é.
 OVERLAY=".preator"
 
 # ---------------------------------------------------------------------------
-# BUILD  —  o gate mais básico: compila?
+# BUILD  —  compila a API e GERA O CONTRATO.
 # ---------------------------------------------------------------------------
-# BUILD_CMD="dotnet build MinhaSolucao.sln -c Release"
-# Node:    BUILD_CMD="npm run build"
-# Java:    BUILD_CMD="mvn -q -DskipTests package"
-# Go:      BUILD_CMD="go build ./..."
-# Python:  BUILD_CMD="python -m compileall -q src"
+# A geração do contrato faz parte do build de propósito: ela precisa acontecer
+# antes do typecheck do front (D-03), senão o front compila contra o tipo velho.
+BUILD_CMD="pnpm run build"
 
 # ---------------------------------------------------------------------------
-# TESTE  —  atenção: o gate EXIGE N>0 testes realmente executados
+# TESTE  —  integração, com Postgres de verdade. O gate EXIGE N>0 executados.
 # ---------------------------------------------------------------------------
-# Prefira o filtro de INTEGRAÇÃO. Handler com fakes não prova fiação: foi o que
-# deixou controller sem dispatch e evento sem consumidor passarem verdes.
-# TEST_CMD="dotnet test --filter Categoria=Integracao"
-# Se o seu runner não for reconhecido pelo gate (ele entende dotnet, jest,
-# vitest, pytest e go test), declare como contar:
-# TEST_COUNT_CMD="cat resultado.json | jq .total"
+# Handler com fake não prova fiação. Aqui há banco, migration e HTTP reais.
+# Precisa de DATABASE_URL_TESTE no ambiente (ver .env.example).
+TEST_CMD="pnpm run teste"
+
+# O vitest não imprime o resumo em nenhum dos formatos que o gate reconhece —
+# ele acabaria somando "Test Files" com "Tests" e inflando a conta. Este comando
+# lê o número real do relatório JSON da própria suíte.
+TEST_COUNT_CMD="node scripts/contar-testes.mjs"
 
 # ---------------------------------------------------------------------------
-# FRONT  —  deixe vazio se o projeto não tem front
+# FRONT  —  Nuxt em SSR sobre Vite
 # ---------------------------------------------------------------------------
-# FRONT_DIR="web"                    # relativo à raiz do projeto
-# FRONT_BUILD="npm run build"
-# TYPECHECK_CMD="npm run typecheck"  # opcional
+FRONT_DIR="web"
+FRONT_BUILD="pnpm run build"
+TYPECHECK_CMD="pnpm run typecheck"
 
 # ---------------------------------------------------------------------------
 # SUBIR O SISTEMA  —  o gate que pega o que o build nunca vê
 # ---------------------------------------------------------------------------
-# migration que não aplica, DI não registrada, extensão de banco faltando,
-# FK cross-módulo fora de ordem, arquivo ausente na imagem.
-# COMPOSE="docker-compose.local.yml"
-# API_PORT=8080
-# FRONT_PORT=3000
-# API_BASE e FRONT_BASE derivam das portas; sobrescreva se não for localhost:
-# API_BASE="https://staging.exemplo.internal"
+# O compose de PRODUÇÃO é o alvo (D-02). O docker-compose.dev.yml sobe só o
+# Postgres e nunca é alvo de gate — provar o dev-build seria o "verde stale"
+# que a estrutura de portões existe para impedir.
+COMPOSE="docker-compose.yml"
+API_PORT=3000
+FRONT_PORT=3001
 
 # ---------------------------------------------------------------------------
 # CONTRATO  —  o front importa o tipo gerado, não redeclara o modelo do back
 # ---------------------------------------------------------------------------
-# OPENAPI_URL="$API_BASE/swagger/v1/swagger.json"
+OPENAPI_URL="$API_BASE/openapi.json"
 
 # ---------------------------------------------------------------------------
 # NAVEGAÇÃO  —  a prova de que a tela ABRE, não de que compila
 # ---------------------------------------------------------------------------
-# Só o seu projeto conhece suas rotas e seu login. Declare o crawler dele;
-# sem isto, a fábrica usa um crawler genérico que só cobre rota pública.
-# CRAWL_CMD="node scripts/crawl-gate.mjs"
-# MAX_QUEBRADAS=0
+# O crawler é deste projeto porque só ele conhece as sete rotas e o login.
+# Neste produto TUDO é área logada: ele entra com PREATOR_TEST_USER/PASS e,
+# sem elas, declara que cobriu só a tela de login.
+#
+# O gate roda o comando de dentro de FRONT_DIR — daí o `../`.
+# Antes da primeira execução:  pnpm run crawl:preparar
+CRAWL_CMD="node ../scripts/crawl-gate.mjs"
+MAX_QUEBRADAS=0
 
 # ---------------------------------------------------------------------------
-# ONDE VIVEM SPEC E BOARD  —  opcional, usados pelos workflows
+# ONDE VIVEM SPEC E BOARD
 # ---------------------------------------------------------------------------
+# A fila é o GitHub Issues, não um arquivo em disco — por isso não há BOARD.
 ESPEC_DIR="docs/especificacoes"
-# BOARD="docs/BOARD.md"
-
-# ---------------------------------------------------------------------------
-# ⛔ O QUE NÃO ENTRA AQUI
-# ---------------------------------------------------------------------------
-# Credencial, token, senha, string de conexão. Nada disso.
-# O gate de navegação lê usuário de teste de PREATOR_TEST_USER e
-# PREATOR_TEST_PASS no AMBIENTE — e, se não achar, diz no veredito que não
-# cobriu a área logada em vez de fingir que cobriu.

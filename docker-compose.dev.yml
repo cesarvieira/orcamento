@@ -1,0 +1,33 @@
+# =============================================================================
+# docker-compose.dev.yml — SÓ o Postgres.
+#
+# É o loop de desenvolvimento: `api` e `web` rodam nativos, sem esperar build de
+# imagem. Este arquivo NUNCA é alvo de gate — quem os gates provam é o
+# docker-compose.yml, a imagem de produção. Ver D-02.
+#
+#   docker compose -f docker-compose.dev.yml up -d
+# =============================================================================
+name: orcamento-dev
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-orcamento}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-orcamento}
+      POSTGRES_DB: ${POSTGRES_DB:-orcamento}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - dados-dev:/var/lib/postgresql/data
+      # A suíte de integração usa um banco separado, criado na primeira subida.
+      - ./api/docker/criar-banco-de-teste.sql:/docker-entrypoint-initdb.d/10-teste.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-orcamento} -d ${POSTGRES_DB:-orcamento}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  dados-dev:

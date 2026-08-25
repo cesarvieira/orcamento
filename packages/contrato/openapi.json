@@ -1,0 +1,387 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Orçamento Familiar — API",
+    "version": "0.0.0",
+    "description": "Contrato gerado do Zod da API. É SAÍDA, não fonte: não se edita à mão. Todo valor monetário é INTEIRO EM CENTAVOS (D-06)."
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "components": {
+    "schemas": {
+      "Erro": {
+        "type": "object",
+        "properties": {
+          "erro": {
+            "type": "string",
+            "description": "Código estável do erro, legível por máquina."
+          },
+          "mensagem": {
+            "type": "string",
+            "description": "Texto para a pessoa."
+          }
+        },
+        "required": [
+          "erro",
+          "mensagem"
+        ],
+        "additionalProperties": false
+      },
+      "Saude": {
+        "type": "object",
+        "properties": {
+          "estado": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degradado"
+            ]
+          },
+          "banco": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "indisponivel"
+            ]
+          },
+          "versao": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "estado",
+          "banco",
+          "versao"
+        ],
+        "additionalProperties": false
+      },
+      "Credenciais": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 3
+          },
+          "senha": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "email",
+          "senha"
+        ],
+        "additionalProperties": false
+      },
+      "MembroDaFamilia": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "email"
+        ],
+        "additionalProperties": false
+      },
+      "SessaoAtual": {
+        "type": "object",
+        "properties": {
+          "membroId": {
+            "type": "string"
+          },
+          "membroNome": {
+            "type": "string"
+          },
+          "membroEmail": {
+            "type": "string"
+          },
+          "familiaId": {
+            "type": "string"
+          },
+          "familiaNome": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "membroId",
+          "membroNome",
+          "membroEmail",
+          "familiaId",
+          "familiaNome"
+        ],
+        "additionalProperties": false
+      },
+      "FamiliaAtual": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "membros": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "nome": {
+                  "type": "string"
+                },
+                "email": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "nome",
+                "email"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "membros"
+        ],
+        "additionalProperties": false
+      },
+      "Invalidacao": {
+        "type": "object",
+        "properties": {
+          "recurso": {
+            "type": "string",
+            "description": "Que família de leitura ficou velha. Ex.: \"lancamentos\"."
+          },
+          "competencia": {
+            "nullable": true,
+            "description": "Competência afetada, AAAA-MM. Nulo quando não é mensal.",
+            "type": "string"
+          },
+          "origemClienteId": {
+            "nullable": true,
+            "description": "Quem provocou a mudança. O cliente descarta o próprio eco (R5).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "recurso",
+          "competencia",
+          "origemClienteId"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "cookieDeSessao": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "orcamento_sessao",
+        "description": "Cookie httpOnly de sessão. O familiaId sai daqui, nunca do request."
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Estado da API e do banco",
+        "tags": [
+          "plataforma"
+        ],
+        "operationId": "get_health",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "A API responde e o banco está acessível",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Saude"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "A API responde mas o banco não",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Saude"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessoes": {
+      "post": {
+        "summary": "Abre uma sessão com email e senha",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "post_sessoes",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Credenciais"
+              }
+            }
+          }
+        },
+        "security": [],
+        "responses": {
+          "201": {
+            "description": "Sessão aberta; cookie httpOnly definido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessaoAtual"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Email ou senha não conferem",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessoes/atual": {
+      "get": {
+        "summary": "A sessão corrente, derivada do cookie",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "get_sessoes_atual",
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A sessão corrente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessaoAtual"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Encerra a sessão corrente",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "delete_sessoes_atual",
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Sessão encerrada"
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/familia": {
+      "get": {
+        "summary": "A família da sessão, com seus membros",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "get_familia",
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A família da sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FamiliaAtual"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

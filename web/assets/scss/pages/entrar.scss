@@ -1,0 +1,449 @@
+// Mobile: bloco único, fundo escuro, hero + cartão branco.
+// Desktop (≥768px): duas colunas — painel de marca (44%) + cartão centralizado.
+// Estrutura e cópia vêm do mockup (Claude Design, projeto b7d13c37-...).
+
+.entrar {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--tinta);
+}
+
+.entrar__marca {
+  display: none;
+}
+
+// ── hero · só mobile ─────────────────────────────────────────────────────
+
+.entrar__hero {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 44px 22px 24px;
+  color: #fff;
+}
+
+.entrar__selo {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  margin-bottom: 20px;
+}
+
+.entrar__hero-titulo {
+  margin: 0;
+  font-size: 29px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.entrar__hero-sub {
+  margin: 10px 0 0;
+  font-size: 14px;
+  opacity: 0.7;
+  line-height: 1.5;
+}
+
+// ── coluna do formulário ─────────────────────────────────────────────────
+
+.entrar__coluna {
+  padding: 0 22px 26px;
+}
+
+.entrar__cartao {
+  background: var(--superficie);
+  border-radius: 20px;
+  padding: 20px 18px;
+  color: var(--texto);
+  box-shadow: 0 10px 34px rgba(5, 18, 40, 0.35);
+}
+
+.entrar__titulo {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.entrar__subtitulo {
+  display: none; // só no cabeçalho do cartão desktop
+}
+
+.entrar__campos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.campo {
+  height: 52px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--fundo);
+  border: 1px solid var(--borda-media);
+  border-radius: 13px;
+
+  &:has(.campo__olho) {
+    padding-right: 8px;
+  }
+}
+
+.campo__icone {
+  font-size: 18px;
+  color: var(--texto-fraco);
+  flex: none;
+}
+
+.campo__texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.campo__rotulo {
+  display: block;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--texto-fraco);
+}
+
+.campo__entrada {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--texto);
+  padding: 0;
+}
+
+.campo__olho {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border: none;
+  background: none;
+  color: var(--texto-fraco);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.entrar__linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+}
+
+.entrar__lembrar {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--texto);
+  cursor: pointer;
+}
+
+.entrar__checkbox {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1px solid var(--borda-media);
+  background: var(--superficie);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 14px;
+
+  &--ativo {
+    background: var(--tinta);
+    border-color: var(--tinta);
+  }
+}
+
+.entrar__link {
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--texto-medio);
+  cursor: pointer;
+}
+
+.entrar__mensagem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: #4c7d5a;
+
+  &--erro {
+    color: var(--alerta);
+  }
+}
+
+.botao {
+  width: 100%;
+  height: 48px;
+  margin-top: 14px;
+  border: none;
+  border-radius: 9999px;
+  background: var(--tinta);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:disabled {
+    background: #aab2be;
+    cursor: default;
+  }
+}
+
+.entrar__divisor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 12px;
+
+  span:not(:nth-child(2)) {
+    flex: 1;
+    height: 1px;
+    background: rgba(0, 0, 0, 0.09);
+  }
+
+  span:nth-child(2) {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--texto-fraco);
+  }
+}
+
+.entrar__social {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  button {
+    width: 100%;
+    height: 48px;
+    border: 1px solid var(--borda-media);
+    border-radius: 13px;
+    background: var(--superficie);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+    color: var(--texto);
+    cursor: pointer;
+
+    i {
+      font-size: 18px;
+    }
+  }
+}
+
+.entrar__criar-conta {
+  margin: 16px 0 0;
+  text-align: center;
+}
+
+.entrar__criar-conta-pergunta {
+  display: none; // só desktop — no mobile o botão já é autoexplicativo
+}
+
+.entrar__criar-conta button {
+  width: 100%;
+  height: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 13px;
+  background: none;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// DESKTOP · a partir de 768px — painel de marca + cartão centralizado
+// ─────────────────────────────────────────────────────────────────────────
+
+@media (min-width: 768px) {
+  .entrar {
+    flex-direction: row;
+    background: var(--superficie);
+  }
+
+  .entrar__marca {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 44%;
+    flex: none;
+    background: var(--tinta);
+    color: #fff;
+    padding: 48px 52px;
+  }
+
+  .entrar__marca-topo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .entrar__marca-topo .entrar__selo {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    font-size: 23px;
+    margin-bottom: 0;
+  }
+
+  .entrar__marca-nome {
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  .entrar__headline {
+    margin: 0;
+    font-size: 42px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    max-width: 15ch;
+  }
+
+  .entrar__tagline {
+    margin: 16px 0 0;
+    font-size: 15px;
+    opacity: 0.72;
+    max-width: 42ch;
+    line-height: 1.6;
+  }
+
+  .entrar__lista-marcas {
+    list-style: none;
+    margin: 30px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      font-size: 13.5px;
+      font-weight: 600;
+      opacity: 0.86;
+    }
+
+    i {
+      font-size: 19px;
+      opacity: 0.8;
+    }
+  }
+
+  .entrar__marca-rodape {
+    margin: 0;
+    font-size: 12px;
+    opacity: 0.5;
+  }
+
+  .entrar__hero {
+    display: none;
+  }
+
+  .entrar__coluna {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+  }
+
+  .entrar__cartao {
+    width: 100%;
+    max-width: 412px;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .entrar__titulo {
+    font-size: 27px;
+  }
+
+  .entrar__subtitulo {
+    display: block;
+    margin: 8px 0 0;
+    font-size: 14px;
+    color: var(--texto-medio);
+  }
+
+  .entrar__campos {
+    gap: 11px;
+    margin-top: 24px;
+  }
+
+  .campo {
+    height: 58px;
+    border-radius: 14px;
+  }
+
+  .campo__icone {
+    font-size: 19px;
+  }
+
+  .entrar__criar-conta {
+    margin-top: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    font-size: 13.5px;
+    color: var(--texto-medio);
+  }
+
+  .entrar__criar-conta-pergunta {
+    display: inline;
+  }
+
+  .entrar__criar-conta button {
+    width: auto;
+    height: auto;
+    border: none;
+    padding: 0;
+    color: var(--tinta);
+    font-weight: 800;
+  }
+}

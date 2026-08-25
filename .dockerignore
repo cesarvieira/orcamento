@@ -1,0 +1,17 @@
+node_modules
+**/node_modules
+**/dist
+**/.nuxt
+**/.output
+**/*.tsbuildinfo
+.git
+.githooks
+preator
+docs
+.env
+.env.*
+!.env.example
+api/relatorio-testes.json
+.prova-comportamento.json
+playwright-report
+test-results

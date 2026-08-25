@@ -1,0 +1,15 @@
+*.js
+*.jsx
+*.mjs
+*.cjs
+*.ts
+*.tsx
+*.mts
+*.cts
+*.vue
+web/.nuxt
+web/.output
+packages/contrato/openapi.json
+api/drizzle/meta/
+pnpm-lock.yaml
+preator/

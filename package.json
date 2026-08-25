@@ -1,0 +1,44 @@
+{
+  "name": "orcamento",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Orçamento familiar por envelope com lastro — monorepo",
+  "packageManager": "pnpm@11.10.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm --filter @orcamento/api run build && pnpm run contrato:gerar",
+    "contrato:gerar": "pnpm --filter @orcamento/api run openapi:emitir && pnpm --filter @orcamento/contrato run gerar",
+    "teste": "pnpm --filter @orcamento/api run teste",
+    "teste:contar": "node scripts/contar-testes.mjs",
+    "dev:banco": "docker compose -f docker-compose.dev.yml up -d",
+    "dev:api": "pnpm --filter @orcamento/api run dev",
+    "dev:web": "pnpm --filter @orcamento/web run dev",
+    "migrar": "pnpm --filter @orcamento/api run migrar",
+    "semear": "pnpm --filter @orcamento/api run semear",
+    "crawl:preparar": "playwright install chromium",
+    "crawl": "node scripts/crawl-gate.mjs",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "knip": "knip",
+    "prepare": "node scripts/instalar-hooks.mjs"
+  },
+  "devDependencies": {
+    "@eslint/config-helpers": "^0.7.0",
+    "@eslint/js": "^10.0.1",
+    "@eslint/json": "^2.0.1",
+    "@nuxt/eslint-plugin": "^1.16.0",
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "eslint": "^10.8.0",
+    "eslint-plugin-vue": "^10.10.0",
+    "knip": "^6.32.2",
+    "lint-staged": "^17.3.0",
+    "playwright": "^1.49.0",
+    "prettier": "^3.9.6",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.64.0",
+    "vue-eslint-parser": "^10.4.1"
+  }
+}

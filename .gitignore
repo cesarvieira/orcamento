@@ -96,15 +96,25 @@ $RECYCLE.BIN/
 # *.user
 # TestResults/
 
-# --- Node / front ---
-# node_modules/
-# dist/
-# build/
-# .next/
-# .nuxt/
-# .output/
-# *.tsbuildinfo
-# npm-debug.log*
+# --- Node / front ---  (ligado pela EF-00: esta é a stack do projeto · D-01)
+node_modules/
+dist/
+build/
+.next/
+.nuxt/
+.output/
+*.tsbuildinfo
+npm-debug.log*
+
+# Saída da suíte — o gate conta os testes a partir dela, não se versiona.
+api/relatorio-testes.json
+
+# Playwright: navegadores e vestígios do crawler de navegação.
+playwright-report/
+test-results/
+
+# Carimbo do gate mestre — é veredito de execução, não fonte.
+.prova-comportamento.json
 
 # --- Python ---
 # __pycache__/

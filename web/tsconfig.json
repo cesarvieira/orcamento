@@ -1,0 +1,5 @@
+{
+  // Estende o tsconfig que o `nuxt prepare` gera em `.nuxt/` — é ele que
+  // conhece os auto-imports, os aliases e os tipos das páginas.
+  "extends": "./.nuxt/tsconfig.json"
+}
