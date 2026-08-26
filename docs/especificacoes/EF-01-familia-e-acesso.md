@@ -73,8 +73,13 @@ número fixo de membros.
 
 ## §6 — O que não foi construído nesta história
 
-- **"Criar conta da família", "Esqueci minha senha", login por Apple.** Ficam inertes ("em breve")
-  em `/entrar` — não estão no escopo desta EF (§3 só cobre entrar · convidar · aceitar).
+- **"Esqueci minha senha" e login por Apple.** Ficam inertes ("em breve") em `/entrar` — não estão
+  no escopo desta EF: ela não tem rota nem regra para recuperar senha (§3).
+
+> **"Criar conta da família" saiu desta lista em 2026-08-26.** Era inerte porque a EF não a
+> especificava; a decisão do humano fechou RN-06 a RN-09 e ela virou `/criar-conta` (§3). O que a
+> decisão trouxe de novo além da tela: **recusar convite**, sem o qual RN-08 prenderia quem
+> recebesse um convite indesejado.
 
 > Listagem de convites pendentes (`GET /convites`) foi identificada como lacuna após o primeiro
 > fechamento desta história e fechada em seguida, ainda antes do merge do PR — tarefas #35
