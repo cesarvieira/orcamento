@@ -48,7 +48,7 @@ function banner(): void {
     `realtime      ws://localhost:${ambiente.API_PORT}/realtime`,
     `contrato      http://localhost:${ambiente.API_PORT}/openapi.json`,
     `banco         ${bancoSemSegredo(ambiente.DATABASE_URL)}`,
-    `cors          ${[ambiente.ORIGEM_WEB, ambiente.ORIGENS_WEB_EXTRAS].filter(Boolean).join(', ')}`,
+    `cors          ${ambiente.ORIGEM_WEB}`,
     `sessão        cookie httpOnly · expira em ${ambiente.SESSAO_TTL_HORAS}h`,
     `email         driver=${ambiente.MAIL_DRIVER}${
       ambiente.MAIL_DRIVER === 'log'
