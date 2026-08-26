@@ -45,13 +45,13 @@ gsi/client`) **sob demanda**, só quando `useRuntimeConfig().public.googleClient
 - **`useSessao.ts`** ganhou `entrarComGoogle(idToken)`, espelhando `entrar()`.
 - **`useConvite.ts`** (novo): `criarConvite()` e `aceitarConvite()`, ambos tipados pelo contrato
   gerado (`CriarConvite`/`ConviteCriado`/`AceitarConvite`), sem redeclarar modelo.
-- **`web/pages/mais/convidar.vue`** (novo): campo de email, `POST /convites`, mensagem de sucesso
+- **`web/app/pages/mais/convidar.vue`** (novo): campo de email, `POST /convites`, mensagem de sucesso
   ("Convite enviado para X — expira em breve"), e lista de convites pendentes da família (ver
   addendum abaixo — a listagem foi fechada em #35/#36, depois do fechamento inicial da história).
-- **`web/pages/convite/[token].vue`** (novo): formulário nome/email/senha ou Google, `POST /convites/
+- **`web/app/pages/convite/[token].vue`** (novo): formulário nome/email/senha ou Google, `POST /convites/
 :token/aceitar`. Mensagens de erro de RN-02/RN-03 vêm **sempre** da resposta da API, nunca
   pré-validadas no cliente.
-- **`web/middleware/sessao.global.ts`**: `/convite/*` virou rota pública (junto de `/entrar`) —
+- **`web/app/middleware/sessao.global.ts`**: `/convite/*` virou rota pública (junto de `/entrar`) —
   necessário para quem chega por link de convite sem sessão nenhuma.
 - **`web/nuxt.config.ts`**: novo `runtimeConfig.public.googleClientId`, mesmo padrão de `apiBase`,
   lido de `GOOGLE_CLIENT_ID`/`NUXT_PUBLIC_GOOGLE_CLIENT_ID`. Plumbado em `docker-compose.yml`
@@ -61,7 +61,7 @@ gsi/client`) **sob demanda**, só quando `useRuntimeConfig().public.googleClient
   servido pelo container **sem rebuild** (`NUXT_PUBLIC_*` sobrescreve `runtimeConfig.public` em
   tempo de execução); sem ela, chega vazia e o botão segue inerte — que é como o gate roda. Como
   obter a credencial: [playbook](../../.preator/playbooks/google-client-id.md).
-- **`web/pages/mais.vue` → `web/pages/mais/index.vue`:** renomeado. Nuxt trata um arquivo `mais.vue`
+- **`web/app/pages/mais.vue` → `web/app/pages/mais/index.vue`:** renomeado. Nuxt trata um arquivo `mais.vue`
   coexistindo com uma pasta `mais/` como pai/filho de rota; sem `<NuxtPage/>` em `mais.vue`, `/mais/
 convidar` casava a URL mas renderizava o conteúdo de `mais.vue`. Renomear para `mais/index.vue`
   resolve sem mudar a rota pública (`/mais` continua igual).

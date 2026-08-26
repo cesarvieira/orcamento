@@ -58,7 +58,11 @@ body {
 body {
   background: var(--fundo);
   color: var(--texto);
-  font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+  font-family:
+    "Manrope",
+    system-ui,
+    -apple-system,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 

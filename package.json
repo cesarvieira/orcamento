@@ -5,7 +5,7 @@
   "description": "Orçamento familiar por envelope com lastro — monorepo",
   "packageManager": "pnpm@11.10.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.19.0"
   },
   "scripts": {
     "build": "pnpm --filter @orcamento/api run build && pnpm run contrato:gerar",

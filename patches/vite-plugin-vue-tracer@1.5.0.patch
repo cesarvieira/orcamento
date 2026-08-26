@@ -1,0 +1,22 @@
+diff --git a/dist/index.mjs b/dist/index.mjs
+index 19ca3da8a9c67d2d1bf0a4f16539300bcc0fe477..54a7fcbc880ae095f7caf094417eba0ba65d0bfa 100644
+--- a/dist/index.mjs
++++ b/dist/index.mjs
+@@ -4,7 +4,6 @@ import { resolveModulePath } from 'exsolve';
+ import MagicString from 'magic-string';
+ import { relative, dirname, isAbsolute } from 'pathe';
+ import { SourceMapConsumer } from 'source-map-js';
+-import { searchForWorkspaceRoot } from 'vite';
+ 
+ function getRecordImportPath(id, pathRecordDist, resolveRecordEntryPath) {
+   if (!resolveRecordEntryPath)
+@@ -86,8 +85,7 @@ function VueTracer(options) {
+       });
+       if (!hit)
+         return;
+-      const workspaceRoot = searchForWorkspaceRoot(process.cwd());
+-      const related = relative(workspaceRoot, id);
++      const related = relative(process.cwd(), id);
+       s.prepend(`import { recordPosition as _tracerRecordPosition } from ${JSON.stringify(getRecordPath(id))}
+ `);
+       s.append(`

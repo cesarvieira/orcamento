@@ -14,6 +14,9 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@11.10.0 --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# O workspace declara `patchedDependencies`; sem o diretorio o pnpm falha
+# com ENOENT antes mesmo de resolver as dependencias.
+COPY patches/ patches/
 COPY api/package.json api/
 COPY web/package.json web/
 COPY packages/contrato/package.json packages/contrato/
