@@ -54,6 +54,11 @@ const esquema = z.object({
   // Menor que o do convite de propósito: quem acabou de se cadastrar está com
   // a caixa de entrada aberta; convite espera a agenda de outra pessoa.
   CADASTRO_TTL_HORAS: z.coerce.number().int().positive().default(24),
+  // Prazo do código que troca a senha esquecida (RN-12). O MENOR dos três de
+  // propósito: é o código mais perigoso — quem o tem troca a senha e, por
+  // RN-14, derruba todas as sessões da dona da conta. Quem pediu está com a
+  // caixa de entrada aberta agora; não há motivo para ele sobreviver ao dia.
+  RECUPERACAO_TTL_HORAS: z.coerce.number().int().positive().default(1),
 
   /**
    * O client id OAuth do Google — não é segredo (viaja no próprio token), mas

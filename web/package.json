@@ -5,7 +5,7 @@
   "description": "Front Nuxt (SSR) do Orçamento Familiar",
   "type": "module",
   "scripts": {
-    "dev": "nuxt dev --port 3001",
+    "dev": "nuxt dev --port 3001 --dotenv ../.env.dev",
     "build": "nuxt build",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",

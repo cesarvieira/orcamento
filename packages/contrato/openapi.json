@@ -264,6 +264,56 @@
         ],
         "additionalProperties": false
       },
+      "PedirRecuperacao": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 3
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "additionalProperties": false
+      },
+      "ConcluirRecuperacao": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 3
+          },
+          "codigo": {
+            "type": "string",
+            "pattern": "^\\d{6}$"
+          },
+          "senha": {
+            "type": "string",
+            "minLength": 8,
+            "description": "Mínimo de 8 caracteres."
+          }
+        },
+        "required": [
+          "email",
+          "codigo",
+          "senha"
+        ],
+        "additionalProperties": false
+      },
+      "RecuperacaoPedida": {
+        "type": "object",
+        "properties": {
+          "mensagem": {
+            "type": "string",
+            "description": "Texto idêntico exista ou não a conta."
+          }
+        },
+        "required": [
+          "mensagem"
+        ],
+        "additionalProperties": false
+      },
       "RecusarConvite": {
         "type": "object",
         "properties": {
@@ -1060,6 +1110,130 @@
           },
           "410": {
             "description": "Convite expirado (RN-03)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Código invalidado por excesso de tentativas (RN-11)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recuperacoes": {
+      "post": {
+        "summary": "Pede o código que troca a senha esquecida",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "post_recuperacoes",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PedirRecuperacao"
+              }
+            }
+          }
+        },
+        "security": [],
+        "responses": {
+          "202": {
+            "description": "Pedido aceito — resposta idêntica exista ou não a conta (RN-13)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecuperacaoPedida"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recuperacoes/concluir": {
+      "post": {
+        "summary": "Troca a senha com o código recebido e abre a sessão",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "post_recuperacoes_concluir",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConcluirRecuperacao"
+              }
+            }
+          }
+        },
+        "security": [],
+        "responses": {
+          "201": {
+            "description": "Senha trocada; sessões antigas encerradas e nova sessão aberta",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessaoAtual"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Código incorreto (RN-12)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nenhuma recuperação pendente para este email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Código expirado",
             "content": {
               "application/json": {
                 "schema": {

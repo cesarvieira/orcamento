@@ -232,6 +232,35 @@
     line-height: 1.5;
   }
 
+  // Sair vive na sidebar porque no desktop `/mais` — onde o botão de sair já
+  // existia — é a tela redundante: quem está no desktop navega pela sidebar e
+  // nunca passa por lá. Sem isto, desconectar no desktop era impossível.
+  .sidebar__sair {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    border: none;
+    border-radius: 12px;
+    background: none;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.72);
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    i {
+      font-size: 16px;
+    }
+  }
+
   .corpo {
     padding-bottom: 0;
   }

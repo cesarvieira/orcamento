@@ -33,9 +33,13 @@ export interface ConviteParaEnviar {
 /** Confirmação do email de quem criou a própria família (RN-06). */
 export type ConfirmacaoParaEnviar = ConviteParaEnviar;
 
+/** Código que troca a senha esquecida (RN-12). */
+export type RecuperacaoParaEnviar = ConviteParaEnviar;
+
 interface DriverDeEmail {
   enviarConvite(convite: ConviteParaEnviar): Promise<void>;
   enviarConfirmacao(confirmacao: ConfirmacaoParaEnviar): Promise<void>;
+  enviarRecuperacao(recuperacao: RecuperacaoParaEnviar): Promise<void>;
 }
 
 function assuntoDoConvite(familiaNome: string): string {
@@ -43,7 +47,8 @@ function assuntoDoConvite(familiaNome: string): string {
 }
 
 function corpoDoConvite(convite: ConviteParaEnviar): string {
-  return `Você foi convidado para a família "${convite.familiaNome}" no Orçamento Familiar.\n\nAceite o convite em: ${convite.link}`;
+  return `Você foi convidado para a família "${convite.familiaNome}" no Orçamento Familiar.\n\n` +
+    `Seu código: ${convite.codigo}\n\nAbra ${convite.link} e digite o código junto com este email.`;
 }
 
 /**
@@ -81,7 +86,7 @@ function assuntoDaConfirmacao(familiaNome: string): string {
 
 function corpoDaConfirmacao(c: ConfirmacaoParaEnviar): string {
   return `Você criou a família "${c.familiaNome}" no Orçamento Familiar.\n\n` +
-    `Confirme este email para entrar: ${c.link}`;
+    `Seu código: ${c.codigo}\n\nAbra ${c.link} e digite o código junto com este email.`;
 }
 
 function corpoHtmlDaConfirmacao(c: ConfirmacaoParaEnviar): string {
@@ -107,6 +112,39 @@ function corpoHtmlDaConfirmacao(c: ConfirmacaoParaEnviar): string {
   });
 }
 
+function assuntoDaRecuperacao(familiaNome: string): string {
+  return `Recuperar sua senha — família ${familiaNome} no Orçamento Familiar`;
+}
+
+function corpoDaRecuperacao(r: RecuperacaoParaEnviar): string {
+  return 'Alguém pediu para trocar a senha da sua conta no Orçamento Familiar.\n\n' +
+    `Seu código: ${r.codigo}\n\nAbra ${r.link} e digite o código junto com este email.\n\n` +
+    'Se não foi você, ignore: sem o código, nada muda.';
+}
+
+function corpoHtmlDaRecuperacao(r: RecuperacaoParaEnviar): string {
+  return montarEmailHtml({
+    sobretitulo: 'Recuperar senha',
+    titulo: 'Vamos trocar sua senha',
+    paragrafos: [
+      'Alguém pediu para trocar a senha desta conta no Orçamento da casa. Se foi você, é só ' +
+      'digitar o código abaixo e escolher a senha nova.',
+      'Se não foi você, não precisa fazer nada — sem o código, senha nenhuma muda.',
+    ],
+    codigo: r.codigo,
+    destaque: {
+      rotulo: 'Ao trocar a senha:',
+      texto:
+        'todos os aparelhos conectados nesta conta são desconectados. O código vale por pouco ' +
+        'tempo e erra no máximo 5 vezes antes de ser invalidado.',
+    },
+    acao: { rotulo: 'Abrir a tela de recuperação', url: r.link },
+    rodape:
+      'Você recebeu este email porque este endereço foi usado para pedir uma troca de senha no ' +
+      'Orçamento da casa. Se não foi você, ignore esta mensagem.',
+  });
+}
+
 /** Registra a TENTATIVA de envio — nenhum email sai de verdade (D-07). */
 const driverLog: DriverDeEmail = {
   async enviarConvite(convite) {
@@ -117,6 +155,11 @@ const driverLog: DriverDeEmail = {
   async enviarConfirmacao(c) {
     console.log(
       `[email:log] confirmação para ${c.para} · ${assuntoDaConfirmacao(c.familiaNome)} · código ${c.codigo} · ${c.link}`,
+    );
+  },
+  async enviarRecuperacao(r) {
+    console.log(
+      `[email:log] recuperação para ${r.para} · ${assuntoDaRecuperacao(r.familiaNome)} · código ${r.codigo} · ${r.link}`,
     );
   },
 };
@@ -152,6 +195,14 @@ const driverSmtp: DriverDeEmail = {
       assuntoDaConfirmacao(c.familiaNome),
       corpoDaConfirmacao(c),
       corpoHtmlDaConfirmacao(c),
+    );
+  },
+  async enviarRecuperacao(r) {
+    await porSmtp(
+      r.para,
+      assuntoDaRecuperacao(r.familiaNome),
+      corpoDaRecuperacao(r),
+      corpoHtmlDaRecuperacao(r),
     );
   },
 };
@@ -192,6 +243,14 @@ const driverResend: DriverDeEmail = {
       corpoHtmlDaConfirmacao(c),
     );
   },
+  async enviarRecuperacao(r) {
+    await porResend(
+      r.para,
+      assuntoDaRecuperacao(r.familiaNome),
+      corpoDaRecuperacao(r),
+      corpoHtmlDaRecuperacao(r),
+    );
+  },
 };
 
 // @fundacao SES exige assinatura SigV4 (SDK da AWS), não instalado ainda —
@@ -209,6 +268,9 @@ const driverSes: DriverDeEmail = {
     sesNaoImplementado();
   },
   async enviarConfirmacao() {
+    sesNaoImplementado();
+  },
+  async enviarRecuperacao() {
     sesNaoImplementado();
   },
 };
@@ -241,4 +303,8 @@ export async function enviarConvitePorEmail(convite: ConviteParaEnviar): Promise
 
 export async function enviarConfirmacaoPorEmail(c: ConfirmacaoParaEnviar): Promise<void> {
   await driverDeEmail().enviarConfirmacao(c);
+}
+
+export async function enviarRecuperacaoPorEmail(r: RecuperacaoParaEnviar): Promise<void> {
+  await driverDeEmail().enviarRecuperacao(r);
 }

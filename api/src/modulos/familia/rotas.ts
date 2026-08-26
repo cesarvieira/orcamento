@@ -6,7 +6,7 @@
  * Este arquivo completa a EF-01 por cima dela: login por Google, envio de
  * convite e aceite — que é onde RN-02/RN-03/RN-04 se encontram.
  */
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import type { Router as RouterType } from 'express';
 import { Router } from 'express';
 
@@ -29,17 +29,28 @@ import {
   marcarConviteRecusado,
   marcarConviteUsado,
 } from './convites';
-import { enviarConfirmacaoPorEmail, enviarConvitePorEmail } from './email';
+import {
+  enviarConfirmacaoPorEmail,
+  enviarConvitePorEmail,
+  enviarRecuperacaoPorEmail,
+} from './email';
 import {
   ErroDeCadastro,
   confirmarCadastro,
   criarFamiliaComDono,
 } from './cadastro-servico';
 import {
+  ErroDeRecuperacao,
+  concluirRecuperacao,
+  pedirRecuperacao,
+} from './recuperacao-servico';
+import {
   EsquemaAceitarConvite,
+  EsquemaConcluirRecuperacao,
   EsquemaConfirmarConta,
   EsquemaCriarConta,
   EsquemaCriarConvite,
+  EsquemaPedirRecuperacao,
   EsquemaRecusarConvite,
   EsquemaLoginGoogle,
 } from './esquemas';
@@ -50,6 +61,7 @@ import {
   COOKIE_SESSAO,
   abrirSessao,
   encerrarSessao,
+  encerrarSessoesDoMembro,
   opcoesDoCookie,
   type ContextoDaSessao,
 } from './sessao-servico';
@@ -103,7 +115,10 @@ rotasDeFamilia.post('/sessoes', async (req, res, next) => {
         emailVerificado: identidades.emailVerificado,
       })
       .from(identidades)
-      .where(eq(identidades.email, email))
+      // Filtrar o provedor não é zelo: desde RN-15 o mesmo email pode ter DUAS
+      // identidades (google e senha). Sem isto o `.limit(1)` viraria loteria —
+      // pegaria a do Google, cujo `segredo` é nulo, e recusaria a senha certa.
+      .where(and(eq(identidades.email, email), eq(identidades.provedor, 'senha')))
       .limit(1);
 
     // Resposta idêntica para email inexistente e senha errada: distinguir os
@@ -120,7 +135,7 @@ rotasDeFamilia.post('/sessoes', async (req, res, next) => {
     if (!credencial.emailVerificado) {
       res.status(403).json({
         erro: 'email_nao_confirmado',
-        mensagem: 'Confirme seu email para entrar — o link foi enviado quando você criou a família.',
+        mensagem: 'Confirme seu email para entrar — o código foi enviado quando você criou a família.',
       });
       return;
     }
@@ -666,6 +681,129 @@ rotasDeFamilia.post('/convites/recusar', async (req, res, next) => {
 
     await marcarConviteRecusado(db, convite.id);
     res.status(204).end();
+  } catch (erro) {
+    next(erro);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /recuperacoes — esqueci minha senha (RN-12/RN-13)
+// ---------------------------------------------------------------------------
+//
+// RN-13: a resposta é a MESMA exista ou não a conta. Por isso o handler não
+// olha o resultado do serviço para decidir o que responder — ele responde
+// primeiro, no mesmo lugar, para os dois casos. Qualquer `if` que ramificasse
+// aqui seria o oráculo que a regra existe para fechar.
+
+registrarRota({
+  metodo: 'post',
+  caminho: '/recuperacoes',
+  resumo: 'Pede o código que troca a senha esquecida',
+  etiquetas: ['acesso'],
+  exigeSessao: false,
+  corpo: 'PedirRecuperacao',
+  respostas: [
+    { status: 202, descricao: 'Pedido aceito — resposta idêntica exista ou não a conta (RN-13)', esquema: 'RecuperacaoPedida' },
+    { status: 422, descricao: 'Corpo inválido', esquema: 'Erro' },
+  ],
+});
+
+/** O texto de RN-13. Um lugar só: duas cópias divergem e viram o oráculo. */
+const RESPOSTA_DA_RECUPERACAO = {
+  mensagem: 'Se existir uma conta com este email, o código de recuperação foi enviado para ela.',
+};
+
+rotasDeFamilia.post('/recuperacoes', async (req, res, next) => {
+  try {
+    const analise = EsquemaPedirRecuperacao.safeParse(req.body);
+    if (!analise.success) {
+      res.status(422).json({ erro: 'corpo_invalido', mensagem: 'Informe o email da conta.' });
+      return;
+    }
+
+    const pedido = await pedirRecuperacao(db, analise.data.email);
+
+    // Sem conta, `pedido` é null e nenhum email sai — mas a resposta é a mesma.
+    if (pedido) {
+      await enviarRecuperacaoPorEmail({
+        para: pedido.email,
+        familiaNome: pedido.familiaNome,
+        codigo: pedido.codigo,
+        link: `${ambiente.ORIGEM_WEB}/recuperar`,
+      });
+    }
+
+    res.status(202).json(RESPOSTA_DA_RECUPERACAO);
+  } catch (erro) {
+    next(erro);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /recuperacoes/concluir — troca a senha e entra (RN-12/RN-14/RN-16)
+// ---------------------------------------------------------------------------
+
+/** Os erros de `concluirRecuperacao`, no mesmo critério de status dos outros códigos. */
+const STATUS_DO_ERRO_DE_RECUPERACAO: Record<string, number> = {
+  recuperacao_nao_encontrada: 404,
+  recuperacao_expirada: 410,
+  codigo_invalido: 401,
+  recuperacao_bloqueada: 429,
+};
+
+registrarRota({
+  metodo: 'post',
+  caminho: '/recuperacoes/concluir',
+  resumo: 'Troca a senha com o código recebido e abre a sessão',
+  etiquetas: ['acesso'],
+  exigeSessao: false,
+  corpo: 'ConcluirRecuperacao',
+  respostas: [
+    { status: 201, descricao: 'Senha trocada; sessões antigas encerradas e nova sessão aberta', esquema: 'SessaoAtual' },
+    { status: 401, descricao: 'Código incorreto (RN-12)', esquema: 'Erro' },
+    { status: 404, descricao: 'Nenhuma recuperação pendente para este email', esquema: 'Erro' },
+    { status: 410, descricao: 'Código expirado', esquema: 'Erro' },
+    { status: 422, descricao: 'Corpo inválido', esquema: 'Erro' },
+    { status: 429, descricao: 'Código invalidado por excesso de tentativas (RN-11)', esquema: 'Erro' },
+  ],
+});
+
+rotasDeFamilia.post('/recuperacoes/concluir', async (req, res, next) => {
+  try {
+    const analise = EsquemaConcluirRecuperacao.safeParse(req.body);
+    if (!analise.success) {
+      res.status(422).json({
+        erro: 'corpo_invalido',
+        mensagem: 'Informe o email, o código de 6 dígitos e uma senha de 8 caracteres ou mais.',
+      });
+      return;
+    }
+
+    let membroId;
+    try {
+      membroId = await concluirRecuperacao(
+        db,
+        analise.data.email,
+        analise.data.codigo,
+        analise.data.senha,
+      );
+    } catch (erro) {
+      if (erro instanceof ErroDeRecuperacao) {
+        const status = STATUS_DO_ERRO_DE_RECUPERACAO[erro.codigo] ?? 400;
+        res.status(status).json({ erro: erro.codigo, mensagem: erro.message });
+        return;
+      }
+      throw erro;
+    }
+
+    // RN-14 — as antigas morrem ANTES de a nova nascer. Na ordem inversa, a
+    // sessão recém-aberta seria encerrada junto e a pessoa trocaria a senha
+    // para continuar de fora.
+    await encerrarSessoesDoMembro(db, membroId);
+
+    const sessao = await abrirSessao(db, membroId);
+    res.cookie(COOKIE_SESSAO, sessao.token, opcoesDoCookie(sessao.expiraEm));
+    res.status(201).json(corpoDaSessao(sessao.contexto));
   } catch (erro) {
     next(erro);
   }

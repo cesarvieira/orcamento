@@ -5,8 +5,8 @@
  *
  * ⚠️ ESCOPO: email + senha e Google são REAIS (EF-01, fechada). Apple,
  * "criar conta da família" tambem sao REAIS desde RN-06..RN-09 — o link leva
- * a `/criar-conta`. Apple e "esqueci minha senha" seguem FORA da EF-01: ela
- * nao tem rota nem regra para recuperar senha (§3), entao continuam inertes,
+ * a `/criar-conta` —, e "esqueci minha senha" e REAL desde RN-12..RN-16, com o
+ * link levando a `/recuperar`. Apple segue FORA da EF-01: continua inerte,
  * mostrando "em breve" em vez de abrir um fluxo que a EF nao especificou.
  */
 definePageMeta({ layout: false });
@@ -17,7 +17,6 @@ const { disponivel: googleDisponivel, obterIdToken } = useGoogle();
 const email = ref('');
 const senha = ref('');
 const verSenha = ref(false);
-const lembrar = ref(false);
 const enviando = ref(false);
 const mensagem = ref<string | null>(null);
 const ehErro = ref(false);
@@ -145,15 +144,7 @@ async function comGoogle(): Promise<void> {
           </label>
 
           <div class="entrar__linha">
-            <button type="button" class="entrar__lembrar" @click="lembrar = !lembrar">
-              <span class="entrar__checkbox" :class="{ 'entrar__checkbox--ativo': lembrar }">
-                <i v-if="lembrar" class="ti ti-check"></i>
-              </span>
-              <span>Manter conectada</span>
-            </button>
-            <button type="button" class="entrar__link" @click="emBreve('Recuperação de senha')">
-              Esqueci minha senha
-            </button>
+            <NuxtLink to="/recuperar" class="entrar__link">Esqueci minha senha</NuxtLink>
           </div>
 
           <p v-if="mensagem" class="entrar__mensagem" :class="{ 'entrar__mensagem--erro': ehErro }" role="status">

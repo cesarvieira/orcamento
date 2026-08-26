@@ -90,6 +90,70 @@ pendentes) foi identificada e corrigida ainda dentro da mesma história, antes d
 Ambas re-verificadas de forma independente pelo condutor (gate mestre re-executado do zero + script
 Playwright ad hoc confirmando a lista carregando e atualizando na tela real).
 
+## Addendum — recuperação de senha (RN-12 a RN-16)
+
+"Esqueci minha senha" era inerte porque a EF não tinha regra. A decisão do humano de 2026-08-26
+fechou RN-12 a RN-16 e o fluxo foi construído:
+
+- **`recuperacao-servico.ts`** (novo): `pedirRecuperacao` sorteia o código de 6 dígitos e o guarda
+  na identidade de senha; `concluirRecuperacao` valida por **email + código** com o mesmo teto de
+  RN-11, grava o hash novo e devolve o `membroId`. Reaproveita `gerarCodigo`/`TENTATIVAS_MAXIMAS`
+  (`sessao-servico.ts`) e `gerarHashDeSenha` (`senha.ts`) — nada de criptografia nova.
+- **`POST /recuperacoes`** responde **202 com corpo idêntico** exista ou não a conta (RN-13). O
+  texto mora numa constante única: duas cópias divergem e viram o oráculo que a regra fecha.
+- **`POST /recuperacoes/concluir`** encerra todas as sessões (RN-14, via
+  `encerrarSessoesDoMembro`) **antes** de abrir a nova — na ordem inversa a sessão recém-criada
+  morreria junto e a pessoa trocaria a senha para continuar de fora.
+- **RN-15 e a correção que ela obrigou:** quem só tinha Google ganha uma identidade de senha com
+  segredo nulo (não loga, `conferirSenha(…, null)` é `false`). Isso cria a possibilidade de **duas
+  identidades para o mesmo email**, e `POST /sessoes` buscava só por email com `.limit(1)` — viraria
+  loteria. O login passou a filtrar `provedor = 'senha'`.
+- **`/recuperar`** (`web/app/pages/recuperar.vue`): duas etapas na mesma tela, no padrão visual de
+  `/entrar`. O link em `/entrar` deixou de ser "em breve". RN-14 é avisada **antes** de a pessoa
+  trocar, não depois.
+- **11 testes novos** (`api/testes/recuperacao.teste.ts`), um por regra — incluindo o de RN-13, que
+  compara status **e** corpo entre email que existe e email que não existe.
+
+Dois consertos caíram junto, ambos defeitos reais encontrados no caminho:
+
+1. Os corpos **texto** dos emails de convite e confirmação ainda mandavam só o link, sem o código —
+   uma edição por script do turno anterior falhou em silêncio (o interpretador não decodificava os
+   literais acentuados). Só as versões HTML tinham sido atualizadas, então quem lê email em texto
+   puro recebia um link que não autoriza nada.
+2. A mensagem de RN-06 no login ainda dizia "o link foi enviado", mentira desde RN-10.
+
+### Entrar com Google habilitado no dev
+
+A credencial real já estava em `.env.dev`; o que faltava era **o front enxergá-la**. O Nuxt carrega
+`.env` a partir do seu próprio `rootDir` (`web/`), não da raiz do monorepo — a mesma armadilha de
+caminho que já apareceu nesta EF —, então a API lia o client id e o navegador recebia string vazia,
+deixando o botão inerte. `web/package.json` passou a rodar `nuxt dev --port 3001 --dotenv
+../.env.dev`, que é o mecanismo documentado do Nuxt para apontar o arquivo. **Nada foi duplicado:**
+continua havendo um único lugar com o valor.
+
+Medido, não presumido: subindo o dev numa porta separada, `/entrar` passou a sair com
+`googleClientId` preenchido no payload e zero ocorrências de "em breve". O client id não é segredo
+— viaja no próprio ID token e sai no HTML por definição; o client _secret_ não é usado neste fluxo,
+porque o Identity Services entrega um ID token ao navegador e quem o valida é a API.
+
+O caminho de produção já estava fiado (`docker-compose.yml` repassa `GOOGLE_CLIENT_ID` para `api` e
+`NUXT_PUBLIC_GOOGLE_CLIENT_ID` para `web`). O que continua fora do nosso alcance é o Console do
+Google: as _Authorized JavaScript origins_ precisam listar as origens de onde o app é servido.
+
+### Sessão: "Manter conectada" saiu, "Sair" entrou na sidebar
+
+A caixa **"Manter conectada"** foi removida de `/entrar`. Ela era decorativa: o `lembrar` nunca era
+enviado à API nem influenciava o cookie — prometia uma escolha que não existia. Manter conectado
+**já é** o comportamento, e não por acidente: `SESSAO_TTL_HORAS` vale 720 (30 dias) e o cookie sai
+com `expires`, então a sessão sobrevive a fechar o navegador. O CSS órfão
+(`.entrar__lembrar`, `.entrar__checkbox`) foi removido junto, e `.entrar__linha` passou de
+`space-between` para `flex-end` — com um item só, o primeiro empurraria o link para o lado errado.
+
+Como a sessão agora só termina por decisão de quem usa, **sair precisa estar sempre à mão**. O
+botão existia apenas em `/mais`, que no desktop é a tela redundante — quem navega pela sidebar
+nunca passa por lá e ficava sem saída. `layouts/default.vue` ganhou um **Sair** no pé da sidebar,
+chamando o mesmo `sair()` de `useSessao`. No mobile nada muda: `/mais` continua com o seu.
+
 ## O que a EF-00 já tinha deixado pronto (não foi refeito)
 
 Schema completo (`Familia`/`Membro`/`Identidade`/`Convite`/`Sessao`, com `emailVerificado` e TTL

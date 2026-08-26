@@ -160,6 +160,22 @@ export async function encerrarSessao(db: Db, sessaoId: string): Promise<void> {
     .where(eq(sessoes.id, sessaoId));
 }
 
+/**
+ * RN-14 — derruba TODA sessão daquele membro, em todo dispositivo. É o que
+ * separa "esqueci a senha" de "tomaram minha conta": sem isto, quem tivesse
+ * entrado indevidamente continuaria dentro depois da troca, e a recuperação
+ * seria teatro.
+ *
+ * Só mexe nas ainda abertas — reescrever `encerradaEm` de uma sessão já
+ * encerrada falsificaria quando ela acabou.
+ */
+export async function encerrarSessoesDoMembro(db: Db, membroId: string): Promise<void> {
+  await db
+    .update(sessoes)
+    .set({ encerradaEm: new Date() })
+    .where(and(eq(sessoes.membroId, membroId), isNull(sessoes.encerradaEm)));
+}
+
 /** As opções do cookie. `httpOnly` é exigência do SSR e de segurança (D-01). */
 export function opcoesDoCookie(expiraEm: Date) {
   return {

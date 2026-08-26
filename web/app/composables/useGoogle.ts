@@ -2,10 +2,13 @@
  * O Google Identity Services (GIS), carregado sob demanda.
  *
  * Só entra em cena quando `googleClientId` está configurado — ver o
- * `runtimeConfig.public` em `nuxt.config.ts`. Neste ambiente ele fica vazio de
- * propósito (sem o segredo `GOOGLE_CLIENT_ID`), e é o CHAMADOR quem confere
- * `disponivel` antes de pedir o token: sem client id não há o que inicializar,
- * e tentar mesmo assim seria carregar um script para nada.
+ * `runtimeConfig.public` em `nuxt.config.ts`. Onde ele estiver vazio, é o
+ * CHAMADOR quem confere `disponivel` antes de pedir o token: sem client id não
+ * há o que inicializar, e tentar mesmo assim seria carregar um script para nada.
+ *
+ * O client id NÃO é segredo — ele viaja no próprio ID token e sai no HTML por
+ * definição. O que é segredo é o client SECRET, que este fluxo não usa: o
+ * Identity Services entrega um ID token ao navegador, e quem o valida é a API.
  */
 
 interface RespostaCredencialGoogle {

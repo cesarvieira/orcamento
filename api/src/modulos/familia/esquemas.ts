@@ -41,6 +41,38 @@ export const EsquemaConfirmarConta = registrarEsquema(
   }),
 );
 
+/** Pedir recuperação de senha (RN-12). Só o email — o resto vem depois do código. */
+export const EsquemaPedirRecuperacao = registrarEsquema(
+  'PedirRecuperacao',
+  z.object({
+    email: z.string().trim().min(3),
+  }),
+);
+
+/** Concluir a recuperação: email + código + a senha nova (RN-12). */
+export const EsquemaConcluirRecuperacao = registrarEsquema(
+  'ConcluirRecuperacao',
+  z.object({
+    email: z.string().trim().min(3),
+    codigo: z.string().trim().regex(/^\d{6}$/, 'O código tem 6 dígitos.'),
+    senha: z.string().min(8).meta({ description: 'Mínimo de 8 caracteres.' }),
+  }),
+);
+
+/**
+ * A resposta do PEDIDO de recuperação. Não leva dado nenhum de propósito
+ * (RN-13): qualquer campo que variasse com a existência da conta seria o
+ * oráculo que a regra existe para fechar.
+ *
+ * @fundacao consumido pelo contrato gerado (front), não por import dentro deste repo.
+ */
+export const EsquemaRecuperacaoPedida = registrarEsquema(
+  'RecuperacaoPedida',
+  z.object({
+    mensagem: z.string().meta({ description: 'Texto idêntico exista ou não a conta.' }),
+  }),
+);
+
 /** Recusar um convite: mesma dupla email + código (RN-08/RN-10). */
 export const EsquemaRecusarConvite = registrarEsquema(
   'RecusarConvite',

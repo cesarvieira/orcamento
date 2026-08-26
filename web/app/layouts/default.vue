@@ -22,7 +22,17 @@ import {
 } from '../config/navegacao';
 
 const rota = useRoute();
-const { sessao } = useSessao();
+const { sessao, sair } = useSessao();
+
+/**
+ * Sair é a única ação de sessão que o shell executa. Vive aqui, e não só em
+ * `/mais`, porque no desktop aquela tela é a redundante — quem navega pela
+ * sidebar nunca passa por ela, e ficava sem saída.
+ */
+async function encerrar(): Promise<void> {
+  await sair();
+  await navigateTo('/entrar');
+}
 
 const destinoAtivo = computed(() => destinoDaRota(rota.path));
 const maisEstaAtivo = computed(
@@ -77,6 +87,11 @@ const rotaDeLancamento = '/extrato';
           <span class="sidebar__rodape-vazio">O resumo do mês entra aqui.</span>
         </slot>
       </div>
+
+      <button type="button" class="sidebar__sair" @click="encerrar">
+        <i class="ti ti-logout"></i>
+        Sair
+      </button>
     </aside>
 
     <!-- ── CONTEÚDO ─────────────────────────────────────────────────────── -->

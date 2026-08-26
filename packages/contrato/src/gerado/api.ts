@@ -181,6 +181,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/recuperacoes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Pede o código que troca a senha esquecida */
+        post: operations["post_recuperacoes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/recuperacoes/concluir": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Troca a senha com o código recebido e abre a sessão */
+        post: operations["post_recuperacoes_concluir"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -249,6 +283,19 @@ export interface components {
         ConfirmarConta: {
             email: string;
             codigo: string;
+        };
+        PedirRecuperacao: {
+            email: string;
+        };
+        ConcluirRecuperacao: {
+            email: string;
+            codigo: string;
+            /** @description Mínimo de 8 caracteres. */
+            senha: string;
+        };
+        RecuperacaoPedida: {
+            /** @description Texto idêntico exista ou não a conta. */
+            mensagem: string;
         };
         RecusarConvite: {
             email: string;
@@ -815,6 +862,108 @@ export interface operations {
                 };
             };
             /** @description Convite expirado (RN-03) */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Corpo inválido */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Código invalidado por excesso de tentativas (RN-11) */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    post_recuperacoes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PedirRecuperacao"];
+            };
+        };
+        responses: {
+            /** @description Pedido aceito — resposta idêntica exista ou não a conta (RN-13) */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecuperacaoPedida"];
+                };
+            };
+            /** @description Corpo inválido */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    post_recuperacoes_concluir: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConcluirRecuperacao"];
+            };
+        };
+        responses: {
+            /** @description Senha trocada; sessões antigas encerradas e nova sessão aberta */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessaoAtual"];
+                };
+            };
+            /** @description Código incorreto (RN-12) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Nenhuma recuperação pendente para este email */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Código expirado */
             410: {
                 headers: {
                     [name: string]: unknown;

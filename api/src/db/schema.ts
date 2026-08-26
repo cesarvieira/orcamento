@@ -131,6 +131,22 @@ export const identidades = pgTable(
      * 6 dígitos (RN-10): sem ele, ~1 milhão de combinações caem em segundos.
      */
     tentativasConfirmacao: integer('tentativas_confirmacao').notNull().default(0),
+    /**
+     * O CÓDIGO de 6 dígitos que troca a senha esquecida (RN-12). Mora aqui
+     * pelo mesmo motivo que `tokenConfirmacao`: o que se recupera É o segredo
+     * DESTA identidade — um estado dela, não uma entidade nova.
+     *
+     * Só o provedor `senha` chega a ter um. Numa identidade `google` a coluna
+     * fica sempre nula: não há segredo nosso a trocar (RN-15 resolve isso
+     * criando a identidade de senha, não recuperando a do Google).
+     *
+     * Sem índice único, como os outros códigos: 6 dígitos colidem entre
+     * linhas, e quem valida busca por EMAIL + código.
+     */
+    tokenRecuperacao: text('token_recuperacao'),
+    recuperacaoExpiraEm: timestamp('recuperacao_expira_em', { withTimezone: true }),
+    /** RN-11 aplicada à recuperação — ver o comentário gêmeo acima. */
+    tentativasRecuperacao: integer('tentativas_recuperacao').notNull().default(0),
     criadoEm: criadoEm(),
     atualizadoEm: atualizadoEm(),
   },
