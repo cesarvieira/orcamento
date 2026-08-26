@@ -32,9 +32,13 @@ export function useSessao() {
     return nova;
   }
 
-  /** Entra com o ID token que o Google Identity Services devolveu ao cliente. */
-  async function entrarComGoogle(idToken: string): Promise<SessaoAtual> {
-    const corpo: LoginGoogle = { idToken };
+  /**
+   * Entra com o CODIGO de autorizacao que o Google devolveu ao navegador. O
+   * codigo sozinho nao prova nada: quem o troca por um ID token e a API, que
+   * tem o client secret.
+   */
+  async function entrarComGoogle(codigoAutorizacao: string): Promise<SessaoAtual> {
+    const corpo: LoginGoogle = { codigoAutorizacao };
     const nova = await api<SessaoAtual>('/sessoes/google', {
       method: 'POST',
       body: corpo,

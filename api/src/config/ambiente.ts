@@ -66,6 +66,18 @@ const esquema = z.object({
    * o login por Google com um erro claro, em vez de aceitar qualquer token.
    */
   GOOGLE_CLIENT_ID: z.string().default(''),
+  /**
+   * O client SECRET do Google — este SIM é segredo, e é o primeiro deste
+   * projeto que precisa mesmo existir em produção.
+   *
+   * Ele entrou quando o fluxo passou a ser o de CÓDIGO DE AUTORIZAÇÃO: o
+   * navegador devolve um código de uso único, e é a API que o troca por um ID
+   * token junto ao Google — troca que exige provar quem é o cliente.
+   *
+   * ⚠️ NUNCA repasse para o `web`: o front só precisa do client id. Um
+   * `NUXT_PUBLIC_*` com este valor o publicaria no HTML de todo mundo.
+   */
+  GOOGLE_CLIENT_SECRET: z.string().default(''),
 });
 
 const analise = esquema.safeParse(process.env);

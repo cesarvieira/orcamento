@@ -8,7 +8,7 @@
  * layout `limpo` que a EF-00 já reservou para telas de acesso.
  *
  * Dois métodos de aceite, os dois definidos no contrato `AceitarConvite`:
- * `senha` (nome + email + senha) e `google` (idToken do GIS). RN-02/RN-03 são
+ * `senha` (nome + email + senha) e `google` (código de autorização). RN-02/RN-03 são
  * decisão do backend — a mensagem de erro é sempre a que a API mandou, nunca
  * um texto inventado aqui.
  *
@@ -20,7 +20,7 @@
 definePageMeta({ layout: 'limpo' });
 
 const { aceitarConvite, recusarConvite } = useConvite();
-const { disponivel: googleDisponivel, obterIdToken } = useGoogle();
+const { disponivel: googleDisponivel, obterCodigoDeAutorizacao } = useGoogle();
 
 const nome = ref('');
 const email = ref('');
@@ -91,8 +91,12 @@ async function aceitarComGoogle(): Promise<void> {
   ehErro.value = false;
   enviando.value = true;
   try {
-    const idToken = await obterIdToken();
-    await aceitarConvite({ metodo: 'google', codigo: codigo.value.trim(), idToken });
+    const codigoAutorizacao = await obterCodigoDeAutorizacao();
+    await aceitarConvite({
+      metodo: 'google',
+      codigo: codigo.value.trim(),
+      codigoAutorizacao,
+    });
     await navigateTo('/');
   } catch (erro) {
     ehErro.value = true;

@@ -71,6 +71,10 @@ services:
       # estado válido: desliga o login por Google com erro claro, em vez de
       # aceitar qualquer token. Ver .preator/playbooks/google-client-id.md
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      # O client SECRET, usado para TROCAR o código de autorização por um ID
+      # token. Só a api recebe: um NUXT_PUBLIC_* com este valor o publicaria
+      # no HTML de todo visitante.
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
     ports:
       - '${API_PORT:-3000}:3000'
     depends_on:

@@ -140,6 +140,42 @@ O caminho de produção já estava fiado (`docker-compose.yml` repassa `GOOGLE_C
 `NUXT_PUBLIC_GOOGLE_CLIENT_ID` para `web`). O que continua fora do nosso alcance é o Console do
 Google: as _Authorized JavaScript origins_ precisam listar as origens de onde o app é servido.
 
+### Entrar com Google: de One Tap para código de autorização
+
+Habilitado o client id, o botão passou a abrir — e a falhar. O log do navegador deu os três
+sinais: `Not signed in with the identity provider`, `FedCM get() rejects with NetworkError`, e
+`initialize() is called multiple times`.
+
+A causa não era configuração: era **o fluxo errado**. `useGoogle` usava
+`google.accounts.id.prompt()`, que é **One Tap** — ele só aparece para quem já tem sessão Google
+aberta no navegador. Quem não tem não recebe tela de login nenhuma; recebe o erro acima e fica sem
+caminho. Os outros dois avisos eram defeitos do mesmo código: `isNotDisplayed`/`isSkippedMoment`
+são os métodos que o FedCM está aposentando, e `initialize()` era chamado a cada clique.
+
+Não existe forma suportada de abrir o seletor de conta a partir de um botão nosso no fluxo de ID
+token — quem abre é o botão que o próprio Google renderiza, e adotá-lo custaria o padrão visual da
+tela. **Decisão do humano:** trocar para o fluxo de **código de autorização**.
+
+- **Front** (`useGoogle.ts`): `google.accounts.oauth2.initCodeClient({ ux_mode: 'popup' })` +
+  `requestCode()`, disparado do nosso botão, funcionando sem sessão Google prévia. O cliente é
+  criado a cada chamada de propósito — guardá-lo entre cliques era a origem do aviso de
+  inicialização repetida. Escopo `openid email profile`: sem `openid` o Google devolveria só um
+  access token, e a API não teria o `email_verified` que RN-02 exige.
+- **API** (`google.ts`): `perfilDoGoogle(codigoAutorizacao)` troca o código por tokens
+  (`OAuth2Client.getToken`, com `redirect_uri: 'postmessage'` — o valor que o Google exige para
+  código vindo de popup) e **ainda verifica** o ID token devolvido. Trocar já prova que falamos com
+  o Google, mas é o ID token que carrega `email_verified`.
+- **Contrato:** `LoginGoogle.idToken` → `codigoAutorizacao`; em `AceitarConvite` o método `google`
+  passa a levar `codigo` (os 6 dígitos do convite, RN-10) **e** `codigoAutorizacao` (o do OAuth).
+  Os nomes são distintos de propósito: são provas de coisas opostas — "fui convidado" e "sou dono
+  deste email".
+- **Segredo novo:** `GOOGLE_CLIENT_SECRET`, entregue pelo compose **só** ao serviço `api`. É o
+  primeiro segredo de verdade deste projeto; ver os riscos em MC-01.
+
+O seam de teste acompanhou a fronteira: `definirVerificadorDeIdTokenGoogle` virou
+`definirResolvedorDeGoogle`, mockando "código → perfil" em vez de "ID token → perfil". O resto do
+fluxo — rota, banco, sessão, RN-04 — continua real nos 7 testes de `google.teste.ts`.
+
 ### Sessão: "Manter conectada" saiu, "Sair" entrou na sidebar
 
 A caixa **"Manter conectada"** foi removida de `/entrar`. Ela era decorativa: o `lembrar` nunca era

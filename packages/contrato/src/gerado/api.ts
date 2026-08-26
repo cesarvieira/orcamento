@@ -52,7 +52,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Abre uma sessão com um ID token do Google */
+        /** Abre uma sessão com um código de autorização do Google */
         post: operations["post_sessoes_google"];
         delete?: never;
         options?: never;
@@ -266,8 +266,8 @@ export interface components {
             origemClienteId: string | null;
         };
         LoginGoogle: {
-            /** @description O ID token que o Google Identity Services devolveu ao cliente. */
-            idToken: string;
+            /** @description O código de autorização de uso único que o Google devolveu ao navegador. Quem o troca por um ID token é a API, porque a troca exige o client secret. */
+            codigoAutorizacao: string;
         };
         CriarConvite: {
             email: string;
@@ -336,7 +336,7 @@ export interface components {
             /** @enum {string} */
             metodo: "google";
             codigo: string;
-            idToken: string;
+            codigoAutorizacao: string;
         };
     };
     responses: never;
@@ -449,7 +449,7 @@ export interface operations {
                     "application/json": components["schemas"]["SessaoAtual"];
                 };
             };
-            /** @description Token inválido, email não verificado ou sem conta */
+            /** @description Código inválido, email não verificado ou sem conta */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -647,7 +647,7 @@ export interface operations {
                     "application/json": components["schemas"]["SessaoAtual"];
                 };
             };
-            /** @description Código incorreto (RN-10), token do Google inválido ou email não verificado */
+            /** @description Código do convite incorreto (RN-10), código do Google inválido ou email não verificado */
             401: {
                 headers: {
                     [name: string]: unknown;

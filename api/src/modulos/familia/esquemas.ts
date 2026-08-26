@@ -10,7 +10,11 @@ import { registrarEsquema } from '../../openapi/registro';
 export const EsquemaLoginGoogle = registrarEsquema(
   'LoginGoogle',
   z.object({
-    idToken: z.string().min(1).meta({ description: 'O ID token que o Google Identity Services devolveu ao cliente.' }),
+    codigoAutorizacao: z.string().min(1).meta({
+      description:
+        'O código de autorização de uso único que o Google devolveu ao navegador. ' +
+        'Quem o troca por um ID token é a API, porque a troca exige o client secret.',
+    }),
   }),
 );
 
@@ -156,10 +160,16 @@ const EsquemaAceitarConvitePorSenha = z.object({
 
 // No Google o email não vem do corpo: vem VERIFICADO do provedor (RN-02), e é
 // com ele que o convite é procurado.
+//
+// ⚠️ Os dois campos aqui são "códigos", e são coisas OPOSTAS: `codigo` é o de
+// 6 dígitos do convite, que a pessoa DIGITA (RN-10); `codigoAutorizacao` é o
+// do OAuth, que o navegador recebe do Google e nunca é visto por ninguém. Os
+// nomes ficam distintos de propósito — confundi-los seria trocar a prova de
+// "fui convidado" pela de "sou dono deste email".
 const EsquemaAceitarConvitePorGoogle = z.object({
   metodo: z.literal('google'),
   codigo: EsquemaCodigo,
-  idToken: z.string().min(1),
+  codigoAutorizacao: z.string().min(1),
 });
 
 export const EsquemaAceitarConvite = registrarEsquema(

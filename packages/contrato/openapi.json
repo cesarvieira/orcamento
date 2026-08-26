@@ -192,14 +192,14 @@
       "LoginGoogle": {
         "type": "object",
         "properties": {
-          "idToken": {
+          "codigoAutorizacao": {
             "type": "string",
             "minLength": 1,
-            "description": "O ID token que o Google Identity Services devolveu ao cliente."
+            "description": "O código de autorização de uso único que o Google devolveu ao navegador. Quem o troca por um ID token é a API, porque a troca exige o client secret."
           }
         },
         "required": [
-          "idToken"
+          "codigoAutorizacao"
         ],
         "additionalProperties": false
       },
@@ -470,7 +470,7 @@
                 "type": "string",
                 "pattern": "^\\d{6}$"
               },
-              "idToken": {
+              "codigoAutorizacao": {
                 "type": "string",
                 "minLength": 1
               }
@@ -478,7 +478,7 @@
             "required": [
               "metodo",
               "codigo",
-              "idToken"
+              "codigoAutorizacao"
             ],
             "additionalProperties": false
           }
@@ -591,7 +591,7 @@
     },
     "/sessoes/google": {
       "post": {
-        "summary": "Abre uma sessão com um ID token do Google",
+        "summary": "Abre uma sessão com um código de autorização do Google",
         "tags": [
           "acesso"
         ],
@@ -619,7 +619,7 @@
             }
           },
           "401": {
-            "description": "Token inválido, email não verificado ou sem conta",
+            "description": "Código inválido, email não verificado ou sem conta",
             "content": {
               "application/json": {
                 "schema": {
@@ -860,7 +860,7 @@
             }
           },
           "401": {
-            "description": "Código incorreto (RN-10), token do Google inválido ou email não verificado",
+            "description": "Código do convite incorreto (RN-10), código do Google inválido ou email não verificado",
             "content": {
               "application/json": {
                 "schema": {

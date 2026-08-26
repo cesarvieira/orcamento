@@ -11,20 +11,29 @@ Google Cloud Console.
 
 ## O que estamos gerando, e por que só isso
 
-O produto usa o **Google Identity Services (GIS)**: o navegador abre a tela do Google, recebe um
-**ID token** e manda esse token para a nossa API, que o verifica com o Google
+O produto usa o **Google Identity Services (GIS)** no fluxo de **código de autorização**: o
+navegador abre o popup do Google, recebe um **código de uso único** e o manda para a nossa API,
+que o troca por um ID token junto ao Google e verifica esse token
 (`api/src/modulos/familia/google.ts`).
+
+> **Mudou em 2026-08-26.** Antes era _One Tap_ (`google.accounts.id.prompt`), que devolvia o ID
+> token direto ao navegador e **dispensava o client secret**. One Tap só aparece para quem já tem
+> sessão Google aberta — quem não tem recebia _"not signed in with the identity provider"_ e ficava
+> sem caminho para entrar. Se você leu este playbook antes desta data, a diferença que importa é:
+> **agora o client secret é necessário.**
 
 Disso decorrem duas coisas que economizam confusão no console:
 
 |                                           |                                                                                                                             |
 | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | **Um client id só**, usado nos dois lados | O front assina o pedido com ele; a API o usa como **audiência** na verificação. Se fossem dois, todo token seria recusado   |
-| **Não precisamos do _client secret_**     | Ele existe no fluxo de _authorization code_, que não é o nosso. Se o console te mostrar um, **não** copie para lugar nenhum |
+| **O _client secret_ é necessário**        | É com ele que a API troca o código por um ID token. Copie do console para `GOOGLE_CLIENT_SECRET`, **só** no ambiente da API |
 
-> ⚠️ O **client id não é segredo** — ele viaja no HTML para o navegador, por construção. O que
-> nunca pode ser commitado é o _client secret_ (que aqui nem é usado) e qualquer outra credencial.
-> O scanner do pre-commit bloqueia; ainda assim, `.env` é ignorado pelo Git e é onde o valor mora.
+> ⚠️ Os dois valores têm naturezas opostas. O **client id não é segredo** — viaja no HTML para o
+> navegador, por construção. O **client secret é**, e nunca pode sair do lado servidor: nada de
+> `NUXT_PUBLIC_*`, nada de commit. O scanner do pre-commit bloqueia; ainda assim, `.env` é ignorado
+> pelo Git e é onde os valores moram. Suspeitou de exposição? Rotacionar no console é barato e
+> imediato.
 
 ---
 
@@ -79,23 +88,27 @@ Salve e copie o **ID do cliente**. Ele termina em `.apps.googleusercontent.com`.
 
 ## Onde colocar o valor
 
-Em **desenvolvimento**, a mesma linha vai nos dois arquivos (ambos ignorados pelo Git — veja
-`.env.example` para o nome da chave): no `.env` da raiz, que a API lê, e em `web/.env`, que o
-front lê. A tabela abaixo explica por quê.
+Em **desenvolvimento**, as duas linhas vão no `.env.dev` da raiz (ignorado pelo Git — veja
+`.env.example` para os nomes das chaves):
 
 ```bash
 GOOGLE_CLIENT_ID=000000000000-xxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-xxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-| Quem  | Como lê                                                      | Onde o valor tem de estar |
-| ----- | ------------------------------------------------------------ | ------------------------- |
-| API   | `ambiente.GOOGLE_CLIENT_ID` — audiência da verificação       | `.env` da raiz            |
-| Front | `runtimeConfig.public.googleClientId` (`web/nuxt.config.ts`) | **`web/.env`**            |
+| Quem  | Como lê                                                      | O que recebe       |
+| ----- | ------------------------------------------------------------ | ------------------ |
+| API   | `ambiente.GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`         | os **dois**        |
+| Front | `runtimeConfig.public.googleClientId` (`web/nuxt.config.ts`) | **só o client id** |
 
-> ⚠️ **Em desenvolvimento são dois arquivos, não um.** O Nuxt carrega o `.env` do `rootDir` dele,
-> que neste monorepo é `web/` — medido: uma variável posta só no `.env` da raiz **não** chega ao
-> front. Na stack do compose isso não se aplica: lá cada serviço recebe a variável pelo
-> `docker-compose.yml`, das duas pontas da mesma origem.
+> ⚠️ **O Nuxt não lê o `.env` da raiz.** Ele carrega o do `rootDir` dele, que neste monorepo é
+> `web/` — medido: uma variável posta só na raiz **não** chegava ao front. Por isso o script de dev
+> é `nuxt dev --port 3001 --dotenv ../.env.dev`, apontando explicitamente para o arquivo da raiz.
+> Assim o valor mora num lugar só. Na stack do compose isso não se aplica: lá cada serviço recebe
+> o que precisa pelo `docker-compose.yml`.
+
+> 🔒 **O secret nunca vai para o front.** No compose ele é entregue só ao serviço `api`. Se algum
+> dia aparecer um `NUXT_PUBLIC_GOOGLE_CLIENT_SECRET`, é bug de segurança, não conveniência.
 
 ---
 
@@ -116,7 +129,8 @@ foi lido: confira que o arquivo é o da **raiz** do monorepo e que você reinici
 (a variável é lida na subida, não a cada requisição).
 
 > O banner prova só o lado da **API**. Se ele disser `ligado` e mesmo assim o botão continuar
-> inerte, falta o `web/.env` — são dois arquivos em desenvolvimento, ver acima.
+> inerte, o front subiu sem a flag `--dotenv ../.env.dev` — confira o script `dev` de
+> `web/package.json` e reinicie.
 
 Depois: abra `http://localhost:3001/entrar` e clique em **Google**. Com o login concluído, o log
 mostra a requisição e quem entrou:
@@ -154,14 +168,17 @@ lacuna `EF01-MC-002` em [MC-01](../../docs/especificacoes/MC-01-familia-e-acesso
 
 ## Quando não funcionar
 
-| Sintoma                                                      | Causa quase sempre                                                                                                                                                                                                                                                             |
-| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `Error 400: origin_mismatch`                                 | A origem do navegador não está em **Origens JavaScript autorizadas**. Compare esquema/host/porta caractere a caractere                                                                                                                                                         |
-| Nada acontece; no console do navegador, erro do `gsi/client` | Client id vazio ou errado — confira o banner (`google ligado`) e o valor no `.env`                                                                                                                                                                                             |
-| "O Google não mostrou a tela de entrada. Tente de novo."     | Mensagem **nossa** (`useGoogle.ts`), disparada quando o GIS suprime o _One Tap_: cookies de terceiros bloqueados, modo anônimo, ou dispensas seguidas colocaram o prompt em espera. Teste noutro perfil do navegador ou libere cookies de terceiros para `accounts.google.com` |
-| Login do Google conclui, mas a API responde 401              | Audiência divergente: o client id do front não é o mesmo que a API está usando. É uma variável só — reinicie os dois depois de mudá-la                                                                                                                                         |
-| `access_blocked` / "app não verificado"                      | O app está em `Testing` e o email não está em **Usuários de teste**                                                                                                                                                                                                            |
-| Entrou com Google e caiu numa conta diferente da de senha    | Não é bug: pelo RN-04 (EF-01), **mesmo email** resolve para o mesmo `Membro`. Emails diferentes são pessoas diferentes, por definição                                                                                                                                          |
+| Sintoma                                                      | Causa quase sempre                                                                                                                     |
+| ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `Error 400: origin_mismatch`                                 | A origem do navegador não está em **Origens JavaScript autorizadas**. Compare esquema/host/porta caractere a caractere                 |
+| Nada acontece; no console do navegador, erro do `gsi/client` | Client id vazio ou errado — confira o banner (`google ligado`) e o valor no `.env`                                                     |
+| "Entrada com Google cancelada."                              | Mensagem **nossa** (`useGoogle.ts`): o popup foi fechado ou o consentimento recusado. Não é defeito                                    |
+| "Não consegui abrir a entrada com Google. Tente de novo."    | Mensagem **nossa**: o GIS não conseguiu abrir o popup — bloqueador de pop-ups é a causa mais comum                                     |
+| `Not signed in with the identity provider`                   | Sintoma do fluxo ANTIGO (One Tap), removido em 2026-08-26. Se aparecer, o front está desatualizado                                     |
+| API responde `codigo_google_invalido`                        | A troca do código falhou na API: `GOOGLE_CLIENT_SECRET` ausente ou errado, ou o código já foi usado (é de uso único)                   |
+| Login do Google conclui, mas a API responde 401              | Audiência divergente: o client id do front não é o mesmo que a API está usando. É uma variável só — reinicie os dois depois de mudá-la |
+| `access_blocked` / "app não verificado"                      | O app está em `Testing` e o email não está em **Usuários de teste**                                                                    |
+| Entrou com Google e caiu numa conta diferente da de senha    | Não é bug: pelo RN-04 (EF-01), **mesmo email** resolve para o mesmo `Membro`. Emails diferentes são pessoas diferentes, por definição  |
 
 ---
 

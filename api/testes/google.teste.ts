@@ -4,7 +4,7 @@
  * (RN-02), e não há autocadastro por Google (D-05) — sem conta prévia, sem
  * convite, a resposta é "conta não encontrada".
  *
- * A fronteira mockada é só a rede com o Google (`definirVerificadorDeIdTokenGoogle`
+ * A fronteira mockada é só a rede com o Google (`definirResolvedorDeGoogle`
  * — ver comentário em `src/modulos/familia/google.ts`). Rota, banco, sessão e
  * a resolução de identidade (RN-04) são reais.
  */
@@ -15,8 +15,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { db, fecharBanco } from '../src/db';
 import { convites, identidades, membros } from '../src/db/schema';
 import {
-  definirVerificadorDeIdTokenGoogle,
-  restaurarVerificadorDeIdTokenGoogle,
+  definirResolvedorDeGoogle,
+  restaurarResolvedorDeGoogle,
 } from '../src/modulos/familia/google';
 import {
   abrirApp,
@@ -40,18 +40,18 @@ afterAll(async () => {
 });
 
 afterEach(() => {
-  restaurarVerificadorDeIdTokenGoogle();
+  restaurarResolvedorDeGoogle();
 });
 
 describe('login por Google', () => {
   it('RN-04: o mesmo email por senha e por Google resolve para o MESMO Membro', async () => {
-    definirVerificadorDeIdTokenGoogle(async () => ({
+    definirResolvedorDeGoogle(async () => ({
       email: familia.email,
       emailVerificado: true,
       nome: 'Nome do Google',
     }));
 
-    const resposta = await request(app).post('/sessoes/google').send({ idToken: 'qualquer-coisa' });
+    const resposta = await request(app).post('/sessoes/google').send({ codigoAutorizacao: 'qualquer-coisa' });
 
     expect(resposta.status).toBe(201);
     expect(resposta.body.membroId).toBe(familia.membroId);
@@ -81,39 +81,39 @@ describe('login por Google', () => {
   });
 
   it('logar de novo por Google (identidade já vinculada) continua resolvendo para o mesmo Membro', async () => {
-    definirVerificadorDeIdTokenGoogle(async () => ({
+    definirResolvedorDeGoogle(async () => ({
       email: familia.email,
       emailVerificado: true,
       nome: 'Nome do Google',
     }));
 
-    const resposta = await request(app).post('/sessoes/google').send({ idToken: 'outro-token-qualquer' });
+    const resposta = await request(app).post('/sessoes/google').send({ codigoAutorizacao: 'outro-token-qualquer' });
 
     expect(resposta.status).toBe(201);
     expect(resposta.body.membroId).toBe(familia.membroId);
   });
 
   it('recusa quando o Google NÃO verificou o email — nunca confia no que o token alega solto', async () => {
-    definirVerificadorDeIdTokenGoogle(async () => ({
+    definirResolvedorDeGoogle(async () => ({
       email: familia.email,
       emailVerificado: false,
       nome: 'Nome do Google',
     }));
 
-    const resposta = await request(app).post('/sessoes/google').send({ idToken: 'token-nao-verificado' });
+    const resposta = await request(app).post('/sessoes/google').send({ codigoAutorizacao: 'token-nao-verificado' });
 
     expect(resposta.status).toBe(401);
     expect(resposta.body.erro).toBe('email_nao_verificado');
   });
 
   it('sem conta prévia e sem convite, recusa — login por Google não é autocadastro (D-05)', async () => {
-    definirVerificadorDeIdTokenGoogle(async () => ({
+    definirResolvedorDeGoogle(async () => ({
       email: 'ninguem-com-essa-conta@exemplo.test',
       emailVerificado: true,
       nome: 'Estranho',
     }));
 
-    const resposta = await request(app).post('/sessoes/google').send({ idToken: 'token-de-desconhecido' });
+    const resposta = await request(app).post('/sessoes/google').send({ codigoAutorizacao: 'token-de-desconhecido' });
 
     expect(resposta.status).toBe(401);
     expect(resposta.body.erro).toBe('conta_nao_encontrada');
@@ -125,18 +125,18 @@ describe('login por Google', () => {
     expect(criouAlguem).toHaveLength(0);
   });
 
-  it('token do Google que falha na verificação responde 401, não 500', async () => {
-    definirVerificadorDeIdTokenGoogle(async () => {
+  it('código do Google que falha na troca responde 401, não 500', async () => {
+    definirResolvedorDeGoogle(async () => {
       throw new Error('assinatura inválida');
     });
 
-    const resposta = await request(app).post('/sessoes/google').send({ idToken: 'token-forjado' });
+    const resposta = await request(app).post('/sessoes/google').send({ codigoAutorizacao: 'token-forjado' });
 
     expect(resposta.status).toBe(401);
-    expect(resposta.body.erro).toBe('token_invalido');
+    expect(resposta.body.erro).toBe('codigo_google_invalido');
   });
 
-  it('corpo sem idToken responde 422', async () => {
+  it('corpo sem código de autorização responde 422', async () => {
     const resposta = await request(app).post('/sessoes/google').send({});
     expect(resposta.status).toBe(422);
   });
@@ -153,7 +153,7 @@ describe('RN-04 pelo aceite de convite: aceitar por Google vincula à mesma pess
     const [convite] = await db.select().from(convites).where(eq(convites.email, email)).limit(1);
     if (!convite) throw new Error('setup: convite não persistiu');
 
-    definirVerificadorDeIdTokenGoogle(async () => ({
+    definirResolvedorDeGoogle(async () => ({
       email,
       emailVerificado: true,
       nome: 'Nome do Google',
@@ -161,7 +161,7 @@ describe('RN-04 pelo aceite de convite: aceitar por Google vincula à mesma pess
 
     const resposta = await request(app)
       .post('/convites/aceitar')
-      .send({ metodo: 'google', codigo: convite.token, idToken: 'token-do-google' });
+      .send({ metodo: 'google', codigo: convite.token, codigoAutorizacao: 'codigo-do-google' });
 
     // A pessoa já pertence à família dela por senha — convite cruzado de
     // outra família é conflito, não um novo Membro fantasma.

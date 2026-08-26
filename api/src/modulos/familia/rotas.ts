@@ -54,7 +54,7 @@ import {
   EsquemaRecusarConvite,
   EsquemaLoginGoogle,
 } from './esquemas';
-import { verificarIdTokenGoogle } from './google';
+import { perfilDoGoogle } from './google';
 import { ErroDeIdentidade, resolverMembroExistente, resolverOuCriarMembroDaFamilia } from './identidade-servico';
 import { gerarHashDeSenha, conferirSenha } from './senha';
 import {
@@ -149,7 +149,7 @@ rotasDeFamilia.post('/sessoes', async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
-// POST /sessoes/google — entrar com um ID token do Google
+// POST /sessoes/google — entrar com um código de autorização do Google
 // ---------------------------------------------------------------------------
 //
 // O que autentica é o email VERIFICADO pelo provedor, nunca o que o token
@@ -161,13 +161,13 @@ rotasDeFamilia.post('/sessoes', async (req, res, next) => {
 registrarRota({
   metodo: 'post',
   caminho: '/sessoes/google',
-  resumo: 'Abre uma sessão com um ID token do Google',
+  resumo: 'Abre uma sessão com um código de autorização do Google',
   etiquetas: ['acesso'],
   exigeSessao: false,
   corpo: 'LoginGoogle',
   respostas: [
     { status: 201, descricao: 'Sessão aberta; cookie httpOnly definido', esquema: 'SessaoAtual' },
-    { status: 401, descricao: 'Token inválido, email não verificado ou sem conta', esquema: 'Erro' },
+    { status: 401, descricao: 'Código inválido, email não verificado ou sem conta', esquema: 'Erro' },
     { status: 422, descricao: 'Corpo inválido', esquema: 'Erro' },
   ],
 });
@@ -176,15 +176,21 @@ rotasDeFamilia.post('/sessoes/google', async (req, res, next) => {
   try {
     const analise = EsquemaLoginGoogle.safeParse(req.body);
     if (!analise.success) {
-      res.status(422).json({ erro: 'corpo_invalido', mensagem: 'Informe o idToken do Google.' });
+      res.status(422).json({
+        erro: 'corpo_invalido',
+        mensagem: 'Informe o código de autorização do Google.',
+      });
       return;
     }
 
     let perfil;
     try {
-      perfil = await verificarIdTokenGoogle(analise.data.idToken);
+      perfil = await perfilDoGoogle(analise.data.codigoAutorizacao);
     } catch {
-      res.status(401).json({ erro: 'token_invalido', mensagem: 'Não consegui validar o token do Google.' });
+      res.status(401).json({
+        erro: 'codigo_google_invalido',
+        mensagem: 'Não consegui validar sua conta do Google. Tente de novo.',
+      });
       return;
     }
 
@@ -415,7 +421,7 @@ registrarRota({
   corpo: 'AceitarConvite',
   respostas: [
     { status: 201, descricao: 'Convite aceito; sessão aberta', esquema: 'SessaoAtual' },
-    { status: 401, descricao: 'Código incorreto (RN-10), token do Google inválido ou email não verificado', esquema: 'Erro' },
+    { status: 401, descricao: 'Código do convite incorreto (RN-10), código do Google inválido ou email não verificado', esquema: 'Erro' },
     { status: 404, descricao: 'Nenhum convite pendente para este email', esquema: 'Erro' },
     { status: 409, descricao: 'Convite já usado, recusado, ou email de outra família', esquema: 'Erro' },
     { status: 410, descricao: 'Convite expirado (RN-03)', esquema: 'Erro' },
@@ -461,9 +467,12 @@ rotasDeFamilia.post('/convites/aceitar', async (req, res, next) => {
     if (analise.data.metodo === 'google') {
       let perfil;
       try {
-        perfil = await verificarIdTokenGoogle(analise.data.idToken);
+        perfil = await perfilDoGoogle(analise.data.codigoAutorizacao);
       } catch {
-        res.status(401).json({ erro: 'token_invalido', mensagem: 'Não consegui validar o token do Google.' });
+        res.status(401).json({
+          erro: 'codigo_google_invalido',
+          mensagem: 'Não consegui validar sua conta do Google. Tente de novo.',
+        });
         return;
       }
       if (!perfil.emailVerificado) {

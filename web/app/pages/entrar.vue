@@ -12,7 +12,7 @@
 definePageMeta({ layout: false });
 
 const { entrar, entrarComGoogle } = useSessao();
-const { disponivel: googleDisponivel, obterIdToken } = useGoogle();
+const { disponivel: googleDisponivel, obterCodigoDeAutorizacao } = useGoogle();
 
 const email = ref('');
 const senha = ref('');
@@ -58,8 +58,8 @@ async function comGoogle(): Promise<void> {
   ehErro.value = false;
   enviando.value = true;
   try {
-    const idToken = await obterIdToken();
-    await entrarComGoogle(idToken);
+    const codigoAutorizacao = await obterCodigoDeAutorizacao();
+    await entrarComGoogle(codigoAutorizacao);
     await navigateTo('/');
   } catch (erro) {
     ehErro.value = true;
