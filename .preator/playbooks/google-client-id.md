@@ -115,6 +115,9 @@ Se ainda disser `desligado (GOOGLE_CLIENT_ID vazio — o botão fica inerte no f
 foi lido: confira que o arquivo é o da **raiz** do monorepo e que você reiniciou o `pnpm dev`
 (a variável é lida na subida, não a cada requisição).
 
+> O banner prova só o lado da **API**. Se ele disser `ligado` e mesmo assim o botão continuar
+> inerte, falta o `web/.env` — são dois arquivos em desenvolvimento, ver acima.
+
 Depois: abra `http://localhost:3001/entrar` e clique em **Google**. Com o login concluído, o log
 mostra a requisição e quem entrou:
 
