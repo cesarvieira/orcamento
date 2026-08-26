@@ -30,7 +30,16 @@ const esquema = z.object({
   SESSAO_TTL_HORAS: z.coerce.number().int().positive().default(720),
 
   /** Origem do front autorizada a mandar cookie (CORS com credenciais). */
+  // A origem CANÔNICA do front. É ela que o CORS aceita e, principalmente, é
+  // ela que monta os links dos emails (convite, confirmação) — por isso é UMA,
+  // e não uma lista: um link não pode ter duas origens.
   ORIGEM_WEB: z.string().default('http://localhost:3001'),
+  // Outras origens que o CORS também aceita, separadas por vírgula. Existe
+  // para o desenvolvimento local, onde o mesmo app é alcançado por mais de um
+  // nome (`localhost:3001` e `orcamento.localhost:3001`, por exemplo). Vazio
+  // por padrão: em produção há uma origem só, e acrescentar outra é decisão
+  // consciente, não default.
+  ORIGENS_WEB_EXTRAS: z.string().default(''),
 
   MAIL_DRIVER: z.enum(['log', 'smtp', 'resend', 'ses']).default('log'),
   MAIL_FROM: z.string().default(''),

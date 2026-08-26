@@ -79,18 +79,23 @@ Salve e copie o **ID do cliente**. Ele termina em `.apps.googleusercontent.com`.
 
 ## Onde colocar o valor
 
-No `.env` da raiz (ignorado pelo Git — veja `.env.example` para o nome da chave):
+Em **desenvolvimento**, a mesma linha vai nos dois arquivos (ambos ignorados pelo Git — veja
+`.env.example` para o nome da chave): no `.env` da raiz, que a API lê, e em `web/.env`, que o
+front lê. A tabela abaixo explica por quê.
 
 ```bash
 GOOGLE_CLIENT_ID=000000000000-xxxxxxxxxxxxxxxxxxxxxxxx.apps.googleusercontent.com
 ```
 
-Uma variável só alimenta os dois lados:
+| Quem  | Como lê                                                      | Onde o valor tem de estar |
+| ----- | ------------------------------------------------------------ | ------------------------- |
+| API   | `ambiente.GOOGLE_CLIENT_ID` — audiência da verificação       | `.env` da raiz            |
+| Front | `runtimeConfig.public.googleClientId` (`web/nuxt.config.ts`) | **`web/.env`**            |
 
-| Quem  | Como lê                                                                                                  |
-| ----- | -------------------------------------------------------------------------------------------------------- |
-| API   | `ambiente.GOOGLE_CLIENT_ID` (`api/src/config/ambiente.ts`) — audiência da verificação                    |
-| Front | `runtimeConfig.public.googleClientId` (`web/nuxt.config.ts`), a partir de `process.env.GOOGLE_CLIENT_ID` |
+> ⚠️ **Em desenvolvimento são dois arquivos, não um.** O Nuxt carrega o `.env` do `rootDir` dele,
+> que neste monorepo é `web/` — medido: uma variável posta só no `.env` da raiz **não** chega ao
+> front. Na stack do compose isso não se aplica: lá cada serviço recebe a variável pelo
+> `docker-compose.yml`, das duas pontas da mesma origem.
 
 ---
 

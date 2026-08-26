@@ -38,9 +38,17 @@ export function criarApp(): Express {
   // ver quando está caçando "por que o front não recebeu nada".
   app.use(registrarAcesso);
 
+  // A canônica mais as extras (ver `ambiente.ts`). Lista explícita, nunca `*`:
+  // com `credentials: true` o navegador recusa o curinga, e aceitar qualquer
+  // origem num app que guarda dado financeiro seria abrir de par em par.
+  const origensAceitas = [
+    ambiente.ORIGEM_WEB,
+    ...ambiente.ORIGENS_WEB_EXTRAS.split(',').map(o => o.trim()).filter(Boolean),
+  ];
+
   app.use(
     cors({
-      origin: ambiente.ORIGEM_WEB,
+      origin: origensAceitas,
       credentials: true,
     }),
   );
