@@ -11,7 +11,14 @@
 export default defineNuxtConfig({
   ssr: true,
 
-  devtools: { enabled: false },
+  /**
+   * As ferramentas de dev do Nuxt (painel de rotas, componentes, payload do
+   * SSR, timings). O próprio Nuxt só as carrega em `nuxt dev` — `nuxt build`
+   * não as inclui no artefato —, então ligar aqui não vaza para produção nem
+   * para o que o gate prova. `@nuxt/devtools` já vem com o Nuxt; não é
+   * dependência nova.
+   */
+  devtools: { enabled: true },
 
   app: {
     head: {
