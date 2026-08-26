@@ -1,0 +1,22 @@
+// BOTÃO — a ação primária, largura cheia.
+//
+// Sem `margin`: as três telas que o usam pediam espaçamentos diferentes acima
+// dele (14px, 4px, nenhum), e era só nisso que as cópias divergiam. Margem é
+// do LAYOUT de quem posiciona, não do botão — cada tela declara a sua.
+
+.botao {
+  width: 100%;
+  height: 48px;
+  border: none;
+  border-radius: 9999px;
+  background: var(--tinta);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:disabled {
+    background: #aab2be;
+    cursor: default;
+  }
+}

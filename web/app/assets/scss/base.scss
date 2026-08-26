@@ -4,6 +4,19 @@
 // Design — não são escolha nova. Ficam como variáveis porque o mockup as
 // repete inline em cada elemento, e repetir aqui seria copiar o defeito junto
 // com o desenho.
+//
+// Este arquivo é a RAIZ DA CADEIA: é o único `.scss` global (`nuxt.config.ts`,
+// chave `css`), e daqui saem os componentes compartilhados abaixo. Eles vinham
+// copiados na folha de cada tela — mesma definição em três lugares, iguais só
+// enquanto alguém lembrasse de sincronizar. Encadeados aqui, saem uma vez só
+// no CSS e valem para quem usar a classe.
+//
+// O que NÃO entra aqui: estilo de uma tela só. Esse continua na folha dela,
+// `scoped`, para não virar CSS global por acidente.
+
+@use "base/campo";
+@use "base/botao";
+@use "base/lista";
 
 :root {
   // Fundo do app no mobile; o desktop usa o mais escuro atrás da moldura.
