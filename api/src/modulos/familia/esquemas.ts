@@ -21,6 +21,29 @@ export const EsquemaCriarConvite = registrarEsquema(
   }),
 );
 
+/** Criar a própria família (RN-06). Quem preenche isto vira o primeiro membro. */
+export const EsquemaCriarConta = registrarEsquema(
+  'CriarConta',
+  z.object({
+    familiaNome: z.string().trim().min(2).meta({ description: 'Como a família se chama no app.' }),
+    nome: z.string().trim().min(2),
+    email: z.string().trim().min(3),
+    senha: z.string().min(8).meta({ description: 'Mínimo de 8 caracteres.' }),
+  }),
+);
+
+/**
+ * @fundacao consumido pelo contrato gerado (front). O cadastro NÃO abre sessão:
+ * a resposta só confirma que o email saiu, porque o login segue bloqueado até
+ * a confirmação (RN-06).
+ */
+export const EsquemaContaCriada = registrarEsquema(
+  'ContaCriada',
+  z.object({
+    email: z.string().meta({ description: 'Para onde o email de confirmação foi enviado.' }),
+  }),
+);
+
 /** @fundacao consumido pelo contrato gerado (front), não por import dentro deste repo. */
 export const EsquemaConviteCriado = registrarEsquema(
   'ConviteCriado',

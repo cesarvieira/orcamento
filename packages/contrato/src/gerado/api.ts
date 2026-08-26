@@ -130,6 +130,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/contas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cria uma família nova e envia a confirmação de email */
+        post: operations["post_contas"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contas/{token}/confirmar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirma o email do cadastro e abre a sessão */
+        post: operations["post_contas__token__confirmar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/convites/{token}/recusar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Recusa um convite pendente */
+        post: operations["post_convites__token__recusar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -185,6 +236,18 @@ export interface components {
             idToken: string;
         };
         CriarConvite: {
+            email: string;
+        };
+        CriarConta: {
+            /** @description Como a família se chama no app. */
+            familiaNome: string;
+            nome: string;
+            email: string;
+            /** @description Mínimo de 8 caracteres. */
+            senha: string;
+        };
+        ContaCriada: {
+            /** @description Para onde o email de confirmação foi enviado. */
             email: string;
         };
         ConviteCriado: {
@@ -280,6 +343,15 @@ export interface operations {
             };
             /** @description Email ou senha não conferem */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Email ainda não confirmado (RN-06) */
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -567,6 +639,108 @@ export interface operations {
             };
             /** @description Corpo inválido */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    post_contas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CriarConta"];
+            };
+        };
+        responses: {
+            /** @description Família criada; confirmação enviada */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContaCriada"];
+                };
+            };
+            /** @description Email já cadastrado (RN-07) ou com convite pendente (RN-08) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Corpo inválido */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    post_contas__token__confirmar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Email confirmado; sessão aberta */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessaoAtual"];
+                };
+            };
+            /** @description Link inválido ou expirado */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    post_convites__token__recusar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Convite recusado */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Convite inexistente, expirado ou já encerrado */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

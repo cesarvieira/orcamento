@@ -59,6 +59,9 @@ export async function convitePendente(db: Db, token: string): Promise<Convite> {
 
   if (!linha) throw new ErroDeConvite('convite_nao_encontrado', 'Este convite não existe.');
   if (linha.usadoEm) throw new ErroDeConvite('convite_usado', 'Este convite já foi usado.');
+  if (linha.recusadoEm) {
+    throw new ErroDeConvite('convite_recusado', 'Este convite foi recusado.');
+  }
   if (linha.expiraEm.getTime() < Date.now()) {
     throw new ErroDeConvite('convite_expirado', 'Este convite expirou.');
   }
@@ -71,8 +74,16 @@ export async function marcarConviteUsado(db: Db, conviteId: string): Promise<voi
 }
 
 /**
- * EF01-MC-001: os convites PENDENTES da família — não usados e não
- * expirados (RN-03), do mais recente para o mais antigo. `familiaId` chega
+ * RN-08 — o convidado não quis. Encerra o convite SEM criar membro, e é isso
+ * que libera o email para criar a própria família.
+ */
+export async function marcarConviteRecusado(db: Db, conviteId: string): Promise<void> {
+  await db.update(convites).set({ recusadoEm: new Date() }).where(eq(convites.id, conviteId));
+}
+
+/**
+ * EF01-MC-001: os convites PENDENTES da família — não usados, não recusados
+ * (RN-08) e não expirados (RN-03), do mais recente para o mais antigo. `familiaId` chega
  * já resolvido do TOKEN da sessão (RN-01), igual às demais funções deste
  * arquivo.
  */
@@ -82,7 +93,12 @@ export async function listarConvitesPendentes(db: Db, familiaId: string): Promis
     .select()
     .from(convites)
     .where(
-      and(eq(convites.familiaId, familiaId), isNull(convites.usadoEm), gt(convites.expiraEm, agora)),
+      and(
+        eq(convites.familiaId, familiaId),
+        isNull(convites.usadoEm),
+        isNull(convites.recusadoEm),
+        gt(convites.expiraEm, agora),
+      ),
     )
     .orderBy(desc(convites.criadoEm));
 }

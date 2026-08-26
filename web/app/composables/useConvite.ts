@@ -46,5 +46,14 @@ export function useConvite() {
     return nova;
   }
 
-  return { criarConvite, listarConvitesPendentes, aceitarConvite };
+  /**
+   * RN-08 — recusar encerra o convite SEM criar membro, e é o que libera
+   * aquele email para criar a própria família. Sem esta porta, quem recebe um
+   * convite indesejado fica preso: o cadastro recusa e o convite fica de pé.
+   */
+  async function recusarConvite(token: string): Promise<void> {
+    await api(`/convites/${token}/recusar`, { method: 'POST' });
+  }
+
+  return { criarConvite, listarConvitesPendentes, aceitarConvite, recusarConvite };
 }

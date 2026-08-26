@@ -24,8 +24,12 @@ export interface ConviteParaEnviar {
   link: string;
 }
 
+/** Confirmação do email de quem criou a própria família (RN-06). */
+export type ConfirmacaoParaEnviar = ConviteParaEnviar;
+
 interface DriverDeEmail {
   enviarConvite(convite: ConviteParaEnviar): Promise<void>;
+  enviarConfirmacao(confirmacao: ConfirmacaoParaEnviar): Promise<void>;
 }
 
 function assuntoDoConvite(familiaNome: string): string {
@@ -61,6 +65,35 @@ function corpoHtmlDoConvite(convite: ConviteParaEnviar): string {
   });
 }
 
+function assuntoDaConfirmacao(familiaNome: string): string {
+  return `Confirme seu email — família ${familiaNome} no Orçamento Familiar`;
+}
+
+function corpoDaConfirmacao(c: ConfirmacaoParaEnviar): string {
+  return `Você criou a família "${c.familiaNome}" no Orçamento Familiar.\n\n` +
+    `Confirme este email para entrar: ${c.link}`;
+}
+
+function corpoHtmlDaConfirmacao(c: ConfirmacaoParaEnviar): string {
+  return montarEmailHtml({
+    sobretitulo: 'Confirme seu email',
+    titulo: `Falta um passo para abrir a família ${c.familiaNome}`,
+    paragrafos: [
+      'Você criou a família no Orçamento da casa. Antes de entrar, precisamos ter certeza ' +
+      'de que este email é seu — é por ele que a recuperação de acesso vai passar.',
+      'Confirme e você já entra direto.',
+    ],
+    destaque: {
+      rotulo: 'Enquanto não confirmar:',
+      texto: 'o login fica bloqueado para esta conta. O link vale por tempo limitado e serve uma vez só.',
+    },
+    acao: { rotulo: 'Confirmar meu email', url: c.link },
+    rodape:
+      'Você recebeu este email porque alguém usou este endereço para criar uma família no ' +
+      'Orçamento da casa. Se não foi você, ignore — sem a confirmação, ninguém entra nessa conta.',
+  });
+}
+
 /** Registra a TENTATIVA de envio — nenhum email sai de verdade (D-07). */
 const driverLog: DriverDeEmail = {
   async enviarConvite(convite) {
@@ -68,58 +101,102 @@ const driverLog: DriverDeEmail = {
       `[email:log] convite para ${convite.para} · ${assuntoDoConvite(convite.familiaNome)} · ${convite.link}`,
     );
   },
+  async enviarConfirmacao(c) {
+    console.log(
+      `[email:log] confirmação para ${c.para} · ${assuntoDaConfirmacao(c.familiaNome)} · ${c.link}`,
+    );
+  },
 };
+
+async function porSmtp(
+  para: string,
+  subject: string,
+  text: string,
+  html: string,
+): Promise<void> {
+  const { default: nodemailer } = await import('nodemailer');
+  const transportador = nodemailer.createTransport({
+    host: ambiente.SMTP_HOST,
+    port: ambiente.SMTP_PORT,
+    secure: ambiente.SMTP_PORT === 465,
+    auth: ambiente.SMTP_USER ? { user: ambiente.SMTP_USER, pass: ambiente.SMTP_PASS } : undefined,
+  });
+  await transportador.sendMail({ from: ambiente.MAIL_FROM, to: para, subject, text, html });
+}
 
 const driverSmtp: DriverDeEmail = {
   async enviarConvite(convite) {
-    const { default: nodemailer } = await import('nodemailer');
-    const transportador = nodemailer.createTransport({
-      host: ambiente.SMTP_HOST,
-      port: ambiente.SMTP_PORT,
-      secure: ambiente.SMTP_PORT === 465,
-      auth: ambiente.SMTP_USER ? { user: ambiente.SMTP_USER, pass: ambiente.SMTP_PASS } : undefined,
-    });
-    await transportador.sendMail({
-      from: ambiente.MAIL_FROM,
-      to: convite.para,
-      subject: assuntoDoConvite(convite.familiaNome),
-      text: corpoDoConvite(convite),
-      html: corpoHtmlDoConvite(convite),
-    });
+    await porSmtp(
+      convite.para,
+      assuntoDoConvite(convite.familiaNome),
+      corpoDoConvite(convite),
+      corpoHtmlDoConvite(convite),
+    );
+  },
+  async enviarConfirmacao(c) {
+    await porSmtp(
+      c.para,
+      assuntoDaConfirmacao(c.familiaNome),
+      corpoDaConfirmacao(c),
+      corpoHtmlDaConfirmacao(c),
+    );
   },
 };
+
+async function porResend(
+  para: string,
+  subject: string,
+  text: string,
+  html: string,
+): Promise<void> {
+  const resposta = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${ambiente.MAIL_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ from: ambiente.MAIL_FROM, to: [para], subject, text, html }),
+  });
+  if (!resposta.ok) {
+    throw new Error(`o Resend recusou o envio: HTTP ${resposta.status}`);
+  }
+}
 
 const driverResend: DriverDeEmail = {
   async enviarConvite(convite) {
-    const resposta = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${ambiente.MAIL_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: ambiente.MAIL_FROM,
-        to: [convite.para],
-        subject: assuntoDoConvite(convite.familiaNome),
-        text: corpoDoConvite(convite),
-        html: corpoHtmlDoConvite(convite),
-      }),
-    });
-    if (!resposta.ok) {
-      throw new Error(`o Resend recusou o envio do convite: HTTP ${resposta.status}`);
-    }
+    await porResend(
+      convite.para,
+      assuntoDoConvite(convite.familiaNome),
+      corpoDoConvite(convite),
+      corpoHtmlDoConvite(convite),
+    );
+  },
+  async enviarConfirmacao(c) {
+    await porResend(
+      c.para,
+      assuntoDaConfirmacao(c.familiaNome),
+      corpoDaConfirmacao(c),
+      corpoHtmlDaConfirmacao(c),
+    );
   },
 };
 
+// @fundacao SES exige assinatura SigV4 (SDK da AWS), não instalado ainda —
+// D-07 recusou fixar fornecedor nesta tarefa. Escolher SES é decisão do
+// humano; até lá, falha alto em vez de fingir que enviou.
+function sesNaoImplementado(): never {
+  throw new Error(
+    'MAIL_DRIVER=ses ainda não tem adaptador implementado. Use smtp ou resend, ' +
+    'ou implemente a assinatura SigV4 quando o fornecedor for escolhido.',
+  );
+}
+
 const driverSes: DriverDeEmail = {
   async enviarConvite() {
-    // @fundacao SES exige assinatura SigV4 (SDK da AWS), não instalado ainda
-    // — D-07 recusou fixar fornecedor nesta tarefa. Escolher SES é decisão
-    // do humano; até lá, falha alto em vez de fingir que enviou.
-    throw new Error(
-      'MAIL_DRIVER=ses ainda não tem adaptador implementado. Use smtp ou resend, ' +
-      'ou implemente a assinatura SigV4 quando o fornecedor for escolhido.',
-    );
+    sesNaoImplementado();
+  },
+  async enviarConfirmacao() {
+    sesNaoImplementado();
   },
 };
 
@@ -147,4 +224,8 @@ function driverDeEmail(): DriverDeEmail {
 
 export async function enviarConvitePorEmail(convite: ConviteParaEnviar): Promise<void> {
   await driverDeEmail().enviarConvite(convite);
+}
+
+export async function enviarConfirmacaoPorEmail(c: ConfirmacaoParaEnviar): Promise<void> {
+  await driverDeEmail().enviarConfirmacao(c);
 }

@@ -4,11 +4,10 @@
  * b7d13c37-0d57-4a92-9df6-c50357cb587d), com painel de marca no desktop.
  *
  * ⚠️ ESCOPO: email + senha e Google são REAIS (EF-01, fechada). Apple,
- * "esqueci minha senha" e "criar conta da família" existem no mockup mas
- * ficam FORA da EF-01 fechada — ela não tem rota nem regra para "criar a
- * família" nem "recuperar senha" (§3). Aqui eles aparecem como no desenho,
- * mas inertes: clicar mostra "em breve" em vez de abrir um fluxo que a EF não
- * especificou.
+ * "criar conta da família" tambem sao REAIS desde RN-06..RN-09 — o link leva
+ * a `/criar-conta`. Apple e "esqueci minha senha" seguem FORA da EF-01: ela
+ * nao tem rota nem regra para recuperar senha (§3), entao continuam inertes,
+ * mostrando "em breve" em vez de abrir um fluxo que a EF nao especificou.
  */
 definePageMeta({ layout: false });
 
@@ -77,12 +76,11 @@ async function comGoogle(): Promise<void> {
     <!-- ── painel de marca · só desktop ─────────────────────────────────── -->
     <aside class="entrar__marca">
       <div class="entrar__marca-topo">
-        <span class="entrar__selo"><i class="ti ti-home-dollar"></i></span>
-        <span class="entrar__marca-nome">Orçamento da casa</span>
+        <span class="entrar__marca-nome">Orçamento Familiar</span>
       </div>
 
       <div class="entrar__marca-meio">
-        <h1 class="entrar__headline">O dinheiro dos dois,<br>num lugar só.</h1>
+        <h1 class="entrar__headline">O controle total,<br>num lugar só.</h1>
         <p class="entrar__tagline">
           Tetos por categoria, cartão abatendo na hora e um saldo que nunca promete o que não existe.
         </p>
@@ -94,7 +92,7 @@ async function comGoogle(): Promise<void> {
         </ul>
       </div>
 
-      <p class="entrar__marca-rodape">Orçamento Familiar</p>
+      <p class="entrar__marca-rodape">Desenvolvido por <a href="https://cesarvieira.dev" target="_blank">Cesar Vieira</a></p>
     </aside>
 
     <!-- ── coluna do formulário ─────────────────────────────────────────── -->
@@ -174,14 +172,11 @@ async function comGoogle(): Promise<void> {
           <button type="button" @click="comGoogle">
             <i class="ti ti-brand-google"></i><span>Google</span>
           </button>
-          <button type="button" @click="emBreve('Entrar com Apple')">
-            <i class="ti ti-brand-apple"></i><span>Apple</span>
-          </button>
         </div>
 
         <p class="entrar__criar-conta">
           <span class="entrar__criar-conta-pergunta">Ainda não tem conta?</span>
-          <button type="button" @click="emBreve('Criar conta da família')">Criar conta da família</button>
+          <NuxtLink to="/criar-conta">Criar conta da família</NuxtLink>
         </p>
       </div>
     </div>

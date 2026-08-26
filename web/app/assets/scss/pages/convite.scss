@@ -116,3 +116,20 @@
 .botao {
   margin-top: 4px;
 }
+
+// Ação secundária: recusar o convite (RN-08). Discreta de propósito — aceitar
+// é o caminho principal; recusar é a saída de quem não quer entrar.
+.convite__recusar {
+  margin: 16px 0 0;
+  text-align: center;
+
+  button {
+    border: none;
+    background: none;
+    color: var(--texto-fraco);
+    font-family: inherit;
+    font-size: 12.5px;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+}

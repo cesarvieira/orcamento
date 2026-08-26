@@ -17,7 +17,7 @@ definePageMeta({ layout: 'limpo' });
 const rota = useRoute();
 const token = computed(() => String(rota.params.token));
 
-const { aceitarConvite } = useConvite();
+const { aceitarConvite, recusarConvite } = useConvite();
 const { disponivel: googleDisponivel, obterIdToken } = useGoogle();
 
 const nome = ref('');
@@ -25,6 +25,7 @@ const email = ref('');
 const senha = ref('');
 const verSenha = ref(false);
 const enviando = ref(false);
+const recusado = ref(false);
 const mensagem = ref<string | null>(null);
 const ehErro = ref(false);
 
@@ -44,6 +45,24 @@ async function aceitarComSenha(): Promise<void> {
   } catch (erro) {
     ehErro.value = true;
     mensagem.value = mensagemDoErro(erro, 'Não consegui aceitar o convite.');
+  } finally {
+    enviando.value = false;
+  }
+}
+
+async function recusar(): Promise<void> {
+  if (enviando.value) return;
+  mensagem.value = null;
+  ehErro.value = false;
+  enviando.value = true;
+  try {
+    await recusarConvite(token.value);
+    recusado.value = true;
+    ehErro.value = false;
+    mensagem.value = 'Convite recusado. Este email já pode criar a própria família.';
+  } catch (erro) {
+    ehErro.value = true;
+    mensagem.value = mensagemDoErro(erro, 'Não consegui recusar o convite.');
   } finally {
     enviando.value = false;
   }
@@ -142,6 +161,11 @@ async function aceitarComGoogle(): Promise<void> {
         <i class="ti ti-brand-google"></i><span>Aceitar com Google</span>
       </button>
     </template>
+
+    <!-- RN-08: recusar libera este email para criar a própria família. -->
+    <p v-if="!recusado" class="convite__recusar">
+      <button type="button" :disabled="enviando" @click="recusar">Não quero entrar nesta família</button>
+    </p>
   </div>
 </template>
 

@@ -16,7 +16,10 @@ export default defineNuxtRouteMiddleware(async (para) => {
 
   const ehEntrada = para.path === ROTA_DE_ENTRADA;
   const ehConvite = para.path.startsWith('/convite/');
-  const ehPublica = ehEntrada || ehConvite;
+  // Criar conta e confirmar email sao anteriores a sessao por definicao
+  // (RN-06): quem chega neles ainda nao pode entrar.
+  const ehCadastro = para.path === '/criar-conta' || para.path.startsWith('/confirmar/');
+  const ehPublica = ehEntrada || ehConvite || ehCadastro;
 
   if (!sessao.value && !ehPublica) {
     return navigateTo(ROTA_DE_ENTRADA);

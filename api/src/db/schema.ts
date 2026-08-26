@@ -110,11 +110,23 @@ export const identidades = pgTable(
     /** Com Google vale o email VERIFICADO do provedor, não o que o usuário digitar. */
     emailVerificado: timestamp('email_verificado', { withTimezone: true }),
     segredo: text('segredo'),
+    /**
+     * O token do link de confirmação de cadastro (RN-06/RN-09). Nulo em toda
+     * identidade que já nasceu confirmada — Google, que traz o email
+     * verificado do provedor, e quem entrou por convite, cujo email o próprio
+     * convite já provou.
+     *
+     * Fica aqui, e não em tabela própria, porque o que se confirma É a
+     * identidade: um estado dela, não uma entidade nova.
+     */
+    tokenConfirmacao: text('token_confirmacao'),
+    confirmacaoExpiraEm: timestamp('confirmacao_expira_em', { withTimezone: true }),
     criadoEm: criadoEm(),
     atualizadoEm: atualizadoEm(),
   },
   t => [
     uniqueIndex('identidades_provedor_email_unico').on(t.provedor, t.email),
+    uniqueIndex('identidades_token_confirmacao_unico').on(t.tokenConfirmacao),
     index('identidades_por_membro').on(t.membroId),
   ],
 );
@@ -140,11 +152,19 @@ export const convites = pgTable(
     token: text('token').notNull(),
     expiraEm: timestamp('expira_em', { withTimezone: true }).notNull(),
     usadoEm: timestamp('usado_em', { withTimezone: true }),
+    /**
+     * Quando o convidado RECUSOU (RN-08). Separado de `usadoEm` de propósito:
+     * os dois encerram o convite, mas só a recusa libera aquele email para
+     * criar a própria família — e quem lê a tabela depois precisa distinguir
+     * "entrou" de "não quis".
+     */
+    recusadoEm: timestamp('recusado_em', { withTimezone: true }),
     criadoEm: criadoEm(),
   },
   t => [
     uniqueIndex('convites_token_unico').on(t.token),
     index('convites_por_familia').on(t.familiaId),
+    index('convites_por_email').on(t.email),
   ],
 );
 

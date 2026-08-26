@@ -26,13 +26,17 @@ forçaria duplicar a pessoa por provedor — que é exatamente o furo de RN-04.
 
 ## §2 — Regras
 
-| #     | Regra                                                                                                    | Onde é imposta                  | Fonte                                       |
-| ----- | -------------------------------------------------------------------------------------------------------- | ------------------------------- | ------------------------------------------- |
-| RN-01 | O `familiaId` deriva **sempre** do token, nunca do request                                               | middleware de tenant            | [D-05](../decisoes/D-05-acesso-familiar.md) |
-| RN-02 | O email que aceita o convite é idêntico ao convidado. Com Google vale o email **verificado** do provedor | `POST /convites/:token/aceitar` | D-05                                        |
-| RN-03 | Convite **expira** e é de **uso único**                                                                  | mesmo handler                   | D-05 · TTL em `CONVITE_TTL_HORAS`           |
-| RN-04 | Mesmo email via Google e via senha é a **mesma pessoa**                                                  | serviço de identidade           | D-05                                        |
-| RN-05 | Todo membro da família tem o mesmo poder sobre os dados                                                  | ausência de papéis              | mockup                                      |
+| #     | Regra                                                                                                                                                                                                       | Onde é imposta                                        | Fonte                                       |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------- |
+| RN-01 | O `familiaId` deriva **sempre** do token, nunca do request                                                                                                                                                  | middleware de tenant                                  | [D-05](../decisoes/D-05-acesso-familiar.md) |
+| RN-02 | O email que aceita o convite é idêntico ao convidado. Com Google vale o email **verificado** do provedor                                                                                                    | `POST /convites/:token/aceitar`                       | D-05                                        |
+| RN-03 | Convite **expira** e é de **uso único**                                                                                                                                                                     | mesmo handler                                         | D-05 · TTL em `CONVITE_TTL_HORAS`           |
+| RN-04 | Mesmo email via Google e via senha é a **mesma pessoa**                                                                                                                                                     | serviço de identidade                                 | D-05                                        |
+| RN-05 | Todo membro da família tem o mesmo poder sobre os dados                                                                                                                                                     | ausência de papéis                                    | mockup                                      |
+| RN-06 | Quem cria a família nasce com a identidade **não confirmada**; o login é recusado até a confirmação do email                                                                                                | `POST /sessoes` + serviço de cadastro                 | decisão do humano, 2026-08-26               |
+| RN-07 | Email que já é de um `Membro` não pode cadastrar — o email identifica a pessoa (RN-04), não a conta                                                                                                         | serviço de cadastro                                   | decorre de RN-04                            |
+| RN-08 | Email com **convite pendente** não pode cadastrar. O convite é o único caminho para entrar numa família existente; a pessoa **aceita ou recusa** pelo email do convite, e recusar libera o cadastro próprio | serviço de cadastro + `POST /convites/:token/recusar` | decisão do humano, 2026-08-26               |
+| RN-09 | O link de confirmação **expira** e é de **uso único** — mesmo formato do convite                                                                                                                            | serviço de cadastro                                   | simetria com RN-03                          |
 
 **Sobre RN-02 e RN-04 juntas:** sem a vinculação de identidade, quem foi convidado como
 `ana@x.com` cria uma conta de senha com o mesmo email e passa a existir duas vezes — e o convite
@@ -46,11 +50,17 @@ se burla sem nunca ser aceito.
 única EF cuja superfície não vem do desenho.** Construir no mesmo sistema visual do shell
 (EF-00), sem inventar linguagem nova.
 
-| Recurso  | Rota              | Fluxo                                                                |
-| -------- | ----------------- | -------------------------------------------------------------------- |
-| Entrar   | `/entrar`         | Google ou email+senha → cookie `httpOnly` → tela do mês              |
-| Convidar | dentro de _Mais_  | email → envia → confirmação + lista de convites pendentes da família |
-| Aceitar  | `/convite/:token` | valida email → cria membro → entra                                   |
+| Recurso     | Rota                | Fluxo                                                                            |
+| ----------- | ------------------- | -------------------------------------------------------------------------------- |
+| Entrar      | `/entrar`           | Google ou email+senha → cookie `httpOnly` → tela do mês                          |
+| Criar conta | `/criar-conta`      | nome da família + nome + email + senha → cria → **email de confirmação** (RN-06) |
+| Confirmar   | `/confirmar/:token` | valida o token (RN-09) → marca o email verificado → entra logado                 |
+| Convidar    | dentro de _Mais_    | email → envia → confirmação + lista de convites pendentes da família             |
+| Aceitar     | `/convite/:token`   | valida email → cria membro → entra                                               |
+| Recusar     | `/convite/:token`   | mesma tela, ação secundária — libera o email para cadastro próprio (RN-08)       |
+
+`/criar-conta` é alcançada pelo link **"Criar conta da família"** do `/entrar`, e usa o mesmo
+padrão visual dele: hero no mobile, painel de marca no desktop, cartão com os campos.
 
 ---
 

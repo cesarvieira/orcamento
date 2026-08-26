@@ -42,6 +42,10 @@ const esquema = z.object({
   SMTP_USER: z.string().default(''),
   SMTP_PASS: z.string().default(''),
   CONVITE_TTL_HORAS: z.coerce.number().int().positive().default(72),
+  // Prazo do link que confirma o email de quem criou a família (RN-09).
+  // Menor que o do convite de propósito: quem acabou de se cadastrar está com
+  // a caixa de entrada aberta; convite espera a agenda de outra pessoa.
+  CADASTRO_TTL_HORAS: z.coerce.number().int().positive().default(24),
 
   /**
    * O client id OAuth do Google — não é segredo (viaja no próprio token), mas

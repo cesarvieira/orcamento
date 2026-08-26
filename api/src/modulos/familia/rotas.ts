@@ -26,11 +26,18 @@ import {
   convitePendente,
   criarConvite,
   listarConvitesPendentes,
+  marcarConviteRecusado,
   marcarConviteUsado,
 } from './convites';
-import { enviarConvitePorEmail } from './email';
+import { enviarConfirmacaoPorEmail, enviarConvitePorEmail } from './email';
+import {
+  ErroDeCadastro,
+  confirmarCadastro,
+  criarFamiliaComDono,
+} from './cadastro-servico';
 import {
   EsquemaAceitarConvite,
+  EsquemaCriarConta,
   EsquemaCriarConvite,
   EsquemaLoginGoogle,
 } from './esquemas';
@@ -72,6 +79,7 @@ registrarRota({
   respostas: [
     { status: 201, descricao: 'Sessão aberta; cookie httpOnly definido', esquema: 'SessaoAtual' },
     { status: 401, descricao: 'Email ou senha não conferem', esquema: 'Erro' },
+    { status: 403, descricao: 'Email ainda não confirmado (RN-06)', esquema: 'Erro' },
     { status: 422, descricao: 'Corpo inválido', esquema: 'Erro' },
   ],
 });
@@ -87,7 +95,11 @@ rotasDeFamilia.post('/sessoes', async (req, res, next) => {
     const email = analise.data.email.trim().toLowerCase();
 
     const [credencial] = await db
-      .select({ membroId: identidades.membroId, segredo: identidades.segredo })
+      .select({
+        membroId: identidades.membroId,
+        segredo: identidades.segredo,
+        emailVerificado: identidades.emailVerificado,
+      })
       .from(identidades)
       .where(eq(identidades.email, email))
       .limit(1);
@@ -97,6 +109,17 @@ rotasDeFamilia.post('/sessoes', async (req, res, next) => {
     const confere = await conferirSenha(analise.data.senha, credencial?.segredo ?? null);
     if (!credencial || !confere) {
       res.status(401).json({ erro: 'credenciais_invalidas', mensagem: 'Email ou senha não conferem.' });
+      return;
+    }
+
+    // RN-06 — a senha confere, mas o email ainda não foi provado. Só depois da
+    // senha correta é que dizemos isto: antes, seria um oráculo revelando quais
+    // emails têm conta pendente.
+    if (!credencial.emailVerificado) {
+      res.status(403).json({
+        erro: 'email_nao_confirmado',
+        mensagem: 'Confirme seu email para entrar — o link foi enviado quando você criou a família.',
+      });
       return;
     }
 
@@ -384,6 +407,9 @@ registrarRota({
 const STATUS_DO_ERRO_DE_CONVITE: Record<string, number> = {
   convite_nao_encontrado: 404,
   convite_usado: 409,
+  // Recusado é irmão de usado, não de expirado: o convite foi RESOLVIDO por
+  // quem o recebeu (RN-08). Expirou é o tempo que decidiu, e por isso é 410.
+  convite_recusado: 409,
   convite_expirado: 410,
 };
 
@@ -472,6 +498,140 @@ rotasDeFamilia.post('/convites/:token/aceitar', async (req, res, next) => {
     emitirInvalidacao({ familiaId: convite.familiaId, recurso: 'familia', origemClienteId });
 
     res.status(201).json(corpoDaSessao(sessao.contexto));
+  } catch (erro) {
+    next(erro);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /contas — criar a PRÓPRIA família (RN-06 a RN-09)
+// ---------------------------------------------------------------------------
+//
+// Não abre sessão de propósito: a identidade nasce não confirmada, e o login a
+// recusa até o email ser provado. Devolver um cookie aqui contradiria RN-06.
+
+registrarRota({
+  metodo: 'post',
+  caminho: '/contas',
+  resumo: 'Cria uma família nova e envia a confirmação de email',
+  etiquetas: ['acesso'],
+  exigeSessao: false,
+  corpo: 'CriarConta',
+  respostas: [
+    { status: 201, descricao: 'Família criada; confirmação enviada', esquema: 'ContaCriada' },
+    { status: 409, descricao: 'Email já cadastrado (RN-07) ou com convite pendente (RN-08)', esquema: 'Erro' },
+    { status: 422, descricao: 'Corpo inválido', esquema: 'Erro' },
+  ],
+});
+
+rotasDeFamilia.post('/contas', async (req, res, next) => {
+  try {
+    const analise = EsquemaCriarConta.safeParse(req.body);
+    if (!analise.success) {
+      res.status(422).json({
+        erro: 'corpo_invalido',
+        mensagem: 'Informe o nome da família, seu nome, email e uma senha de 8 caracteres ou mais.',
+      });
+      return;
+    }
+
+    let criado;
+    try {
+      criado = await criarFamiliaComDono(db, analise.data);
+    } catch (erro) {
+      if (erro instanceof ErroDeCadastro) {
+        res.status(409).json({ erro: erro.codigo, mensagem: erro.message });
+        return;
+      }
+      throw erro;
+    }
+
+    await enviarConfirmacaoPorEmail({
+      para: criado.email,
+      familiaNome: analise.data.familiaNome.trim(),
+      link: `${ambiente.ORIGEM_WEB}/confirmar/${criado.token}`,
+    });
+
+    res.status(201).json({ email: criado.email });
+  } catch (erro) {
+    next(erro);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /contas/:token/confirmar — prova o email e entra (RN-06/RN-09)
+// ---------------------------------------------------------------------------
+
+registrarRota({
+  metodo: 'post',
+  caminho: '/contas/:token/confirmar',
+  resumo: 'Confirma o email do cadastro e abre a sessão',
+  etiquetas: ['acesso'],
+  exigeSessao: false,
+  respostas: [
+    { status: 201, descricao: 'Email confirmado; sessão aberta', esquema: 'SessaoAtual' },
+    { status: 409, descricao: 'Link inválido ou expirado', esquema: 'Erro' },
+  ],
+});
+
+rotasDeFamilia.post('/contas/:token/confirmar', async (req, res, next) => {
+  try {
+    let membroId;
+    try {
+      membroId = await confirmarCadastro(db, String(req.params.token));
+    } catch (erro) {
+      if (erro instanceof ErroDeCadastro) {
+        res.status(409).json({ erro: erro.codigo, mensagem: erro.message });
+        return;
+      }
+      throw erro;
+    }
+
+    const sessao = await abrirSessao(db, membroId);
+    res.cookie(COOKIE_SESSAO, sessao.token, opcoesDoCookie(sessao.expiraEm));
+    res.status(201).json(corpoDaSessao(sessao.contexto));
+  } catch (erro) {
+    next(erro);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /convites/:token/recusar — não quero entrar nesta família (RN-08)
+// ---------------------------------------------------------------------------
+//
+// Recusar não é só cortesia: é o que LIBERA aquele email para criar a própria
+// família. Sem esta porta, quem recebe um convite indesejado fica preso — o
+// cadastro recusa por RN-08 e o convite fica pendente até expirar.
+
+registrarRota({
+  metodo: 'post',
+  caminho: '/convites/:token/recusar',
+  resumo: 'Recusa um convite pendente',
+  etiquetas: ['acesso'],
+  exigeSessao: false,
+  respostas: [
+    { status: 204, descricao: 'Convite recusado' },
+    { status: 409, descricao: 'Convite inexistente, expirado ou já encerrado', esquema: 'Erro' },
+  ],
+});
+
+rotasDeFamilia.post('/convites/:token/recusar', async (req, res, next) => {
+  try {
+    const token = String(req.params.token);
+    let convite;
+    try {
+      convite = await convitePendente(db, token);
+    } catch (erro) {
+      if (erro instanceof ErroDeConvite) {
+        const status = STATUS_DO_ERRO_DE_CONVITE[erro.codigo] ?? 400;
+        res.status(status).json({ erro: erro.codigo, mensagem: erro.message });
+        return;
+      }
+      throw erro;
+    }
+
+    await marcarConviteRecusado(db, convite.id);
+    res.status(204).end();
   } catch (erro) {
     next(erro);
   }

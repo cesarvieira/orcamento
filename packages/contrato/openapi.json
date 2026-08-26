@@ -216,6 +216,49 @@
         ],
         "additionalProperties": false
       },
+      "CriarConta": {
+        "type": "object",
+        "properties": {
+          "familiaNome": {
+            "type": "string",
+            "minLength": 2,
+            "description": "Como a família se chama no app."
+          },
+          "nome": {
+            "type": "string",
+            "minLength": 2
+          },
+          "email": {
+            "type": "string",
+            "minLength": 3
+          },
+          "senha": {
+            "type": "string",
+            "minLength": 8,
+            "description": "Mínimo de 8 caracteres."
+          }
+        },
+        "required": [
+          "familiaNome",
+          "nome",
+          "email",
+          "senha"
+        ],
+        "additionalProperties": false
+      },
+      "ContaCriada": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Para onde o email de confirmação foi enviado."
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "additionalProperties": false
+      },
       "ConviteCriado": {
         "type": "object",
         "properties": {
@@ -419,6 +462,16 @@
           },
           "401": {
             "description": "Email ou senha não conferem",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Email ainda não confirmado (RN-06)",
             "content": {
               "application/json": {
                 "schema": {
@@ -772,6 +825,135 @@
           },
           "422": {
             "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contas": {
+      "post": {
+        "summary": "Cria uma família nova e envia a confirmação de email",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "post_contas",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CriarConta"
+              }
+            }
+          }
+        },
+        "security": [],
+        "responses": {
+          "201": {
+            "description": "Família criada; confirmação enviada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContaCriada"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email já cadastrado (RN-07) ou com convite pendente (RN-08)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contas/{token}/confirmar": {
+      "post": {
+        "summary": "Confirma o email do cadastro e abre a sessão",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "post_contas__token__confirmar",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [],
+        "responses": {
+          "201": {
+            "description": "Email confirmado; sessão aberta",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessaoAtual"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Link inválido ou expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/convites/{token}/recusar": {
+      "post": {
+        "summary": "Recusa um convite pendente",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "post_convites__token__recusar",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [],
+        "responses": {
+          "204": {
+            "description": "Convite recusado"
+          },
+          "409": {
+            "description": "Convite inexistente, expirado ou já encerrado",
             "content": {
               "application/json": {
                 "schema": {

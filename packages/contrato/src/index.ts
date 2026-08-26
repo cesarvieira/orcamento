@@ -14,10 +14,12 @@ export type { components, operations, paths };
 
 /** Todo valor monetário nestes tipos é INTEIRO EM CENTAVOS (D-06). */
 export type AceitarConvite = components['schemas']['AceitarConvite'];
+export type ContaCriada = components['schemas']['ContaCriada'];
 export type ConviteCriado = components['schemas']['ConviteCriado'];
 export type ConvitePendente = components['schemas']['ConvitePendente'];
 export type ConvitesPendentes = components['schemas']['ConvitesPendentes'];
 export type Credenciais = components['schemas']['Credenciais'];
+export type CriarConta = components['schemas']['CriarConta'];
 export type CriarConvite = components['schemas']['CriarConvite'];
 export type Erro = components['schemas']['Erro'];
 export type FamiliaAtual = components['schemas']['FamiliaAtual'];
