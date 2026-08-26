@@ -37,8 +37,10 @@ import {
 } from './cadastro-servico';
 import {
   EsquemaAceitarConvite,
+  EsquemaConfirmarConta,
   EsquemaCriarConta,
   EsquemaCriarConvite,
+  EsquemaRecusarConvite,
   EsquemaLoginGoogle,
 } from './esquemas';
 import { verificarIdTokenGoogle } from './google';
@@ -324,7 +326,10 @@ rotasDeFamilia.post('/convites', exigirSessao, async (req, res, next) => {
     await enviarConvitePorEmail({
       para: convite.email,
       familiaNome,
-      link: `${ambiente.ORIGEM_WEB}/convite/${convite.token}`,
+      codigo: convite.token,
+      // O link não leva mais segredo (RN-10): abre a tela, e é lá que a pessoa
+      // digita email + código. Um link vazado não aceita convite nenhum.
+      link: `${ambiente.ORIGEM_WEB}/convite`,
     });
 
     res.status(201).json({
@@ -376,7 +381,7 @@ rotasDeFamilia.get('/convites', exigirSessao, async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
-// POST /convites/:token/aceitar — aceitar o convite e entrar
+// POST /convites/aceitar — aceitar o convite e entrar
 // ---------------------------------------------------------------------------
 //
 // RN-02: o email que aceita é o convidado — digitado no método `senha`,
@@ -388,19 +393,19 @@ rotasDeFamilia.get('/convites', exigirSessao, async (req, res, next) => {
 
 registrarRota({
   metodo: 'post',
-  caminho: '/convites/:token/aceitar',
+  caminho: '/convites/aceitar',
   resumo: 'Aceita um convite e abre sessão na família dele',
   etiquetas: ['acesso'],
   exigeSessao: false,
   corpo: 'AceitarConvite',
   respostas: [
     { status: 201, descricao: 'Convite aceito; sessão aberta', esquema: 'SessaoAtual' },
-    { status: 401, descricao: 'Token do Google inválido ou email não verificado', esquema: 'Erro' },
-    { status: 403, descricao: 'Email divergente do convidado (RN-02)', esquema: 'Erro' },
-    { status: 404, descricao: 'Convite inexistente', esquema: 'Erro' },
-    { status: 409, descricao: 'Convite já usado, ou email de outra família', esquema: 'Erro' },
+    { status: 401, descricao: 'Código incorreto (RN-10), token do Google inválido ou email não verificado', esquema: 'Erro' },
+    { status: 404, descricao: 'Nenhum convite pendente para este email', esquema: 'Erro' },
+    { status: 409, descricao: 'Convite já usado, recusado, ou email de outra família', esquema: 'Erro' },
     { status: 410, descricao: 'Convite expirado (RN-03)', esquema: 'Erro' },
     { status: 422, descricao: 'Corpo inválido', esquema: 'Erro' },
+    { status: 429, descricao: 'Código invalidado por excesso de tentativas (RN-11)', esquema: 'Erro' },
   ],
 });
 
@@ -411,28 +416,27 @@ const STATUS_DO_ERRO_DE_CONVITE: Record<string, number> = {
   // quem o recebeu (RN-08). Expirou é o tempo que decidiu, e por isso é 410.
   convite_recusado: 409,
   convite_expirado: 410,
+  // RN-10/RN-11 — o código errado é 401 (não provou ser o convidado), e o
+  // esgotamento das tentativas é 429: não é o convite que está errado, é o
+  // ritmo de quem tenta.
+  codigo_invalido: 401,
+  convite_bloqueado: 429,
 };
 
-rotasDeFamilia.post('/convites/:token/aceitar', async (req, res, next) => {
+/** Os erros de `confirmarCadastro`, mesma lógica de status (RN-09/RN-11). */
+const STATUS_DO_ERRO_DE_CADASTRO: Record<string, number> = {
+  confirmacao_nao_encontrada: 404,
+  confirmacao_expirada: 410,
+  codigo_invalido: 401,
+  confirmacao_bloqueada: 429,
+};
+
+rotasDeFamilia.post('/convites/aceitar', async (req, res, next) => {
   try {
     const analise = EsquemaAceitarConvite.safeParse(req.body);
     if (!analise.success) {
       res.status(422).json({ erro: 'corpo_invalido', mensagem: 'Corpo do aceite inválido.' });
       return;
-    }
-
-    const token = req.params.token as string;
-
-    let convite;
-    try {
-      convite = await convitePendente(db, token);
-    } catch (erro) {
-      if (erro instanceof ErroDeConvite) {
-        const status = STATUS_DO_ERRO_DE_CONVITE[erro.codigo] ?? 400;
-        res.status(status).json({ erro: erro.codigo, mensagem: erro.message });
-        return;
-      }
-      throw erro;
     }
 
     let emailCandidato: string;
@@ -459,13 +463,19 @@ rotasDeFamilia.post('/convites/:token/aceitar', async (req, res, next) => {
       segredo = await gerarHashDeSenha(analise.data.senha);
     }
 
-    // RN-02 — o email que aceita tem de ser o convidado, sempre.
-    if (emailCandidato !== convite.email) {
-      res.status(403).json({
-        erro: 'email_divergente',
-        mensagem: 'Este convite foi enviado para outro email.',
-      });
-      return;
+    // RN-02 + RN-10 — o convite é procurado PELO email de quem aceita, junto
+    // do código. Não há mais comparação depois do fato: quem não é o convidado
+    // simplesmente não acha convite nenhum.
+    let convite;
+    try {
+      convite = await convitePendente(db, emailCandidato, analise.data.codigo);
+    } catch (erro) {
+      if (erro instanceof ErroDeConvite) {
+        const status = STATUS_DO_ERRO_DE_CONVITE[erro.codigo] ?? 400;
+        res.status(status).json({ erro: erro.codigo, mensagem: erro.message });
+        return;
+      }
+      throw erro;
     }
 
     let membro;
@@ -549,7 +559,8 @@ rotasDeFamilia.post('/contas', async (req, res, next) => {
     await enviarConfirmacaoPorEmail({
       para: criado.email,
       familiaNome: analise.data.familiaNome.trim(),
-      link: `${ambiente.ORIGEM_WEB}/confirmar/${criado.token}`,
+      codigo: criado.token,
+      link: `${ambiente.ORIGEM_WEB}/confirmar`,
     });
 
     res.status(201).json({ email: criado.email });
@@ -559,29 +570,41 @@ rotasDeFamilia.post('/contas', async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
-// POST /contas/:token/confirmar — prova o email e entra (RN-06/RN-09)
+// POST /contas/confirmar — prova o email e entra (RN-06/RN-09)
 // ---------------------------------------------------------------------------
 
 registrarRota({
   metodo: 'post',
-  caminho: '/contas/:token/confirmar',
+  caminho: '/contas/confirmar',
   resumo: 'Confirma o email do cadastro e abre a sessão',
   etiquetas: ['acesso'],
   exigeSessao: false,
+  corpo: 'ConfirmarConta',
   respostas: [
     { status: 201, descricao: 'Email confirmado; sessão aberta', esquema: 'SessaoAtual' },
-    { status: 409, descricao: 'Link inválido ou expirado', esquema: 'Erro' },
+    { status: 401, descricao: 'Código incorreto (RN-10)', esquema: 'Erro' },
+    { status: 404, descricao: 'Nenhuma confirmação pendente para este email', esquema: 'Erro' },
+    { status: 410, descricao: 'Código expirado (RN-09)', esquema: 'Erro' },
+    { status: 422, descricao: 'Corpo inválido', esquema: 'Erro' },
+    { status: 429, descricao: 'Código invalidado por excesso de tentativas (RN-11)', esquema: 'Erro' },
   ],
 });
 
-rotasDeFamilia.post('/contas/:token/confirmar', async (req, res, next) => {
+rotasDeFamilia.post('/contas/confirmar', async (req, res, next) => {
   try {
+    const analise = EsquemaConfirmarConta.safeParse(req.body);
+    if (!analise.success) {
+      res.status(422).json({ erro: 'corpo_invalido', mensagem: 'Informe o email e o código de 6 dígitos.' });
+      return;
+    }
+
     let membroId;
     try {
-      membroId = await confirmarCadastro(db, String(req.params.token));
+      membroId = await confirmarCadastro(db, analise.data.email, analise.data.codigo);
     } catch (erro) {
       if (erro instanceof ErroDeCadastro) {
-        res.status(409).json({ erro: erro.codigo, mensagem: erro.message });
+        const status = STATUS_DO_ERRO_DE_CADASTRO[erro.codigo] ?? 409;
+        res.status(status).json({ erro: erro.codigo, mensagem: erro.message });
         return;
       }
       throw erro;
@@ -596,7 +619,7 @@ rotasDeFamilia.post('/contas/:token/confirmar', async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
-// POST /convites/:token/recusar — não quero entrar nesta família (RN-08)
+// POST /convites/recusar — não quero entrar nesta família (RN-08)
 // ---------------------------------------------------------------------------
 //
 // Recusar não é só cortesia: é o que LIBERA aquele email para criar a própria
@@ -605,22 +628,33 @@ rotasDeFamilia.post('/contas/:token/confirmar', async (req, res, next) => {
 
 registrarRota({
   metodo: 'post',
-  caminho: '/convites/:token/recusar',
+  caminho: '/convites/recusar',
   resumo: 'Recusa um convite pendente',
   etiquetas: ['acesso'],
   exigeSessao: false,
+  corpo: 'RecusarConvite',
   respostas: [
     { status: 204, descricao: 'Convite recusado' },
-    { status: 409, descricao: 'Convite inexistente, expirado ou já encerrado', esquema: 'Erro' },
+    { status: 401, descricao: 'Código incorreto (RN-10)', esquema: 'Erro' },
+    { status: 404, descricao: 'Nenhum convite pendente para este email', esquema: 'Erro' },
+    { status: 409, descricao: 'Convite já usado ou já recusado', esquema: 'Erro' },
+    { status: 410, descricao: 'Convite expirado (RN-03)', esquema: 'Erro' },
+    { status: 422, descricao: 'Corpo inválido', esquema: 'Erro' },
+    { status: 429, descricao: 'Código invalidado por excesso de tentativas (RN-11)', esquema: 'Erro' },
   ],
 });
 
-rotasDeFamilia.post('/convites/:token/recusar', async (req, res, next) => {
+rotasDeFamilia.post('/convites/recusar', async (req, res, next) => {
   try {
-    const token = String(req.params.token);
+    const analise = EsquemaRecusarConvite.safeParse(req.body);
+    if (!analise.success) {
+      res.status(422).json({ erro: 'corpo_invalido', mensagem: 'Informe o email e o código de 6 dígitos.' });
+      return;
+    }
+
     let convite;
     try {
-      convite = await convitePendente(db, token);
+      convite = await convitePendente(db, analise.data.email, analise.data.codigo);
     } catch (erro) {
       if (erro instanceof ErroDeConvite) {
         const status = STATUS_DO_ERRO_DE_CONVITE[erro.codigo] ?? 400;

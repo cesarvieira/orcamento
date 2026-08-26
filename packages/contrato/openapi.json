@@ -246,6 +246,42 @@
         ],
         "additionalProperties": false
       },
+      "ConfirmarConta": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 3
+          },
+          "codigo": {
+            "type": "string",
+            "pattern": "^\\d{6}$"
+          }
+        },
+        "required": [
+          "email",
+          "codigo"
+        ],
+        "additionalProperties": false
+      },
+      "RecusarConvite": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 3
+          },
+          "codigo": {
+            "type": "string",
+            "pattern": "^\\d{6}$"
+          }
+        },
+        "required": [
+          "email",
+          "codigo"
+        ],
+        "additionalProperties": false
+      },
       "ContaCriada": {
         "type": "object",
         "properties": {
@@ -345,6 +381,10 @@
                   "senha"
                 ]
               },
+              "codigo": {
+                "type": "string",
+                "pattern": "^\\d{6}$"
+              },
               "nome": {
                 "type": "string",
                 "minLength": 1
@@ -360,6 +400,7 @@
             },
             "required": [
               "metodo",
+              "codigo",
               "nome",
               "email",
               "senha"
@@ -375,6 +416,10 @@
                   "google"
                 ]
               },
+              "codigo": {
+                "type": "string",
+                "pattern": "^\\d{6}$"
+              },
               "idToken": {
                 "type": "string",
                 "minLength": 1
@@ -382,6 +427,7 @@
             },
             "required": [
               "metodo",
+              "codigo",
               "idToken"
             ],
             "additionalProperties": false
@@ -734,23 +780,13 @@
         }
       }
     },
-    "/convites/{token}/aceitar": {
+    "/convites/aceitar": {
       "post": {
         "summary": "Aceita um convite e abre sessão na família dele",
         "tags": [
           "acesso"
         ],
-        "operationId": "post_convites__token__aceitar",
-        "parameters": [
-          {
-            "name": "token",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "operationId": "post_convites_aceitar",
         "requestBody": {
           "required": true,
           "content": {
@@ -774,17 +810,7 @@
             }
           },
           "401": {
-            "description": "Token do Google inválido ou email não verificado",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Erro"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Email divergente do convidado (RN-02)",
+            "description": "Código incorreto (RN-10), token do Google inválido ou email não verificado",
             "content": {
               "application/json": {
                 "schema": {
@@ -794,7 +820,7 @@
             }
           },
           "404": {
-            "description": "Convite inexistente",
+            "description": "Nenhum convite pendente para este email",
             "content": {
               "application/json": {
                 "schema": {
@@ -804,7 +830,7 @@
             }
           },
           "409": {
-            "description": "Convite já usado, ou email de outra família",
+            "description": "Convite já usado, recusado, ou email de outra família",
             "content": {
               "application/json": {
                 "schema": {
@@ -825,6 +851,16 @@
           },
           "422": {
             "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Código invalidado por excesso de tentativas (RN-11)",
             "content": {
               "application/json": {
                 "schema": {
@@ -888,23 +924,23 @@
         }
       }
     },
-    "/contas/{token}/confirmar": {
+    "/contas/confirmar": {
       "post": {
         "summary": "Confirma o email do cadastro e abre a sessão",
         "tags": [
           "acesso"
         ],
-        "operationId": "post_contas__token__confirmar",
-        "parameters": [
-          {
-            "name": "token",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
+        "operationId": "post_contas_confirmar",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmarConta"
+              }
             }
           }
-        ],
+        },
         "security": [],
         "responses": {
           "201": {
@@ -917,8 +953,48 @@
               }
             }
           },
-          "409": {
-            "description": "Link inválido ou expirado",
+          "401": {
+            "description": "Código incorreto (RN-10)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nenhuma confirmação pendente para este email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Código expirado (RN-09)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Código invalidado por excesso de tentativas (RN-11)",
             "content": {
               "application/json": {
                 "schema": {
@@ -930,30 +1006,80 @@
         }
       }
     },
-    "/convites/{token}/recusar": {
+    "/convites/recusar": {
       "post": {
         "summary": "Recusa um convite pendente",
         "tags": [
           "acesso"
         ],
-        "operationId": "post_convites__token__recusar",
-        "parameters": [
-          {
-            "name": "token",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
+        "operationId": "post_convites_recusar",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecusarConvite"
+              }
             }
           }
-        ],
+        },
         "security": [],
         "responses": {
           "204": {
             "description": "Convite recusado"
           },
+          "401": {
+            "description": "Código incorreto (RN-10)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nenhum convite pendente para este email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
           "409": {
-            "description": "Convite inexistente, expirado ou já encerrado",
+            "description": "Convite já usado ou já recusado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Convite expirado (RN-03)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Código invalidado por excesso de tentativas (RN-11)",
             "content": {
               "application/json": {
                 "schema": {

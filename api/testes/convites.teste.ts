@@ -106,9 +106,11 @@ describe('criar convite', () => {
 
       expect(resposta.status).toBe(201);
       const chamadas = espiao.mock.calls.map(args => String(args[0]));
-      expect(chamadas.some(linha => linha.includes('convidada-log@exemplo.test') && linha.includes('/convite/'))).toBe(
-        true,
-      );
+      // O que o email carrega agora é o CÓDIGO (RN-10), não um link com
+      // segredo dentro — é por ele que a linha de log se prova.
+      expect(
+        chamadas.some(linha => linha.includes('convidada-log@exemplo.test') && /código \d{6}/.test(linha)),
+      ).toBe(true);
     } finally {
       espiao.mockRestore();
     }
@@ -150,8 +152,9 @@ describe('aceitar convite', () => {
     const convite = await convitePorEmail(email);
     if (!convite) throw new Error('setup: convite não persistiu');
 
-    const aceite = await request(app).post(`/convites/${convite.token}/aceitar`).send({
+    const aceite = await request(app).post('/convites/aceitar').send({
       metodo: 'senha',
+      codigo: convite.token,
       nome: 'Nova Pessoa',
       email,
       senha: SENHA_DE_TESTE,
@@ -171,25 +174,83 @@ describe('aceitar convite', () => {
     expect((familia.body.membros as { email: string }[]).map(m => m.email)).toContain(email);
   });
 
-  it('RN-03: recusa token que não existe', async () => {
-    const resposta = await request(app)
-      .post('/convites/token-que-nunca-existiu/aceitar')
-      .send({ metodo: 'senha', nome: 'X', email: 'x@exemplo.test', senha: SENHA_DE_TESTE });
+  it('RN-03: recusa email que não tem convite nenhum', async () => {
+    const resposta = await request(app).post('/convites/aceitar').send({
+      metodo: 'senha',
+      codigo: '000000',
+      nome: 'X',
+      email: 'nunca-foi-convidado@exemplo.test',
+      senha: SENHA_DE_TESTE,
+    });
     expect(resposta.status).toBe(404);
     expect(resposta.body.erro).toBe('convite_nao_encontrado');
   });
 
-  it('RN-03: convite de uso único — o segundo aceite do MESMO token é recusado', async () => {
+  it('RN-10: código errado é recusado sem consumir o convite', async () => {
+    const email = 'codigo-errado@exemplo.test';
+    await request(app).post('/convites').set('Cookie', cookieA).send({ email });
+    const convite = await convitePorEmail(email);
+    if (!convite) throw new Error('setup: convite não persistiu');
+
+    // Um código que garantidamente NÃO é o sorteado.
+    const errado = convite.token === '000000' ? '111111' : '000000';
+    const resposta = await request(app)
+      .post('/convites/aceitar')
+      .send({ metodo: 'senha', codigo: errado, nome: 'Chutador', email, senha: SENHA_DE_TESTE });
+
+    expect(resposta.status).toBe(401);
+    expect(resposta.body.erro).toBe('codigo_invalido');
+
+    // Errar não queima o convite — só gasta uma tentativa.
+    const aindaPendente = await convitePorEmail(email);
+    expect(aindaPendente?.usadoEm).toBeNull();
+    expect(aindaPendente?.tentativas).toBe(1);
+  });
+
+  it('RN-11: na quinta tentativa errada o código é invalidado, e o certo já não vale', async () => {
+    const email = 'forca-bruta@exemplo.test';
+    await request(app).post('/convites').set('Cookie', cookieA).send({ email });
+    const convite = await convitePorEmail(email);
+    if (!convite) throw new Error('setup: convite não persistiu');
+
+    const errado = convite.token === '000000' ? '111111' : '000000';
+    const chutar = (codigo: string) =>
+      request(app)
+        .post('/convites/aceitar')
+        .send({ metodo: 'senha', codigo, nome: 'Chutador', email, senha: SENHA_DE_TESTE });
+
+    for (let i = 0; i < 4; i += 1) {
+      const parcial = await chutar(errado);
+      expect(parcial.status).toBe(401);
+    }
+
+    const quinta = await chutar(errado);
+    expect(quinta.status).toBe(429);
+    expect(quinta.body.erro).toBe('convite_bloqueado');
+
+    // O teto vale mesmo para quem acerta depois: o código morreu.
+    const comOCerto = await chutar(convite.token);
+    expect(comOCerto.status).toBe(429);
+    expect(comOCerto.body.erro).toBe('convite_bloqueado');
+  });
+
+  it('RN-03: convite de uso único — o segundo aceite do MESMO código é recusado', async () => {
     const email = 'uso-unico@exemplo.test';
     await request(app).post('/convites').set('Cookie', cookieA).send({ email });
     const convite = await convitePorEmail(email);
     if (!convite) throw new Error('setup: convite não persistiu');
 
-    const corpo = { metodo: 'senha' as const, nome: 'Uso Único', email, senha: SENHA_DE_TESTE };
-    const primeiro = await request(app).post(`/convites/${convite.token}/aceitar`).send(corpo);
+    const corpo = {
+      metodo: 'senha' as const,
+      codigo: convite.token,
+      nome: 'Uso Único',
+      email,
+      senha: SENHA_DE_TESTE,
+    };
+    const primeiro = await request(app).post('/convites/aceitar').send(corpo);
     expect(primeiro.status).toBe(201);
 
-    const segundo = await request(app).post(`/convites/${convite.token}/aceitar`).send(corpo);
+    const segundo = await request(app).post('/convites/aceitar').send(corpo);
     expect(segundo.status).toBe(409);
     expect(segundo.body.erro).toBe('convite_usado');
   });
@@ -201,37 +262,40 @@ describe('aceitar convite', () => {
       .values({
         familiaId: familiaA.familiaId,
         email,
-        token: ['token', 'de', 'convite', 'expirado'].join('-'),
+        token: '424242',
         expiraEm: new Date(Date.now() - 3600_000), // uma hora no passado
       })
       .returning();
     if (!linha) throw new Error('setup: não consegui inserir convite expirado');
 
     const resposta = await request(app)
-      .post(`/convites/${linha.token}/aceitar`)
-      .send({ metodo: 'senha', nome: 'Tarde Demais', email, senha: SENHA_DE_TESTE });
+      .post('/convites/aceitar')
+      .send({ metodo: 'senha', codigo: linha.token, nome: 'Tarde Demais', email, senha: SENHA_DE_TESTE });
 
     expect(resposta.status).toBe(410);
     expect(resposta.body.erro).toBe('convite_expirado');
   });
 
-  it('RN-02: recusa quando o email que aceita diverge do convidado', async () => {
+  it('RN-02: o email de outra pessoa não acha o convite — nem com o código certo', async () => {
     const emailConvidado = 'convidada-certa@exemplo.test';
     await request(app).post('/convites').set('Cookie', cookieA).send({ email: emailConvidado });
     const convite = await convitePorEmail(emailConvidado);
     if (!convite) throw new Error('setup: convite não persistiu');
 
     const resposta = await request(app)
-      .post(`/convites/${convite.token}/aceitar`)
+      .post('/convites/aceitar')
       .send({
         metodo: 'senha',
+        codigo: convite.token,
         nome: 'Impostor',
         email: 'outro-email@exemplo.test',
         senha: SENHA_DE_TESTE,
       });
 
-    expect(resposta.status).toBe(403);
-    expect(resposta.body.erro).toBe('email_divergente');
+    // Desde RN-10 a busca é pelo par email + código: com o email errado não há
+    // o que comparar, o convite simplesmente não existe para quem tenta.
+    expect(resposta.status).toBe(404);
+    expect(resposta.body.erro).toBe('convite_nao_encontrado');
 
     // A tentativa recusada NÃO consome o convite — o email certo ainda pode aceitar.
     const aindaPendente = await convitePorEmail(emailConvidado);
@@ -245,8 +309,8 @@ describe('aceitar convite', () => {
     if (!convite) throw new Error('setup: convite não persistiu');
 
     const aceite = await request(app)
-      .post(`/convites/${convite.token}/aceitar`)
-      .send({ metodo: 'senha', nome: 'Convida De Novo', email, senha: SENHA_DE_TESTE });
+      .post('/convites/aceitar')
+      .send({ metodo: 'senha', codigo: convite.token, nome: 'Convida De Novo', email, senha: SENHA_DE_TESTE });
     const cookieDoNovo = (aceite.headers['set-cookie'] as unknown as string[]).find(c =>
       c.startsWith('orcamento_sessao='),
     ) as string;
@@ -294,7 +358,8 @@ describe('listar convites pendentes', () => {
     const convite = await convitePorEmail(email);
     if (!convite) throw new Error('setup: convite não persistiu');
 
-    const aceite = await request(app).post(`/convites/${convite.token}/aceitar`).send({
+    const aceite = await request(app).post('/convites/aceitar').send({
+      codigo: convite.token,
       metodo: 'senha',
       nome: 'Já Aceitou',
       email,
@@ -314,7 +379,7 @@ describe('listar convites pendentes', () => {
       .values({
         familiaId: familiaA.familiaId,
         email,
-        token: ['token', 'de', 'convite', 'expirado', 'na', 'lista'].join('-'),
+        token: '353535',
         expiraEm: new Date(Date.now() - 3600_000), // uma hora no passado
       })
       .returning();
@@ -382,8 +447,8 @@ describe('isolamento do convite (REST e socket)', () => {
     if (!convite) throw new Error('setup: convite não persistiu');
 
     const aceite = await request(app)
-      .post(`/convites/${convite.token}/aceitar`)
-      .send({ metodo: 'senha', nome: 'Isolamento', email, senha: SENHA_DE_TESTE });
+      .post('/convites/aceitar')
+      .send({ metodo: 'senha', codigo: convite.token, nome: 'Isolamento', email, senha: SENHA_DE_TESTE });
     expect(aceite.status).toBe(201);
 
     await new Promise(r => setTimeout(r, 400));

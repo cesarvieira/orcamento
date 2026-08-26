@@ -113,7 +113,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/convites/{token}/aceitar": {
+    "/convites/aceitar": {
         parameters: {
             query?: never;
             header?: never;
@@ -123,7 +123,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Aceita um convite e abre sessão na família dele */
-        post: operations["post_convites__token__aceitar"];
+        post: operations["post_convites_aceitar"];
         delete?: never;
         options?: never;
         head?: never;
@@ -147,7 +147,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/contas/{token}/confirmar": {
+    "/contas/confirmar": {
         parameters: {
             query?: never;
             header?: never;
@@ -157,14 +157,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Confirma o email do cadastro e abre a sessão */
-        post: operations["post_contas__token__confirmar"];
+        post: operations["post_contas_confirmar"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/convites/{token}/recusar": {
+    "/convites/recusar": {
         parameters: {
             query?: never;
             header?: never;
@@ -174,7 +174,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Recusa um convite pendente */
-        post: operations["post_convites__token__recusar"];
+        post: operations["post_convites_recusar"];
         delete?: never;
         options?: never;
         head?: never;
@@ -246,6 +246,14 @@ export interface components {
             /** @description Mínimo de 8 caracteres. */
             senha: string;
         };
+        ConfirmarConta: {
+            email: string;
+            codigo: string;
+        };
+        RecusarConvite: {
+            email: string;
+            codigo: string;
+        };
         ContaCriada: {
             /** @description Para onde o email de confirmação foi enviado. */
             email: string;
@@ -273,12 +281,14 @@ export interface components {
         AceitarConvite: {
             /** @enum {string} */
             metodo: "senha";
+            codigo: string;
             nome: string;
             email: string;
             senha: string;
         } | {
             /** @enum {string} */
             metodo: "google";
+            codigo: string;
             idToken: string;
         };
     };
@@ -568,13 +578,11 @@ export interface operations {
             };
         };
     };
-    post_convites__token__aceitar: {
+    post_convites_aceitar: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                token: string;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody: {
@@ -592,7 +600,7 @@ export interface operations {
                     "application/json": components["schemas"]["SessaoAtual"];
                 };
             };
-            /** @description Token do Google inválido ou email não verificado */
+            /** @description Código incorreto (RN-10), token do Google inválido ou email não verificado */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -601,16 +609,7 @@ export interface operations {
                     "application/json": components["schemas"]["Erro"];
                 };
             };
-            /** @description Email divergente do convidado (RN-02) */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Erro"];
-                };
-            };
-            /** @description Convite inexistente */
+            /** @description Nenhum convite pendente para este email */
             404: {
                 headers: {
                     [name: string]: unknown;
@@ -619,7 +618,7 @@ export interface operations {
                     "application/json": components["schemas"]["Erro"];
                 };
             };
-            /** @description Convite já usado, ou email de outra família */
+            /** @description Convite já usado, recusado, ou email de outra família */
             409: {
                 headers: {
                     [name: string]: unknown;
@@ -639,6 +638,15 @@ export interface operations {
             };
             /** @description Corpo inválido */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Código invalidado por excesso de tentativas (RN-11) */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -690,16 +698,18 @@ export interface operations {
             };
         };
     };
-    post_contas__token__confirmar: {
+    post_contas_confirmar: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                token: string;
-            };
+            path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmarConta"];
+            };
+        };
         responses: {
             /** @description Email confirmado; sessão aberta */
             201: {
@@ -710,8 +720,44 @@ export interface operations {
                     "application/json": components["schemas"]["SessaoAtual"];
                 };
             };
-            /** @description Link inválido ou expirado */
-            409: {
+            /** @description Código incorreto (RN-10) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Nenhuma confirmação pendente para este email */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Código expirado (RN-09) */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Corpo inválido */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Código invalidado por excesso de tentativas (RN-11) */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -721,16 +767,18 @@ export interface operations {
             };
         };
     };
-    post_convites__token__recusar: {
+    post_convites_recusar: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                token: string;
-            };
+            path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecusarConvite"];
+            };
+        };
         responses: {
             /** @description Convite recusado */
             204: {
@@ -739,8 +787,53 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Convite inexistente, expirado ou já encerrado */
+            /** @description Código incorreto (RN-10) */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Nenhum convite pendente para este email */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Convite já usado ou já recusado */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Convite expirado (RN-03) */
+            410: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Corpo inválido */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Código invalidado por excesso de tentativas (RN-11) */
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };

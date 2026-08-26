@@ -1,7 +1,7 @@
 /**
  * A porta. Neste produto TUDO é área logada: as únicas rotas públicas são
- * `/entrar` e `/convite/:token` — quem chega por um link de convite ainda não
- * tem sessão nenhuma (EF-01, §3).
+ * `/entrar`, `/convite`, `/criar-conta` e `/confirmar` — quem chega por um
+ * email de convite ou de confirmação ainda não tem sessão nenhuma (EF-01, §3).
  *
  * Roda no SSR e no cliente. No SSR a leitura da sessão usa o cookie que chegou
  * na requisição (ver `useApi`), então o servidor já entrega a página certa —
@@ -15,10 +15,10 @@ export default defineNuxtRouteMiddleware(async (para) => {
   if (!sessao.value) await carregar();
 
   const ehEntrada = para.path === ROTA_DE_ENTRADA;
-  const ehConvite = para.path.startsWith('/convite/');
+  const ehConvite = para.path === '/convite';
   // Criar conta e confirmar email sao anteriores a sessao por definicao
   // (RN-06): quem chega neles ainda nao pode entrar.
-  const ehCadastro = para.path === '/criar-conta' || para.path.startsWith('/confirmar/');
+  const ehCadastro = para.path === '/criar-conta' || para.path === '/confirmar';
   const ehPublica = ehEntrada || ehConvite || ehCadastro;
 
   if (!sessao.value && !ehPublica) {

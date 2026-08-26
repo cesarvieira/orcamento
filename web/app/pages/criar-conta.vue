@@ -89,12 +89,12 @@ async function submeter(): Promise<void> {
         <template v-if="enviadoPara">
           <h2 class="entrar__titulo">Confira seu email</h2>
           <p class="entrar__subtitulo">
-            Mandamos um link de confirmação para <strong>{{ enviadoPara }}</strong>. Abra para
-            entrar — enquanto não confirmar, o login fica bloqueado.
+            Mandamos um código de 6 dígitos para <strong>{{ enviadoPara }}</strong>. Digite-o na
+            tela de confirmação — enquanto não confirmar, o login fica bloqueado.
           </p>
           <p class="entrar__criar-conta">
-            <span class="entrar__criar-conta-pergunta">Já confirmou?</span>
-            <NuxtLink to="/entrar">Entrar</NuxtLink>
+            <span class="entrar__criar-conta-pergunta">Já tem o código?</span>
+            <NuxtLink to="/confirmar">Confirmar email</NuxtLink>
           </p>
         </template>
 

@@ -36,6 +36,12 @@ export interface ConteudoDoEmail {
   paragrafos: string[];
   /** O box destacado com barra à esquerda. Omita para não renderizá-lo. */
   destaque?: { rotulo: string; texto: string };
+  /**
+   * O código de 6 dígitos, quando o email leva um (RN-10). Renderizado em
+   * bloco grande e monoespaçado — quem vai DIGITAR precisa ler dígito a
+   * dígito, e fonte proporcional confunde 0/O e 1/l.
+   */
+  codigo?: string;
   acao: { rotulo: string; url: string };
   /** Explica por que a pessoa recebeu isto. Transacional, sem descadastro. */
   rodape: string;
@@ -53,6 +59,22 @@ export function montarEmailHtml(conteudo: ConteudoDoEmail): string {
       return `<p style="margin:${margem};">${escaparHtml(texto)}</p>`;
     })
     .join('');
+
+  const blocoCodigo = conteudo.codigo
+    ? `
+        <tr>
+          <td class="px" align="center" style="padding:26px 34px 0 34px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" style="background:#f2f4f8; border:1px solid #dfe3ea; border-radius:12px; padding:18px 30px;">
+                  <div style="font-family:Arial,Helvetica,sans-serif; font-size:11px; font-weight:bold; letter-spacing:1.4px; text-transform:uppercase; color:#7c8798; mso-line-height-rule:exactly; line-height:16px;">Seu código</div>
+                  <div style="font-family:'Courier New',Courier,monospace; font-size:34px; font-weight:bold; letter-spacing:8px; color:#14325a; mso-line-height-rule:exactly; line-height:44px; padding-top:6px;">${escaparHtml(conteudo.codigo)}</div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>`
+    : '';
 
   const destaque = conteudo.destaque
     ? `
@@ -121,7 +143,7 @@ export function montarEmailHtml(conteudo: ConteudoDoEmail): string {
             ${paragrafos}
           </td>
         </tr>
-${destaque}
+${blocoCodigo}${destaque}
         <tr>
           <td class="px" align="center" style="padding:28px 34px 4px 34px;">
             <table role="presentation" class="btn" cellpadding="0" cellspacing="0" border="0">

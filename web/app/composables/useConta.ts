@@ -7,7 +7,7 @@
  * confirmada e o login a recusa até o email ser provado. Quem chama isto
  * mostra "confira seu email", não navega para dentro do app.
  */
-import type { ContaCriada, CriarConta, SessaoAtual } from '@orcamento/contrato';
+import type { ConfirmarConta, ContaCriada, CriarConta, SessaoAtual } from '@orcamento/contrato';
 
 export function useConta() {
   const api = useApi();
@@ -17,9 +17,12 @@ export function useConta() {
     return api<ContaCriada>('/contas', { method: 'POST', body: dados });
   }
 
-  /** Prova o email e já entra — a resposta abre sessão, igual ao login. */
-  async function confirmarConta(token: string): Promise<SessaoAtual> {
-    const nova = await api<SessaoAtual>(`/contas/${token}/confirmar`, { method: 'POST' });
+  /**
+   * Prova o email e já entra — a resposta abre sessão, igual ao login. Desde
+   * RN-10 o que prova é o par email + código digitado, não um link.
+   */
+  async function confirmarConta(dados: ConfirmarConta): Promise<SessaoAtual> {
+    const nova = await api<SessaoAtual>('/contas/confirmar', { method: 'POST', body: dados });
     sessao.value = nova;
     return nova;
   }

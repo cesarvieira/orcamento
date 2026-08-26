@@ -47,6 +47,24 @@ describe('modelo de email', () => {
     expect(html).toContain('&quot;onmouseover=');
   });
 
+  it('RN-10: renderiza o código só quando ele existe, e em bloco legível', () => {
+    const semCodigo = montarComTitulo('Título');
+    expect(semCodigo).not.toContain('Seu código');
+
+    const comCodigo = montarEmailHtml({
+      sobretitulo: 'Convite',
+      titulo: 'Título',
+      paragrafos: ['Um parágrafo.'],
+      codigo: '048217',
+      acao: { rotulo: 'Abrir', url: 'http://x.test/convite' },
+      rodape: 'Rodapé.',
+    });
+    expect(comCodigo).toContain('Seu código');
+    expect(comCodigo).toContain('048217');
+    // Monoespaçado: quem vai DIGITAR precisa distinguir 0 de O e 1 de l.
+    expect(comCodigo).toContain('font-family:\'Courier New\',Courier,monospace');
+  });
+
   it('renderiza o destaque só quando ele existe', () => {
     const semDestaque = montarComTitulo('Título');
     expect(semDestaque).not.toContain('border-left:3px solid #14325a');

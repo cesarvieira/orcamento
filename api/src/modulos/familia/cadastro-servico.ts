@@ -24,7 +24,7 @@ import { ambiente } from '../../config/ambiente';
 import type { Db } from '../../db';
 import { convites, familias, identidades, membros } from '../../db/schema';
 import { gerarHashDeSenha } from './senha';
-import { gerarToken } from './sessao-servico';
+import { TENTATIVAS_MAXIMAS, gerarCodigo } from './sessao-servico';
 
 /** Erro de negócio do cadastro — não é exceção de infra. */
 export class ErroDeCadastro extends Error {
@@ -97,7 +97,7 @@ export async function criarFamiliaComDono(
     );
   }
 
-  const token = gerarToken();
+  const token = gerarCodigo();
   const expiraEm = new Date(Date.now() + ambiente.CADASTRO_TTL_HORAS * 3600_000);
   const segredo = await gerarHashDeSenha(dados.senha);
 
@@ -129,26 +129,63 @@ export async function criarFamiliaComDono(
   });
 }
 
-/** RN-09: existe, não expirou, e é de uso único (o token some ao confirmar). */
-export async function confirmarCadastro(db: Db, token: string): Promise<string> {
+/**
+ * RN-09/RN-10/RN-11 — acha a identidade pelo EMAIL e só então confere o código.
+ *
+ * Mesma razão do convite: 6 dígitos colidem, então buscar pelo código seria
+ * ambíguo; e é achando a linha primeiro que se consegue contar o erro. O
+ * contador é o único obstáculo à força bruta.
+ */
+export async function confirmarCadastro(
+  db: Db,
+  email: string,
+  codigo: string,
+): Promise<string> {
+  const alvo = email.trim().toLowerCase();
   const [identidade] = await db
     .select({
       id: identidades.id,
       membroId: identidades.membroId,
+      codigo: identidades.tokenConfirmacao,
       expiraEm: identidades.confirmacaoExpiraEm,
+      tentativas: identidades.tentativasConfirmacao,
     })
     .from(identidades)
-    .where(eq(identidades.tokenConfirmacao, token))
+    .where(and(eq(identidades.email, alvo), eq(identidades.provedor, 'senha')))
     .limit(1);
 
-  if (!identidade) {
+  if (!identidade || !identidade.codigo) {
     throw new ErroDeCadastro(
       'confirmacao_nao_encontrada',
-      'Este link de confirmação não vale mais. Se já confirmou, é só entrar.',
+      'Não há confirmação pendente para este email. Se já confirmou, é só entrar.',
     );
   }
   if (identidade.expiraEm && identidade.expiraEm.getTime() < Date.now()) {
-    throw new ErroDeCadastro('confirmacao_expirada', 'Este link de confirmação expirou.');
+    throw new ErroDeCadastro('confirmacao_expirada', 'Este código expirou. Crie a conta de novo.');
+  }
+  if (identidade.tentativas >= TENTATIVAS_MAXIMAS) {
+    throw new ErroDeCadastro(
+      'confirmacao_bloqueada',
+      'Confirmação bloqueada por excesso de tentativas.',
+    );
+  }
+
+  if (identidade.codigo !== codigo.trim()) {
+    const tentativas = identidade.tentativas + 1;
+    await db
+      .update(identidades)
+      .set({ tentativasConfirmacao: tentativas })
+      .where(eq(identidades.id, identidade.id));
+    if (tentativas >= TENTATIVAS_MAXIMAS) {
+      throw new ErroDeCadastro(
+        'confirmacao_bloqueada',
+        'Código errado demais vezes — a confirmação foi bloqueada.',
+      );
+    }
+    throw new ErroDeCadastro(
+      'codigo_invalido',
+      `Código incorreto. Restam ${TENTATIVAS_MAXIMAS - tentativas} tentativa(s).`,
+    );
   }
 
   await db

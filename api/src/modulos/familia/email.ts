@@ -21,6 +21,12 @@ import { montarEmailHtml } from './email-modelo';
 export interface ConviteParaEnviar {
   para: string;
   familiaNome: string;
+  /**
+   * O código de 6 dígitos que a pessoa vai DIGITAR (RN-10). O email não leva
+   * mais o segredo dentro do link: `link` agora só abre a tela, e sozinho não
+   * autoriza nada.
+   */
+  codigo: string;
   link: string;
 }
 
@@ -52,13 +58,17 @@ function corpoHtmlDoConvite(convite: ConviteParaEnviar): string {
     paragrafos: [
       'Alguém da família criou um acesso para você no Orçamento da casa — o lugar onde vocês ' +
       'planejam o mês por categoria e acompanham o que realmente dá para gastar.',
-      'Para entrar, aceite o convite e crie sua senha (ou entre com o Google).',
+      'Abra a tela de convite, digite o código abaixo junto com este email e crie sua senha ' +
+      '(ou entre com o Google).',
     ],
+    codigo: convite.codigo,
     destaque: {
       rotulo: 'Vale por tempo limitado:',
-      texto: 'este convite expira e serve para um único uso. Se ele vencer, peça outro a quem te convidou.',
+      texto:
+        'este convite expira e serve para um único uso. O código erra no máximo 5 vezes antes ' +
+        'de ser invalidado — se isso acontecer, peça outro a quem te convidou.',
     },
-    acao: { rotulo: 'Aceitar convite', url: convite.link },
+    acao: { rotulo: 'Abrir a tela de convite', url: convite.link },
     rodape:
       'Você recebeu este email porque alguém do Orçamento da casa convidou este endereço. ' +
       'Se não foi você quem esperava este convite, pode ignorar esta mensagem — sem aceitar, nada é criado.',
@@ -81,13 +91,16 @@ function corpoHtmlDaConfirmacao(c: ConfirmacaoParaEnviar): string {
     paragrafos: [
       'Você criou a família no Orçamento da casa. Antes de entrar, precisamos ter certeza ' +
       'de que este email é seu — é por ele que a recuperação de acesso vai passar.',
-      'Confirme e você já entra direto.',
+      'Digite o código abaixo na tela de confirmação e você já entra direto.',
     ],
+    codigo: c.codigo,
     destaque: {
       rotulo: 'Enquanto não confirmar:',
-      texto: 'o login fica bloqueado para esta conta. O link vale por tempo limitado e serve uma vez só.',
+      texto:
+        'o login fica bloqueado para esta conta. O código vale por tempo limitado, serve uma vez ' +
+        'só e erra no máximo 5 vezes antes de ser invalidado.',
     },
-    acao: { rotulo: 'Confirmar meu email', url: c.link },
+    acao: { rotulo: 'Abrir a tela de confirmação', url: c.link },
     rodape:
       'Você recebeu este email porque alguém usou este endereço para criar uma família no ' +
       'Orçamento da casa. Se não foi você, ignore — sem a confirmação, ninguém entra nessa conta.',
@@ -98,12 +111,12 @@ function corpoHtmlDaConfirmacao(c: ConfirmacaoParaEnviar): string {
 const driverLog: DriverDeEmail = {
   async enviarConvite(convite) {
     console.log(
-      `[email:log] convite para ${convite.para} · ${assuntoDoConvite(convite.familiaNome)} · ${convite.link}`,
+      `[email:log] convite para ${convite.para} · ${assuntoDoConvite(convite.familiaNome)} · código ${convite.codigo} · ${convite.link}`,
     );
   },
   async enviarConfirmacao(c) {
     console.log(
-      `[email:log] confirmação para ${c.para} · ${assuntoDaConfirmacao(c.familiaNome)} · ${c.link}`,
+      `[email:log] confirmação para ${c.para} · ${assuntoDaConfirmacao(c.familiaNome)} · código ${c.codigo} · ${c.link}`,
     );
   },
 };

@@ -160,8 +160,8 @@ describe('RN-04 pelo aceite de convite: aceitar por Google vincula à mesma pess
     }));
 
     const resposta = await request(app)
-      .post(`/convites/${convite.token}/aceitar`)
-      .send({ metodo: 'google', idToken: 'token-do-google' });
+      .post('/convites/aceitar')
+      .send({ metodo: 'google', codigo: convite.token, idToken: 'token-do-google' });
 
     // A pessoa já pertence à família dela por senha — convite cruzado de
     // outra família é conflito, não um novo Membro fantasma.

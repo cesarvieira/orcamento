@@ -14,7 +14,7 @@ import { ambiente } from '../../config/ambiente';
 import type { Db } from '../../db';
 import { convites } from '../../db/schema';
 import type { Convite } from '../../db/schema';
-import { gerarToken } from './sessao-servico';
+import { TENTATIVAS_MAXIMAS, gerarCodigo } from './sessao-servico';
 
 /** Erro de negócio do convite — não é exceção de infra. */
 export class ErroDeConvite extends Error {
@@ -41,7 +41,7 @@ export async function criarConvite(
   emailBruto: string,
 ): Promise<ConviteCriado> {
   const email = emailBruto.trim().toLowerCase();
-  const token = gerarToken();
+  const token = gerarCodigo();
   const expiraEm = new Date(Date.now() + ambiente.CONVITE_TTL_HORAS * 3600_000);
 
   const [linha] = await db
@@ -53,17 +53,65 @@ export async function criarConvite(
   return { id: linha.id, email: linha.email, expiraEm: linha.expiraEm, token };
 }
 
-/** RN-03: existe, não foi usado, não expirou. Lança `ErroDeConvite` no que faltar. */
-export async function convitePendente(db: Db, token: string): Promise<Convite> {
-  const [linha] = await db.select().from(convites).where(eq(convites.token, token)).limit(1);
+/**
+ * RN-03/RN-10/RN-11 — acha o convite pelo EMAIL e só então confere o código.
+ *
+ * A ordem importa e não é estilo: um código de 6 dígitos colide entre linhas,
+ * então buscar por ele seria ambíguo. Achar pelo email primeiro resolve isso
+ * E é o que permite contar o erro na linha certa — sem contador, os ~1 milhão
+ * de combinações caem em segundos.
+ */
+export async function convitePendente(
+  db: Db,
+  email: string,
+  codigo: string,
+): Promise<Convite> {
+  const alvo = email.trim().toLowerCase();
+  // O convite MAIS RECENTE daquele email, usado ou não. Filtrar `usadoEm` e
+  // `recusadoEm` aqui seria mais curto, mas apagaria a diferença entre "já
+  // encerrado" e "nunca existiu" — e é justamente essa diferença que dá a
+  // mensagem certa a quem tenta (RN-03/RN-08). Um convite novo para o mesmo
+  // email é sempre mais recente, então re-convidar continua funcionando.
+  const [linha] = await db
+    .select()
+    .from(convites)
+    .where(eq(convites.email, alvo))
+    .orderBy(desc(convites.criadoEm))
+    .limit(1);
 
-  if (!linha) throw new ErroDeConvite('convite_nao_encontrado', 'Este convite não existe.');
-  if (linha.usadoEm) throw new ErroDeConvite('convite_usado', 'Este convite já foi usado.');
+  if (!linha) throw new ErroDeConvite('convite_nao_encontrado', 'Não há convite pendente para este email.');
+  if (linha.usadoEm) {
+    throw new ErroDeConvite('convite_usado', 'Este convite já foi aceito.');
+  }
   if (linha.recusadoEm) {
-    throw new ErroDeConvite('convite_recusado', 'Este convite foi recusado.');
+    throw new ErroDeConvite(
+      'convite_recusado',
+      'Este convite foi recusado. Peça outro a quem te convidou, ou crie a sua própria família.',
+    );
   }
   if (linha.expiraEm.getTime() < Date.now()) {
     throw new ErroDeConvite('convite_expirado', 'Este convite expirou.');
+  }
+  if (linha.tentativas >= TENTATIVAS_MAXIMAS) {
+    throw new ErroDeConvite(
+      'convite_bloqueado',
+      'Este convite foi bloqueado por excesso de tentativas. Peça um novo a quem te convidou.',
+    );
+  }
+
+  if (linha.token !== codigo.trim()) {
+    const tentativas = linha.tentativas + 1;
+    await db.update(convites).set({ tentativas }).where(eq(convites.id, linha.id));
+    if (tentativas >= TENTATIVAS_MAXIMAS) {
+      throw new ErroDeConvite(
+        'convite_bloqueado',
+        'Código errado demais vezes — este convite foi bloqueado. Peça um novo.',
+      );
+    }
+    throw new ErroDeConvite(
+      'codigo_invalido',
+      `Código incorreto. Restam ${TENTATIVAS_MAXIMAS - tentativas} tentativa(s).`,
+    );
   }
 
   return linha;

@@ -48,6 +48,21 @@
   font-weight: 700;
   color: var(--texto);
   padding: 0;
+
+  &::placeholder {
+    color: var(--texto-apagado);
+  }
+}
+
+/**
+ * O código de 6 dígitos (RN-10) é para LER dígito a dígito antes de digitar:
+ * monoespaçado e espaçado, senão 0/O e 1/l se confundem na conferência com o
+ * email.
+ */
+.campo__entrada--codigo {
+  font-family: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+  font-size: 18px;
+  letter-spacing: 0.3em;
 }
 
 .campo__olho {

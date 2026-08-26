@@ -6,7 +6,7 @@
  * `resolverSessaoPorToken` (handshake do socket) — e não existe caminho que
  * aceite o valor vindo do cliente.
  */
-import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 
 import { and, eq, gt, isNull } from 'drizzle-orm';
 
@@ -170,3 +170,20 @@ export function opcoesDoCookie(expiraEm: Date) {
     expires: expiraEm,
   };
 }
+
+/**
+ * O CÓDIGO de 6 dígitos que vai por email (RN-10) — convite e confirmação.
+ *
+ * `randomInt` do `node:crypto`, não `Math.random`: o segundo é previsível e
+ * aqui o que está atrás do código é a conta de uma família.
+ *
+ * Seis dígitos são ~1 milhão de combinações, o que só é seguro porque RN-11
+ * limita as tentativas. Quem trocar isto por algo menor, ou remover o teto,
+ * devolve a força bruta ao jogo.
+ */
+export function gerarCodigo(): string {
+  return String(randomInt(0, 1_000_000)).padStart(6, '0');
+}
+
+/** RN-11 — quantos erros um código tolera antes de ser invalidado. */
+export const TENTATIVAS_MAXIMAS = 5;

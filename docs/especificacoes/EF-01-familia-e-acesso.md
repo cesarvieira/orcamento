@@ -26,21 +26,34 @@ forçaria duplicar a pessoa por provedor — que é exatamente o furo de RN-04.
 
 ## §2 — Regras
 
-| #     | Regra                                                                                                                                                                                                       | Onde é imposta                                        | Fonte                                       |
-| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- | ------------------------------------------- |
-| RN-01 | O `familiaId` deriva **sempre** do token, nunca do request                                                                                                                                                  | middleware de tenant                                  | [D-05](../decisoes/D-05-acesso-familiar.md) |
-| RN-02 | O email que aceita o convite é idêntico ao convidado. Com Google vale o email **verificado** do provedor                                                                                                    | `POST /convites/:token/aceitar`                       | D-05                                        |
-| RN-03 | Convite **expira** e é de **uso único**                                                                                                                                                                     | mesmo handler                                         | D-05 · TTL em `CONVITE_TTL_HORAS`           |
-| RN-04 | Mesmo email via Google e via senha é a **mesma pessoa**                                                                                                                                                     | serviço de identidade                                 | D-05                                        |
-| RN-05 | Todo membro da família tem o mesmo poder sobre os dados                                                                                                                                                     | ausência de papéis                                    | mockup                                      |
-| RN-06 | Quem cria a família nasce com a identidade **não confirmada**; o login é recusado até a confirmação do email                                                                                                | `POST /sessoes` + serviço de cadastro                 | decisão do humano, 2026-08-26               |
-| RN-07 | Email que já é de um `Membro` não pode cadastrar — o email identifica a pessoa (RN-04), não a conta                                                                                                         | serviço de cadastro                                   | decorre de RN-04                            |
-| RN-08 | Email com **convite pendente** não pode cadastrar. O convite é o único caminho para entrar numa família existente; a pessoa **aceita ou recusa** pelo email do convite, e recusar libera o cadastro próprio | serviço de cadastro + `POST /convites/:token/recusar` | decisão do humano, 2026-08-26               |
-| RN-09 | O link de confirmação **expira** e é de **uso único** — mesmo formato do convite                                                                                                                            | serviço de cadastro                                   | simetria com RN-03                          |
+| #     | Regra                                                                                                                                                                                                       | Onde é imposta                                 | Fonte                                       |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ------------------------------------------- |
+| RN-01 | O `familiaId` deriva **sempre** do token, nunca do request                                                                                                                                                  | middleware de tenant                           | [D-05](../decisoes/D-05-acesso-familiar.md) |
+| RN-02 | O email que aceita o convite é idêntico ao convidado. Com Google vale o email **verificado** do provedor                                                                                                    | `POST /convites/aceitar`                       | D-05                                        |
+| RN-03 | Convite **expira** e é de **uso único**                                                                                                                                                                     | mesmo handler                                  | D-05 · TTL em `CONVITE_TTL_HORAS`           |
+| RN-04 | Mesmo email via Google e via senha é a **mesma pessoa**                                                                                                                                                     | serviço de identidade                          | D-05                                        |
+| RN-05 | Todo membro da família tem o mesmo poder sobre os dados                                                                                                                                                     | ausência de papéis                             | mockup                                      |
+| RN-06 | Quem cria a família nasce com a identidade **não confirmada**; o login é recusado até a confirmação do email                                                                                                | `POST /sessoes` + serviço de cadastro          | decisão do humano, 2026-08-26               |
+| RN-07 | Email que já é de um `Membro` não pode cadastrar — o email identifica a pessoa (RN-04), não a conta                                                                                                         | serviço de cadastro                            | decorre de RN-04                            |
+| RN-08 | Email com **convite pendente** não pode cadastrar. O convite é o único caminho para entrar numa família existente; a pessoa **aceita ou recusa** pelo email do convite, e recusar libera o cadastro próprio | serviço de cadastro + `POST /convites/recusar` | decisão do humano, 2026-08-26               |
+| RN-09 | O código de confirmação **expira** e é de **uso único** — mesmo formato do convite                                                                                                                          | serviço de cadastro                            | simetria com RN-03                          |
+| RN-10 | Convite e confirmação chegam por email como **código de 6 dígitos digitado**, nunca como link clicável. O código é validado **junto do email** — ele não é único sozinho                                    | serviços de convite e cadastro                 | decisão do humano, 2026-08-26               |
+| RN-11 | Um código erra no máximo **5 vezes**; na 5ª o código é **invalidado** e é preciso pedir outro                                                                                                               | mesmos serviços                                | decorre de RN-10 — ver abaixo               |
 
 **Sobre RN-02 e RN-04 juntas:** sem a vinculação de identidade, quem foi convidado como
 `ana@x.com` cria uma conta de senha com o mesmo email e passa a existir duas vezes — e o convite
 se burla sem nunca ser aceito.
+
+**Sobre RN-10 e RN-11 juntas — por que o limite não é opcional.** O token anterior tinha 256 bits
+e era inadivinhável; um código de 6 dígitos tem ~1 milhão de combinações, que um script percorre
+em segundos. O que o mantém seguro é **só** o teto de tentativas: com 5, a chance de acerto cego é
+5 em 1.000.000. Quem mexer neste fluxo e afrouxar RN-11 devolve a força bruta ao jogo — e aqui o
+que está do outro lado é a conta de uma família e o dinheiro dela.
+
+Disso decorre uma consequência de projeto: **o código não é único sozinho** (dois convites
+pendentes podem sortear o mesmo), então a busca é sempre por **email + código**, nunca só pelo
+código. Isso também é o que torna o teto possível: acha-se a linha pelo email para então contar o
+erro.
 
 ---
 
@@ -50,14 +63,14 @@ se burla sem nunca ser aceito.
 única EF cuja superfície não vem do desenho.** Construir no mesmo sistema visual do shell
 (EF-00), sem inventar linguagem nova.
 
-| Recurso     | Rota                | Fluxo                                                                            |
-| ----------- | ------------------- | -------------------------------------------------------------------------------- |
-| Entrar      | `/entrar`           | Google ou email+senha → cookie `httpOnly` → tela do mês                          |
-| Criar conta | `/criar-conta`      | nome da família + nome + email + senha → cria → **email de confirmação** (RN-06) |
-| Confirmar   | `/confirmar/:token` | valida o token (RN-09) → marca o email verificado → entra logado                 |
-| Convidar    | dentro de _Mais_    | email → envia → confirmação + lista de convites pendentes da família             |
-| Aceitar     | `/convite/:token`   | valida email → cria membro → entra                                               |
-| Recusar     | `/convite/:token`   | mesma tela, ação secundária — libera o email para cadastro próprio (RN-08)       |
+| Recurso     | Rota             | Fluxo                                                                                |
+| ----------- | ---------------- | ------------------------------------------------------------------------------------ |
+| Entrar      | `/entrar`        | Google ou email+senha → cookie `httpOnly` → tela do mês                              |
+| Criar conta | `/criar-conta`   | nome da família + nome + email + senha → cria → **email com o código** (RN-06/RN-10) |
+| Confirmar   | `/confirmar`     | email + **código de 6 dígitos** (RN-10) → marca o email verificado → entra logado    |
+| Convidar    | dentro de _Mais_ | email → envia → confirmação + lista de convites pendentes da família                 |
+| Aceitar     | `/convite`       | email + **código** + nome e senha (ou Google) → cria membro → entra                  |
+| Recusar     | `/convite`       | mesma tela, ação secundária — libera o email para cadastro próprio (RN-08)           |
 
 `/criar-conta` é alcançada pelo link **"Criar conta da família"** do `/entrar`, e usa o mesmo
 padrão visual dele: hero no mobile, painel de marca no desktop, cartão com os campos.

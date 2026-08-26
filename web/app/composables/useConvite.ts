@@ -1,5 +1,9 @@
 /**
- * Convidar e aceitar convite (EF-01).
+ * Convidar, aceitar e recusar convite (EF-01).
+ *
+ * Desde RN-10 o convite não viaja mais na URL: aceitar e recusar mandam
+ * **email + código de 6 dígitos** no corpo. O código não é único sozinho — é
+ * o par com o email que identifica o convite.
  *
  * Os tipos vêm do CONTRATO GERADO — não redeclarados aqui (D-03). A API (#35)
  * já tem `GET /convites`, que lista os convites pendentes da família da
@@ -11,6 +15,7 @@ import type {
   ConviteCriado,
   ConvitesPendentes,
   CriarConvite,
+  RecusarConvite,
   SessaoAtual,
 } from '@orcamento/contrato';
 
@@ -37,8 +42,8 @@ export function useConvite() {
    * Aceita um convite pendente. A resposta abre sessão — igual ao login —,
    * então ela também atualiza a sessão reativa que `useSessao` expõe.
    */
-  async function aceitarConvite(token: string, dados: AceitarConvite): Promise<SessaoAtual> {
-    const nova = await api<SessaoAtual>(`/convites/${token}/aceitar`, {
+  async function aceitarConvite(dados: AceitarConvite): Promise<SessaoAtual> {
+    const nova = await api<SessaoAtual>('/convites/aceitar', {
       method: 'POST',
       body: dados,
     });
@@ -51,8 +56,8 @@ export function useConvite() {
    * aquele email para criar a própria família. Sem esta porta, quem recebe um
    * convite indesejado fica preso: o cadastro recusa e o convite fica de pé.
    */
-  async function recusarConvite(token: string): Promise<void> {
-    await api(`/convites/${token}/recusar`, { method: 'POST' });
+  async function recusarConvite(dados: RecusarConvite): Promise<void> {
+    await api('/convites/recusar', { method: 'POST', body: dados });
   }
 
   return { criarConvite, listarConvitesPendentes, aceitarConvite, recusarConvite };

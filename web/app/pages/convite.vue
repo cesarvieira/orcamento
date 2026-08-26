@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * ACEITAR CONVITE — `/convite/:token` (EF-01, §3).
+ * ACEITAR CONVITE — `/convite` (EF-01, §3).
  *
  * Rota pública (ver `middleware/sessao.global.ts`): quem chega aqui ainda não
  * tem sessão. Sem mockup para esta tela (a EF diz isso — a única cuja
@@ -11,17 +11,20 @@
  * `senha` (nome + email + senha) e `google` (idToken do GIS). RN-02/RN-03 são
  * decisão do backend — a mensagem de erro é sempre a que a API mandou, nunca
  * um texto inventado aqui.
+ *
+ * O convite não vem mais na URL (RN-10): a pessoa DIGITA o código de 6
+ * dígitos que chegou por email. No caminho do Google o email não é digitado —
+ * vem verificado do provedor —, mas o código sim: sem ele não há convite a
+ * achar.
  */
 definePageMeta({ layout: 'limpo' });
-
-const rota = useRoute();
-const token = computed(() => String(rota.params.token));
 
 const { aceitarConvite, recusarConvite } = useConvite();
 const { disponivel: googleDisponivel, obterIdToken } = useGoogle();
 
 const nome = ref('');
 const email = ref('');
+const codigo = ref('');
 const senha = ref('');
 const verSenha = ref(false);
 const enviando = ref(false);
@@ -35,8 +38,9 @@ async function aceitarComSenha(): Promise<void> {
   ehErro.value = false;
   enviando.value = true;
   try {
-    await aceitarConvite(token.value, {
+    await aceitarConvite({
       metodo: 'senha',
+      codigo: codigo.value.trim(),
       nome: nome.value.trim(),
       email: email.value.trim(),
       senha: senha.value,
@@ -52,11 +56,17 @@ async function aceitarComSenha(): Promise<void> {
 
 async function recusar(): Promise<void> {
   if (enviando.value) return;
+  // Recusar encerra o convite: exige a mesma prova que aceitar (RN-10).
+  if (!email.value.trim() || !codigo.value.trim()) {
+    ehErro.value = true;
+    mensagem.value = 'Preencha o email e o código do convite para recusar.';
+    return;
+  }
   mensagem.value = null;
   ehErro.value = false;
   enviando.value = true;
   try {
-    await recusarConvite(token.value);
+    await recusarConvite({ email: email.value.trim(), codigo: codigo.value.trim() });
     recusado.value = true;
     ehErro.value = false;
     mensagem.value = 'Convite recusado. Este email já pode criar a própria família.';
@@ -70,12 +80,19 @@ async function recusar(): Promise<void> {
 
 async function aceitarComGoogle(): Promise<void> {
   if (!googleDisponivel || enviando.value) return;
+  // O botão do Google fica FORA do formulário, então o `required` do campo não
+  // o alcança — e sem código não há convite a procurar (RN-10).
+  if (!codigo.value.trim()) {
+    ehErro.value = true;
+    mensagem.value = 'Digite o código do convite antes de entrar com o Google.';
+    return;
+  }
   mensagem.value = null;
   ehErro.value = false;
   enviando.value = true;
   try {
     const idToken = await obterIdToken();
-    await aceitarConvite(token.value, { metodo: 'google', idToken });
+    await aceitarConvite({ metodo: 'google', codigo: codigo.value.trim(), idToken });
     await navigateTo('/');
   } catch (erro) {
     ehErro.value = true;
@@ -90,9 +107,30 @@ async function aceitarComGoogle(): Promise<void> {
   <div class="convite">
     <span class="convite__selo"><i class="ti ti-home-dollar"></i></span>
     <h1 class="convite__titulo">Você foi convidado</h1>
-    <p class="convite__subtitulo">Crie sua conta para entrar na família.</p>
+    <p class="convite__subtitulo">
+      Digite o código que chegou no seu email e crie sua conta para entrar na família.
+    </p>
 
     <form class="convite__campos" @submit.prevent="aceitarComSenha">
+      <label class="campo">
+        <i class="ti ti-shield-lock campo__icone"></i>
+        <span class="campo__texto">
+          <span class="campo__rotulo">CÓDIGO DO CONVITE</span>
+          <input
+            v-model="codigo"
+            type="text"
+            name="codigo"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            pattern="[0-9]{6}"
+            maxlength="6"
+            placeholder="000000"
+            required
+            class="campo__entrada campo__entrada--codigo"
+          >
+        </span>
+      </label>
+
       <label class="campo">
         <i class="ti ti-user campo__icone"></i>
         <span class="campo__texto">

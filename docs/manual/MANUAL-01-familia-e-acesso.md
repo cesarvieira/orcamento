@@ -27,9 +27,11 @@
 - **Identidade:** `identidade-servico.ts` resolve RN-04: ao aceitar convite, se já existe uma
   `Identidade` com aquele email (de outro provedor), vincula ao `Membro` existente em vez de criar
   pessoa nova.
-- **Aceite:** `POST /convites/:token/aceitar` (`rotas.ts`) — corpo `AceitarConvite` (união
-  discriminada `metodo: 'senha' | 'google'`). Valida RN-02 (email idêntico ao convidado, ou
-  verificado do Google), RN-03 (expiração/uso único), chama `identidade-servico` para resolver
+- **Aceite:** `POST /convites/aceitar` (`rotas.ts`) — corpo `AceitarConvite` (união
+  discriminada `metodo: 'senha' | 'google'`), com **email + código de 6 dígitos** (RN-10): o
+  convite é procurado pelo par, nunca pelo código sozinho. RN-02 deixou de ser comparação depois
+  do fato — com o email errado não se acha convite nenhum. Valida RN-03 (expiração/uso único),
+  RN-11 (teto de 5 tentativas), chama `identidade-servico` para resolver
   RN-04, marca `usadoEm`, abre sessão, e dispara `emitirInvalidacao({ familiaId, recurso:
 'familia' })` — primeiro handler de domínio a usar o emissor que a EF-00 deixou pronto.
 - **Testes:** `api/testes/convites.teste.ts` (12) e `google.teste.ts` (7), somados aos que já

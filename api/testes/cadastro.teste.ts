@@ -76,7 +76,9 @@ describe('criar a própria família', () => {
     await request(app).post('/contas').send(CADASTRO).expect(201);
     const token = await tokenDeConfirmacao(CADASTRO.email);
 
-    const confirmacao = await request(app).post(`/contas/${token}/confirmar`).send();
+    const confirmacao = await request(app)
+      .post('/contas/confirmar')
+      .send({ email: CADASTRO.email, codigo: token });
     expect(confirmacao.status).toBe(201);
     expect(confirmacao.body.familiaNome).toBe(CADASTRO.familiaNome);
 
@@ -86,14 +88,39 @@ describe('criar a própria família', () => {
       .expect(201);
   });
 
-  it('RN-09: o link de confirmação é de uso único', async () => {
+  it('RN-09: o código de confirmação é de uso único', async () => {
     await request(app).post('/contas').send(CADASTRO).expect(201);
     const token = await tokenDeConfirmacao(CADASTRO.email);
+    const corpo = { email: CADASTRO.email, codigo: token };
 
-    await request(app).post(`/contas/${token}/confirmar`).send().expect(201);
-    const segunda = await request(app).post(`/contas/${token}/confirmar`).send();
+    await request(app).post('/contas/confirmar').send(corpo).expect(201);
+    const segunda = await request(app).post('/contas/confirmar').send(corpo);
 
-    expect(segunda.status).toBe(409);
+    // Confirmado, não há mais confirmação PENDENTE para aquele email.
+    expect(segunda.status).toBe(404);
+    expect(segunda.body.erro).toBe('confirmacao_nao_encontrada');
+  });
+
+  it('RN-10/RN-11: código errado é 401, e na quinta vez a confirmação é bloqueada', async () => {
+    await request(app).post('/contas').send(CADASTRO).expect(201);
+    const token = await tokenDeConfirmacao(CADASTRO.email);
+    const errado = token === '000000' ? '111111' : '000000';
+    const tentar = (codigo: string) =>
+      request(app).post('/contas/confirmar').send({ email: CADASTRO.email, codigo });
+
+    for (let i = 0; i < 4; i += 1) {
+      const parcial = await tentar(errado);
+      expect(parcial.status).toBe(401);
+      expect(parcial.body.erro).toBe('codigo_invalido');
+    }
+
+    const quinta = await tentar(errado);
+    expect(quinta.status).toBe(429);
+    expect(quinta.body.erro).toBe('confirmacao_bloqueada');
+
+    // Bloqueada de verdade: nem o código certo entra depois disso (RN-11).
+    const comOCerto = await tentar(token);
+    expect(comOCerto.status).toBe(429);
   });
 
   it('RN-07: email que já é de um Membro não cadastra de novo', async () => {
@@ -138,7 +165,10 @@ describe('criar a própria família', () => {
       .from(convites)
       .where(eq(convites.email, 'nao-quero@exemplo.test'));
 
-    await request(app).post(`/convites/${convite?.token}/recusar`).send().expect(204);
+    await request(app)
+      .post('/convites/recusar')
+      .send({ email: 'nao-quero@exemplo.test', codigo: convite?.token })
+      .expect(204);
 
     const resposta = await request(app)
       .post('/contas')
@@ -161,11 +191,18 @@ describe('criar a própria família', () => {
       .from(convites)
       .where(eq(convites.email, 'recusou@exemplo.test'));
 
-    await request(app).post(`/convites/${convite?.token}/recusar`).send().expect(204);
+    await request(app)
+      .post('/convites/recusar')
+      .send({ email: 'recusou@exemplo.test', codigo: convite?.token })
+      .expect(204);
 
-    const aceite = await request(app)
-      .post(`/convites/${convite?.token}/aceitar`)
-      .send({ metodo: 'senha', nome: 'Quem', email: 'recusou@exemplo.test', senha: CREDENCIAL });
+    const aceite = await request(app).post('/convites/aceitar').send({
+      metodo: 'senha',
+      codigo: convite?.token,
+      nome: 'Quem',
+      email: 'recusou@exemplo.test',
+      senha: CREDENCIAL,
+    });
     expect(aceite.status).toBe(409);
 
     const lista = await request(app).get('/convites').set('Cookie', cookie).expect(200);
