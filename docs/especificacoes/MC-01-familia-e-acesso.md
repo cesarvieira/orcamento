@@ -23,7 +23,7 @@
 | Isolamento          | Família B não vê convite/membro/evento da A — REST e socket                          | Concluído | —           |
 | Tela — entrar       | Google real (GIS), email/senha já existia                                            | Concluído | —           |
 | Tela — convidar     | Envia convite, mostra confirmação e lista os pendentes da família                    | Concluído | —           |
-| Tela — aceitar      | `/convite/:token`, senha ou Google, erro da API sempre exibido                       | Concluído | —           |
+| Tela — aceitar      | `/convite`, email + código, senha ou Google, erro da API sempre exibido              | Concluído | —           |
 | Contrato            | `LoginGoogle`/`CriarConvite`/`ConviteCriado`/`AceitarConvite` gerados, front importa | Concluído | —           |
 | Tempo real          | `emitirInvalidacao({recurso:'familia'})` ao aceitar convite                          | Concluído | —           |
 

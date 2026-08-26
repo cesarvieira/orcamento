@@ -143,24 +143,28 @@ mostra a requisição e quem entrou:
 
 ## Na stack de prova e em produção
 
-O `docker-compose.yml` repassa a mesma variável para os dois serviços — uma só no seu ambiente,
-dois destinos:
+O `docker-compose.yml` reparte as duas variáveis — e a repartição **é** a proteção do segredo:
 
-| Serviço | Variável no container          | Vem de                  |
-| ------- | ------------------------------ | ----------------------- |
-| `api`   | `GOOGLE_CLIENT_ID`             | `${GOOGLE_CLIENT_ID:-}` |
-| `web`   | `NUXT_PUBLIC_GOOGLE_CLIENT_ID` | `${GOOGLE_CLIENT_ID:-}` |
+| Serviço | Variável no container          | Vem de                      |
+| ------- | ------------------------------ | --------------------------- |
+| `api`   | `GOOGLE_CLIENT_ID`             | `${GOOGLE_CLIENT_ID:-}`     |
+| `api`   | `GOOGLE_CLIENT_SECRET`         | `${GOOGLE_CLIENT_SECRET:-}` |
+| `web`   | `NUXT_PUBLIC_GOOGLE_CLIENT_ID` | `${GOOGLE_CLIENT_ID:-}`     |
 
-Basta ter `GOOGLE_CLIENT_ID` no ambiente (ou no `.env`, que o compose lê) na hora do
-`docker compose up`. **Trocar a credencial não pede rebuild da imagem:** `NUXT_PUBLIC_*`
+> 🔒 O `web` **não** recebe o secret, e não deve receber nunca: tudo que entra em `NUXT_PUBLIC_*`
+> sai no HTML para quem abrir a página.
+
+Basta ter `GOOGLE_CLIENT_ID` e `GOOGLE_CLIENT_SECRET` no ambiente (ou no `.env`, que o compose lê)
+na hora do `docker compose up`. **Trocar a credencial não pede rebuild da imagem:** `NUXT_PUBLIC_*`
 sobrescreve `runtimeConfig.public` em tempo de execução — medido, servindo o `/entrar` do
 container e conferindo o valor no HTML.
 
 > Se as duas divergirem, **todo login por Google falha com 401**: o front assina com um client id
 > e a API espera outro como audiência. Por isso as duas saem da mesma variável.
 
-**O padrão continua sendo desligado.** Sem `GOOGLE_CLIENT_ID` no ambiente, as duas chegam vazias,
-o botão fica inerte e o resto do app funciona igual — é assim que o gate roda. O que **não** é
+**O padrão continua sendo desligado.** Sem `GOOGLE_CLIENT_ID` no ambiente, o botão fica inerte e o
+resto do app funciona igual — é assim que o gate roda. Sem o **secret**, o botão abre mas a API
+recusa a troca com `codigo_google_invalido`: os dois precisam estar presentes. O que **não** é
 coberto por gate é o caminho feliz do Google (exige credencial real e interação com o Google):
 lacuna `EF01-MC-002` em [MC-01](../../docs/especificacoes/MC-01-familia-e-acesso.md).
 
