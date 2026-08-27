@@ -68,15 +68,35 @@ de `limiteLivre` em zero, sem fonte). O que sobrou do 12º defeito virou o fork 
 - **Testes** (`api/testes/contas.teste.ts`, 19 casos — os 19 "novos" que somam aos 86 da base para
   os 105 do gate): um bloco por RN, mais isolamento entre
   famílias (leitura, edição, exclusão) e o CRUD básico. O teste de RN-06 é explícito sobre o que
-  prova: *"hoje NUNCA existe lançamento (a tabela é da EF-04): a checagem sempre libera a
-  exclusão"* — descreve a limitação em vez de fingir cobertura do ramo 409.
+  prova: _"hoje NUNCA existe lançamento (a tabela é da EF-04): a checagem sempre libera a
+  exclusão"_ — descreve a limitação em vez de fingir cobertura do ramo 409.
 
 ### Escopo tocado além do declarado (aceito pelo condutor)
 
-| Arquivo | Por que é costura necessária |
-|---|---|
-| `api/src/openapi/emitir.ts` (+1 linha) | o emissor do OpenAPI importa cada módulo à mão; sem isto o `BUILD_CMD` geraria o contrato sem as rotas de `contas`, quebrando D-03 em silêncio para quem construísse o front depois |
-| `packages/contrato/src/index.ts` (+4 linhas) | exporta os tipos gerados, no padrão alfabético existente. `ContaCriada` (cadastro de usuário, EF-01) convive sem colidir com `Conta`/`NovaConta`/`ContasListadas` (financeira) |
+| Arquivo                                      | Por que é costura necessária                                                                                                                                                        |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `api/src/openapi/emitir.ts` (+1 linha)       | o emissor do OpenAPI importa cada módulo à mão; sem isto o `BUILD_CMD` geraria o contrato sem as rotas de `contas`, quebrando D-03 em silêncio para quem construísse o front depois |
+| `packages/contrato/src/index.ts` (+4 linhas) | exporta os tipos gerados, no padrão alfabético existente. `ContaCriada` (cadastro de usuário, EF-01) convive sem colidir com `Conta`/`NovaConta`/`ContasListadas` (financeira)      |
+
+## Campo de valor digitável — divergência deliberada do mockup (2026-08-27)
+
+A folha `sheetConta` do mockup tem **só o stepper** `−/+` para o valor, sem campo digitável.
+Aqui o stepper continua (R$ 10 por clique, útil para ajustar um valor já perto do certo), mas o
+número no meio virou **input**, por decisão do humano: com só o stepper, digitar R$ 1.234,56
+custaria 124 cliques, e centavos seriam inalcançáveis.
+
+É divergência **registrada**, não descuido — o mockup é fonte, e quem o sobrepõe é a pessoa que
+decide o produto.
+
+- O campo mantém a forma canônica da tela (`R$ 1.234,56`, via `formatarCentavos`), então
+  visualmente ele continua sendo o número do desenho, não uma caixa de formulário.
+- `textoParaCentavos()` aceita `1234,56`, `1.234,56`, `1234.56`, `1234` e ignora `R$`, espaço e
+  qualquer outro lixo. A regra é uma só: **o último separador é o decimal, e só quando deixa
+  duas casas ou menos** — caso contrário é separador de milhar.
+- **Trunca em centavos, não arredonda.** Inventar meio centavo é a divergência que D-06 existe
+  para impedir.
+- ⚠️ **Sem teste automatizado** — ver `EF02-MC-007` na [MC-02](../especificacoes/MC-02-contas.md).
+  A verificação manual pegou um bug real antes do commit: `1.000` era lido como R$ 1,00.
 
 ## Renomeação `/contas` → `/cadastros` (#38)
 
@@ -107,7 +127,7 @@ de rota (`registrarRota`) recusando caminho duplicado, a tarefa #38 renomeou o c
   chama decide o que exibir, lendo a mensagem que a API devolveu.
 - **`contas.vue`**: lista com saldo real por conta e o cartão "EM CONTA HOJE" no topo; folha de
   cadastro/edição na ordem do desenho (nome → tipo → valor → cartão: vencimento/fechamento → ícone).
-  `valorLabel` alterna *Limite do cartão* / *Saldo atual* com o tipo (EF-02 §3). O bloco de
+  `valorLabel` alterna _Limite do cartão_ / _Saldo atual_ com o tipo (EF-02 §3). O bloco de
   vencimento/fechamento só é renderizado quando `tipo === 'CREDITO'`. **Não recalcula** nada — usa
   `saldoCentavos` e `totalEmContaHojeCentavos` exatamente como o servidor derivou; formata centavos
   → reais só na borda, no componente (D-06).
@@ -124,7 +144,7 @@ A EF-02 §1 exige `cor` como campo da entidade, mas a folha `sheetConta` do mock
 (`useContas.ts`) deriva a cor do `tipo`, reusando **os mesmos valores** que o seed da #39 já grava
 (`#2563eb` débito, `#dc2626` crédito, `#16a34a` reserva) — conferido pelo condutor, os dois arquivos
 batem exatamente, sem uma segunda paleta para divergir depois. **Continua sendo fork para o
-humano** se a família precisar *escolher* a cor — a folha de categoria (`sheetEditCat`) tem uma
+humano** se a família precisar _escolher_ a cor — a folha de categoria (`sheetEditCat`) tem uma
 grade de cor como precedente, se a decisão for por aí. Ver `EF02-MC-003`.
 
 ### `diaFechamento`/`diaVencimento`: capturados, exibidos, ainda não consumidos por lógica de fatura
@@ -135,7 +155,7 @@ os valores na linha de apoio do cartão de crédito (`"Fecha dia 20 · vence dia
 `subDaConta()`), mas nenhum cálculo de ciclo de fatura roda em lugar nenhum ainda — quem procurar
 por essa lógica no módulo de contas não vai achar, porque ela não é deste módulo. Ver `EF02-MC-004`.
 
-### *Ver fatura* / *Pagar fatura* — omitidos, não deixados inertes
+### _Ver fatura_ / _Pagar fatura_ — omitidos, não deixados inertes
 
 O mockup mostra os dois no item de cartão de crédito. A tarefa #40 os **omitiu** da tela (não
 existem no HTML renderizado) — são da EF-05, e diferente do que a EF-00 fez com "Google"/"Apple" em
@@ -159,8 +179,8 @@ Reserva de emergência   R$ 10.000,00     ← "Fora do orçamento"
 
 **RN-07 provada à vista:** o total é `2.500 + 0` (débito + crédito), e os `10.000` da reserva ficam
 de fora — a tela ainda diz isso em texto ("Não inclui as contas reserva."), em vez de deixar a
-família descobrir sozinha. A folha responde ao tipo como a EF-02 §3 manda: débito mostra *Saldo
-atual* sem bloco de vencimento; crédito mostra *Limite do cartão* com o bloco, vencimento antes de
+família descobrir sozinha. A folha responde ao tipo como a EF-02 §3 manda: débito mostra _Saldo
+atual_ sem bloco de vencimento; crédito mostra _Limite do cartão_ com o bloco, vencimento antes de
 fechamento, na legenda do mockup.
 
 ### Observação cosmética, sem gravidade
@@ -195,8 +215,8 @@ PROVA_DE_COMPORTAMENTO=PASS
 
 ## O que não foi portado do mockup
 
-`support.js` (runtime gerado do dc-runtime, conforme já registrado desde a EF-00) e os botões *Ver
-fatura*/*Pagar fatura* do item de cartão — omitidos por serem da EF-05, ver acima.
+`support.js` (runtime gerado do dc-runtime, conforme já registrado desde a EF-00) e os botões _Ver
+fatura_/_Pagar fatura_ do item de cartão — omitidos por serem da EF-05, ver acima.
 
 ## O que ainda não é desta EF
 

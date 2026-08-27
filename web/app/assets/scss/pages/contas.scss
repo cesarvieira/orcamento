@@ -291,12 +291,34 @@
   margin-top: 10px;
 }
 
+// É um `input`, não um rótulo: o desenho tem só o stepper, e o campo digitável
+// entrou por decisão do humano para valor quebrado (ver o comentário em
+// `contas.vue`). Os resets abaixo existem para ele continuar PARECENDO o número
+// do desenho — quem olha a folha não deve ver uma caixa de formulário no meio
+// de dois botões redondos.
 .sheet__stepper-valor {
   flex: 1;
+  min-width: 0;
   text-align: center;
   font-size: 20px;
   font-weight: 800;
   letter-spacing: -0.02em;
+  font-family: inherit;
+  color: var(--texto);
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: 2px 0;
+  outline: none;
+
+  // A afordância aparece na interação, não em repouso.
+  &:hover {
+    border-bottom-color: var(--borda-media);
+  }
+
+  &:focus {
+    border-bottom-color: var(--texto);
+  }
 }
 
 .sheet__passo {
