@@ -251,6 +251,110 @@ export interface paths {
         patch: operations["patch_contas__id_"];
         trace?: never;
     };
+    "/categorias": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** As categorias da família da sessão (nome, ícone, cor — sem valor) */
+        get: operations["get_categorias"];
+        put?: never;
+        /** Cria uma categoria (envelope de gasto) na família da sessão */
+        post: operations["post_categorias"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/categorias/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Apaga uma categoria da família da sessão (leva junto teto e histórico) */
+        delete: operations["delete_categorias__id_"];
+        options?: never;
+        head?: never;
+        /** Atualiza nome, ícone e cor de uma categoria da família da sessão */
+        patch: operations["patch_categorias__id_"];
+        trace?: never;
+    };
+    "/competencias/{competencia}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A leitura de uma competência: renda prevista, planejado, recebido, não alocado e as categorias com teto/gasto/disponível */
+        get: operations["get_competencias__competencia_"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/competencias/{competencia}/renda-prevista": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Define a renda prevista da competência (referência de planejamento — RN-12: não é teto) */
+        put: operations["put_competencias__competencia__renda_prevista"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/competencias/{competencia}/categorias/{categoriaId}/teto": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Define o teto de UMA categoria NESTA competência (RN-09) — cria ou substitui a linha de OrcamentoMes */
+        put: operations["put_competencias__competencia__categorias__categoriaId__teto"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/competencias/{competencia}/remanejamentos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Remaneja teto de uma categoria de origem para uma de destino, NESTA competência (RN-13). Sem trava (RN-14). */
+        post: operations["post_competencias__competencia__remanejamentos"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -462,6 +566,104 @@ export interface components {
                 saldoCentavos: number;
             }[];
             totalEmContaHojeCentavos: number;
+        };
+        NovaCategoria: {
+            /** @description Nome da categoria, escolhido pela família. */
+            nome: string;
+            icone: string;
+            cor: string;
+        };
+        AtualizarCategoria: {
+            /** @description Nome da categoria, escolhido pela família. */
+            nome: string;
+            icone: string;
+            cor: string;
+        };
+        /** @description O envelope de gasto — sem valor (RN-09). O teto é leitura da competência. */
+        Categoria: {
+            id: string;
+            /** @description Nome da categoria, escolhido pela família. */
+            nome: string;
+            icone: string;
+            cor: string;
+        };
+        CategoriasListadas: {
+            categorias: {
+                id: string;
+                /** @description Nome da categoria, escolhido pela família. */
+                nome: string;
+                icone: string;
+                cor: string;
+            }[];
+        };
+        DefinirTeto: {
+            /** @description Teto em centavos (D-06). Definido diretamente aqui é sempre ≥ 0. */
+            tetoCentavos: number;
+        };
+        OrcamentoMesLido: {
+            categoriaId: string;
+            /** @description AAAA-MM. */
+            competencia: string;
+            /** @description Pode ser negativo aqui: um remanejamento (RN-14) pode deixar o teto negativo mesmo que a definição direta (acima) só aceite valor ≥ 0. */
+            tetoCentavos: number;
+        };
+        DefinirRendaPrevista: {
+            /** @description Referência de planejamento da competência (D-06). Não é teto de nada (RN-12). */
+            rendaPrevistaCentavos: number;
+        };
+        CategoriaNaCompetencia: {
+            id: string;
+            nome: string;
+            icone: string;
+            cor: string;
+            /** @description RN-40: 0 quando a categoria não tem OrcamentoMes nesta competência. */
+            tetoCentavos: number;
+            /** @description RN-10: soma dos lançamentos DESPESA da categoria nesta competência. Os lançamentos são da EF-04 (ainda não construída) — hoje esta soma é sempre 0 (ver servico.ts). */
+            gastoCentavos: number;
+            /** @description RN-10: teto − gasto. Negativo significa que a categoria estourou. */
+            disponivelCentavos: number;
+        };
+        CompetenciaLida: {
+            /** @description AAAA-MM. */
+            competencia: string;
+            rendaPrevistaCentavos: number;
+            /** @description RN-11: Σ tetos das categorias. */
+            planejadoCentavos: number;
+            /** @description RN-39 (EF-04 §2): soma dos lançamentos RECEITA desta competência. Os lançamentos são da EF-04 (ainda não construída) — hoje esta soma é sempre 0 (ver servico.ts). */
+            recebidoCentavos: number;
+            /** @description RN-11: recebido − planejado. */
+            naoAlocadoCentavos: number;
+            categorias: {
+                id: string;
+                nome: string;
+                icone: string;
+                cor: string;
+                /** @description RN-40: 0 quando a categoria não tem OrcamentoMes nesta competência. */
+                tetoCentavos: number;
+                /** @description RN-10: soma dos lançamentos DESPESA da categoria nesta competência. Os lançamentos são da EF-04 (ainda não construída) — hoje esta soma é sempre 0 (ver servico.ts). */
+                gastoCentavos: number;
+                /** @description RN-10: teto − gasto. Negativo significa que a categoria estourou. */
+                disponivelCentavos: number;
+            }[];
+        };
+        NovoRemanejamento: {
+            /** @description De onde o teto sai. */
+            categoriaOrigemId: string;
+            /** @description Para onde o teto vai. */
+            categoriaDestinoId: string;
+            valorCentavos: number;
+        };
+        Remanejamento: {
+            id: string;
+            /** @description AAAA-MM — RN-13: só a competência corrente muda. */
+            competencia: string;
+            categoriaOrigemId: string;
+            categoriaDestinoId: string;
+            valorCentavos: number;
+            /** @description RN-13: quem fez o remanejamento. */
+            autorMembroId: string;
+            /** @description ISO 8601. */
+            criadoEm: string;
         };
     };
     responses: never;
@@ -1278,6 +1480,357 @@ export interface operations {
                 };
             };
             /** @description Corpo inválido — inclusive RN-08 (fechamento/vencimento fora de 1–28) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    get_categorias: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description As categorias da família */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CategoriasListadas"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    post_categorias: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NovaCategoria"];
+            };
+        };
+        responses: {
+            /** @description Categoria criada */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Categoria"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Corpo inválido — informe nome, ícone e cor */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    delete_categorias__id_: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Categoria apagada */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Categoria inexistente nesta família */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    patch_categorias__id_: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AtualizarCategoria"];
+            };
+        };
+        responses: {
+            /** @description Categoria atualizada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Categoria"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Categoria inexistente nesta família */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Corpo inválido — informe nome, ícone e cor */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    get_competencias__competencia_: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                competencia: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A leitura da competência */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetenciaLida"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Competência fora do formato AAAA-MM */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    put_competencias__competencia__renda_prevista: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                competencia: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DefinirRendaPrevista"];
+            };
+        };
+        responses: {
+            /** @description Renda prevista definida */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Corpo ou competência inválidos */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    put_competencias__competencia__categorias__categoriaId__teto: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                competencia: string;
+                categoriaId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DefinirTeto"];
+            };
+        };
+        responses: {
+            /** @description Teto definido */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrcamentoMesLido"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Categoria inexistente nesta família */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Corpo ou competência inválidos */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    post_competencias__competencia__remanejamentos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                competencia: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NovoRemanejamento"];
+            };
+        };
+        responses: {
+            /** @description Remanejamento registrado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Remanejamento"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Categoria de origem ou destino inexistente nesta família */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Corpo ou competência inválidos */
             422: {
                 headers: {
                     [name: string]: unknown;
