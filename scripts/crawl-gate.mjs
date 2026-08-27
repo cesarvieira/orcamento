@@ -6,9 +6,10 @@
  * página de erro. Só o projeto conhece as suas rotas e o seu login — por isso o
  * crawler é daqui, declarado como `CRAWL_CMD` no `preator-perfil.sh`.
  *
- * NESTE PRODUTO TUDO É ÁREA LOGADA. Sem `PREATOR_TEST_USER` e
- * `PREATOR_TEST_PASS` no ambiente, este crawler cobre a tela de login e
- * DECLARA no veredito que não cobriu o resto — em vez de fingir que cobriu.
+ * NESTE PRODUTO TUDO É ÁREA LOGADA. A credencial de fixture tem default (o
+ * mesmo do `docker-compose.yml`), então a área logada é coberta sem depender
+ * de arquivo não versionado. Com `CRAWL_SEM_LOGIN=1` o crawler cobre só a tela
+ * de login e DECLARA no veredito que não cobriu o resto — em vez de fingir.
  *
  * Saída (o gate lê estas duas chaves):
  *     rotas:<visitadas>  quebradas:<com problema>
@@ -17,8 +18,25 @@ import { chromium } from 'playwright';
 
 const BASE = (process.env.FRONT_BASE ?? 'http://localhost:3001').replace(/\/$/, '');
 const API_BASE = (process.env.API_BASE ?? 'http://localhost:3000').replace(/\/$/, '');
-const USUARIO = process.env.PREATOR_TEST_USER ?? '';
-const SENHA = process.env.PREATOR_TEST_PASS ?? '';
+/**
+ * A credencial de fixture da stack de prova. São os MESMOS valores que o
+ * `docker-compose.yml` declara como default (`PREATOR_TEST_USER:-...` e
+ * `PREATOR_TEST_PASS:-...`) e que o seed grava no banco que este crawler vai
+ * visitar — por isso os dois lados PRECISAM concordar.
+ *
+ * Isto é fixture, não segredo: nenhum sistema real é protegido por ela, e o
+ * valor já está em arquivo rastreado (o compose). O default existe aqui porque
+ * o crawler roda no HOST, é `node` puro e nunca passa pelo `carregar-dotenv` —
+ * então ele lia só o ambiente do shell, que num worktree recém-aberto está
+ * vazio. Resultado: o gate cobria só a tela de login e declarava cobertura
+ * parcial, sem que nada estivesse errado com o produto.
+ *
+ * Se os dois lados divergirem, o login falha alto e o gate reprova — que é o
+ * modo de falha certo. O que não pode voltar a acontecer é o gate rodar sem
+ * cobrir a área logada porque um arquivo não versionado não estava lá.
+ */
+const USUARIO = process.env.PREATOR_TEST_USER || 'ana@exemplo.test';
+const SENHA = process.env.PREATOR_TEST_PASS || 'orcamento-teste';
 const ESPERA = Number(process.env.CRAWL_TIMEOUT_MS ?? 20000);
 
 /** A rota pública. É a única que existe antes de haver sessão. */
@@ -123,13 +141,19 @@ async function visitar(contexto, rota) {
 }
 
 async function principal() {
-  const temCredenciais = Boolean(USUARIO && SENHA);
+  // O opt-out virou EXPLÍCITO quando a credencial de fixture ganhou default:
+  // sem ele `temCredenciais` seria sempre verdadeiro, e o ramo que declara
+  // cobertura parcial viraria código morto. Ramo que nunca roda não é
+  // honestidade, é enfeite. Quem precisa provar o crawler sem área logada
+  // (ambiente sem seed, por exemplo) roda com CRAWL_SEM_LOGIN=1.
+  const temCredenciais =
+    process.env.CRAWL_SEM_LOGIN !== '1' && Boolean(USUARIO && SENHA);
 
   console.log(`base: ${BASE}`);
   console.log(`api:  ${API_BASE}`);
   if (!temCredenciais) {
     console.log(
-      'AVISO: PREATOR_TEST_USER/PREATOR_TEST_PASS ausentes do ambiente — ' +
+      'AVISO: login desligado (CRAWL_SEM_LOGIN=1) — ' +
       'a ÁREA LOGADA NÃO FOI COBERTA. Só a tela de login foi verificada.',
     );
   }
