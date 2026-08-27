@@ -69,14 +69,29 @@ const categorias = computed<CategoriaNaCompetencia[]>(() => leitura.value?.categ
 const rendaPrevistaCentavos = computed(() => leitura.value?.rendaPrevistaCentavos ?? 0);
 const recebidoCentavos = computed(() => leitura.value?.recebidoCentavos ?? 0);
 
+/**
+ * Cada leitura leva um número de ordem, e só a MAIS RECENTE tem permissão de
+ * escrever na tela.
+ *
+ * Sem isso, trocar de mês depressa (as setas do topo respondem a cada clique)
+ * deixa duas requisições no ar; se a mais antiga responder por último, a tela
+ * mostra o mês errado com o seletor dizendo outro — e nada no gate pegaria,
+ * porque as duas respostas são HTTP 200.
+ */
+let leituraEmOrdem = 0;
+
 async function carregar(): Promise<void> {
+  const minhaOrdem = ++leituraEmOrdem;
   try {
-    leitura.value = await lerCompetencia(competencia.value);
+    const resposta = await lerCompetencia(competencia.value);
+    if (minhaOrdem !== leituraEmOrdem) return; // chegou tarde: outra leitura já mandou
+    leitura.value = resposta;
     erroLista.value = null;
   } catch (erro) {
+    if (minhaOrdem !== leituraEmOrdem) return;
     erroLista.value = mensagemDoErro(erro, 'Não consegui carregar o orçamento do mês.');
   } finally {
-    carregando.value = false;
+    if (minhaOrdem === leituraEmOrdem) carregando.value = false;
   }
 }
 
@@ -232,6 +247,8 @@ const erroCategoria = ref<string | null>(null);
  */
 const tetoTexto = ref(centavosParaTexto(0));
 const tetoOriginalCentavos = ref(0);
+/** Nome/cor/ícone ainda não gravados nesta sessão da folha. Ver `salvarCategoria`. */
+const identidadePendente = ref(true);
 
 function abrirEdicaoCategoria(c: CategoriaNaCompetencia): void {
   categoriaEmEdicao.value = c;
@@ -240,6 +257,7 @@ function abrirEdicaoCategoria(c: CategoriaNaCompetencia): void {
   iconeCategoria.value = c.icone;
   tetoOriginalCentavos.value = c.tetoCentavos;
   tetoTexto.value = centavosParaTexto(c.tetoCentavos);
+  identidadePendente.value = true;
   erroCategoria.value = null;
   sheetCategoriaAberta.value = true;
 }
@@ -282,14 +300,20 @@ async function salvarCategoria(): Promise<void> {
   // aconteceu no servidor — a folha fica aberta, relê para mostrar o que de
   // fato passou, e diz qual metade faltou. Sem inventar atomicidade: não há RN
   // que a exija, e fingir transação onde não há é pior que declarar o estado.
-  let identidadeSalva = false;
+  // `identidadePendente` sobrevive ENTRE tentativas: depois de uma falha só no
+  // teto, o segundo "Concluir" não reenvia nome/cor/ícone que já entraram. O
+  // PATCH é idempotente e reenviar não corromperia nada — mas uma chamada que
+  // não precisa existir é ruído no log de quem for depurar isto às três da
+  // manhã, e some de graça.
   try {
-    await atualizarCategoria(id, {
-      nome,
-      icone: iconeCategoria.value,
-      cor: corCategoria.value,
-    });
-    identidadeSalva = true;
+    if (identidadePendente.value) {
+      await atualizarCategoria(id, {
+        nome,
+        icone: iconeCategoria.value,
+        cor: corCategoria.value,
+      });
+      identidadePendente.value = false;
+    }
 
     if (tetoMudou) await definirTeto(competencia.value, id, tetoCentavos);
 
@@ -297,9 +321,9 @@ async function salvarCategoria(): Promise<void> {
     sheetCategoriaAberta.value = false;
   } catch (erro) {
     const mensagem = mensagemDoErro(erro, 'Não consegui salvar a categoria.');
-    erroCategoria.value = identidadeSalva
-      ? `Nome, cor e ícone foram salvos; o teto não (${mensagem}). Confira o valor e tente de novo.`
-      : mensagem;
+    erroCategoria.value = identidadePendente.value
+      ? mensagem
+      : `Nome, cor e ícone foram salvos; o teto não (${mensagem}). Confira o valor e tente de novo.`;
 
     await carregar();
     // Realinha a folha com o que o servidor tem agora, para um novo "Concluir"
@@ -549,6 +573,19 @@ function deixarNegativo(): void {
               <span class="orcamento__icone" :style="{ background: c.cor }">
                 <i class="ti" :class="classeDoIconeCategoria(c.icone)"></i>
               </span>
+              <!--
+                ⚠️ DIVERGE DO MOCKUP, E É DE PROPÓSITO. O desenho
+                (`MOCKUP-EF-03.md` §1) põe o NOME em destaque e, abaixo,
+                `teto R$ X · ícone e cor` em texto secundário. Aqui é o
+                inverso: o VALOR do teto em destaque, o nome embaixo.
+
+                Decisão do humano, 2026-08-27 — nesta tela quem varre a lista
+                está comparando tetos, não procurando um nome que ele já sabe.
+
+                Registrado porque uma revisão de diff já barrou isto uma vez,
+                corretamente: divergência silenciosa do design é indistinguível
+                de engano. Esta é declarada.
+              -->
               <span class="orcamento__texto">
                 <span class="orcamento__nome">{{ formatarCentavos(c.tetoCentavos) }}</span>
                 <span class="orcamento__sub">{{ c.nome }}</span>
