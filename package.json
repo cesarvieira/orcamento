@@ -13,7 +13,7 @@
     "teste": "pnpm --filter @orcamento/api run teste",
     "teste:contar": "node scripts/contar-testes.mjs",
     "dev": "pnpm run dev:banco && turbo run dev",
-    "dev:banco": "docker compose -f docker-compose.dev.yml --env-file .env.dev up -d",
+    "dev:banco": "docker compose -f docker-compose.dev.yml up -d",
     "dev:api": "pnpm --filter @orcamento/api run dev",
     "dev:web": "pnpm --filter @orcamento/web run dev",
     "migrar": "pnpm --filter @orcamento/api run migrar",
