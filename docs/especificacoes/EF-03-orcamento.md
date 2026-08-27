@@ -82,9 +82,29 @@ desenho que, copiado, quebraria o histórico mensal.
 
 ## §5 — Definition of Done
 
-- [ ] Um teste de integração por RN acima
-- [ ] **Remanejar em agosto não altera setembro** — teste explícito
-- [ ] O histórico registra quem remanejou
-- [ ] Estado sem fonte disponível abre e oferece deixar negativo
-- [ ] Isolamento entre famílias · dois clientes veem a mudança sem refresh
-- [ ] `PROVA_DE_COMPORTAMENTO=PASS`
+- [x] Um teste de integração por RN acima — RN-09 a RN-14 e RN-40 têm teste dedicado em
+      `api/testes/orcamento.teste.ts`. **RN-10 e RN-11 provam a FÓRMULA, não o comportamento com
+      dado real**: `gasto` e `recebido` vêm de lançamentos, que são da EF-04 e ainda não existem —
+      os dois stubs (`gastoCentavosAindaNaoExiste`/`recebidoCentavosAindaNaoExiste`,
+      `api/src/modulos/orcamento/servico.ts:165-185`) devolvem `0` fixo, com a query real
+      documentada em comentário. Ver `EF03-MC-001` em [MC-03](MC-03-orcamento.md)
+- [x] **Remanejar em agosto não altera setembro** — teste explícito: `orcamento.teste.ts:279-306`
+      compara setembro por igualdade profunda (`toEqual`) antes/depois de remanejar em agosto,
+      com tetos deliberadamente diferentes nos dois meses
+- [x] O histórico registra quem remanejou — `autorMembroId` vem de `membroDaRequisicao(req)`
+      (nunca do corpo) e é asserted em `orcamento.teste.ts:270`
+- [x] Estado sem fonte disponível abre e oferece deixar negativo — backend provado por teste
+      (nenhuma trava, 201 em vez de 409/422: `orcamento.teste.ts:309-346`); frontend confirmado
+      por leitura direta do código (aviso "Nenhuma categoria tem sobra…" e botão "Deixar negativo"
+      que só fecha a folha sem mutação: `web/app/pages/orcamento.vue:279,396-398,579,640`) — o
+      projeto não tem harness de teste de front (mesma limitação registrada em `EF02-MC-007`)
+- [ ] Isolamento entre famílias · dois clientes veem a mudança sem refresh — **parcial:**
+      isolamento está provado (4 testes dedicados, `orcamento.teste.ts:394-436`, cobrindo leitura,
+      edição, exclusão e remanejo cruzados entre famílias). **Dois clientes sem refresh não está
+      provado**: nenhum teste automatizado abre dois sockets contra o recurso `'orcamento'`
+      especificamente (`api/testes/realtime.teste.ts` cobre só `'lancamentos'`/`'contas'`), e não
+      há prova manual do condutor registrada nesta história. Ver `EF03-MC-003` em
+      [MC-03](MC-03-orcamento.md)
+- [x] `PROVA_DE_COMPORTAMENTO=PASS` — carimbado `2026-08-27T18:04:34` no worktree desta tarefa
+      (`.prova-comportamento.json`): 8/8 gates, **129 testes**, 10 rotas / 0 quebradas,
+      `fails=0` · `skips_bloqueantes=0`
