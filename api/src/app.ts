@@ -24,6 +24,7 @@ import {
   descartarTenantDoCliente,
 } from './http/middleware/tenant';
 import { rotasDeSaude } from './http/rotas/saude';
+import { rotasDeContas } from './modulos/contas/rotas';
 import { rotasDeFamilia } from './modulos/familia/rotas';
 import { construirDocumento } from './openapi/registro';
 import './openapi/esquemas';
@@ -62,6 +63,7 @@ export function criarApp(): Express {
 
   app.use(rotasDeSaude);
   app.use(rotasDeFamilia);
+  app.use(rotasDeContas);
 
   app.use(tratarNaoEncontrado);
   app.use(tratarErro);

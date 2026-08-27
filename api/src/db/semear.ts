@@ -27,10 +27,11 @@ import { eq } from 'drizzle-orm';
 import type { Db } from './index';
 import { familias, identidades, membros } from './schema';
 import { gerarHashDeSenha } from '../modulos/familia/senha';
+import { semeadorDeContas } from '../modulos/contas/semear';
 
 /**
  * O contrato que cada módulo cumpre para semear os seus 1–3 registros.
- * @fundacao ninguém implementa ainda — é pra EF-02 em diante.
+ * Implementado pela primeira vez em `modulos/contas/semear.ts` (EF-02).
  */
 export interface SemeadorDeModulo {
   /** O módulo, para o log. Ex.: `contas`, `orcamento`. */
@@ -40,7 +41,7 @@ export interface SemeadorDeModulo {
 
 /**
  * O que a plataforma entrega pronto a quem semeia depois dela.
- * @fundacao ninguém consome ainda — é pra EF-02 em diante.
+ * Consumido pela primeira vez em `modulos/contas/semear.ts` (EF-02).
  */
 export interface ContextoDoSeed {
   familiaId: string;
@@ -50,13 +51,12 @@ export interface ContextoDoSeed {
 }
 
 /**
- * Os semeadores dos módulos. EF-02 a EF-08 acrescentam os seus aqui.
- * Vazio na EF-00 porque não há entidade de domínio ainda — e um seed que
- * fingisse ter é pior que um seed honesto e curto.
- *
- * @fundacao vazio de propósito — ver MC-00.
+ * Os semeadores dos módulos. EF-02 a EF-08 acrescentam os seus aqui. Vazio na
+ * EF-00 porque não havia entidade de domínio ainda — um seed que fingisse ter
+ * seria pior que um seed honesto e curto. A EF-02 (contas) é a primeira a se
+ * registrar.
  */
-export const SEMEADORES_DE_MODULO: SemeadorDeModulo[] = [];
+export const SEMEADORES_DE_MODULO: SemeadorDeModulo[] = [semeadorDeContas];
 
 const FAMILIA_DE_TESTE = 'Família de teste';
 

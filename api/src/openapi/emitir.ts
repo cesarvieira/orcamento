@@ -22,6 +22,7 @@ import { construirDocumento } from './registro';
 import './esquemas';
 import '../http/rotas/saude';
 import '../modulos/familia/rotas';
+import '../modulos/contas/rotas';
 
 const destino = path.resolve(__dirname, '..', '..', '..', 'packages', 'contrato', 'openapi.json');
 
