@@ -28,7 +28,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { atualizadoEm, criadoEm, dinheiroCentavos } from './tipos';
+import { atualizadoEm, competencia as colunaCompetencia, criadoEm, dinheiroCentavos } from './tipos';
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -300,6 +300,142 @@ export const contas = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Categoria — envelope de gasto (EF-03 §1). SEM VALOR: o teto NÃO é atributo
+// desta tabela, é do par categoria × competência (`orcamentosMes`, abaixo).
+// ---------------------------------------------------------------------------
+
+/**
+ * ⛔ RN-09: se o teto fosse coluna aqui, remanejar em agosto mudaria setembro
+ * também, e o histórico de agosto seria reescrito toda vez que alguém
+ * ajustasse o mês seguinte — é o único ponto do mockup que, copiado, quebra o
+ * produto (EF-03 §1/§4). Por isso `Categoria` só guarda nome, ícone e cor.
+ */
+export const categorias = pgTable(
+  'categorias',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** Todo dado do produto pende da família (R1). Vem sempre do token. */
+    familiaId: uuid('familia_id')
+      .notNull()
+      .references(() => familias.id, { onDelete: 'cascade' }),
+    nome: text('nome').notNull(),
+    icone: text('icone').notNull(),
+    cor: text('cor').notNull(),
+    criadoEm: criadoEm(),
+    atualizadoEm: atualizadoEm(),
+  },
+  t => [index('categorias_por_familia').on(t.familiaId)],
+);
+
+// ---------------------------------------------------------------------------
+// OrcamentoMes — categoria × competência × teto (EF-03 §1). A tabela que
+// torna o remanejo mensal possível: mexer no teto de agosto não toca a linha
+// de setembro, porque são LINHAS DIFERENTES desta tabela.
+// ---------------------------------------------------------------------------
+
+/**
+ * RN-40 — categoria sem linha aqui, NA COMPETÊNCIA lida, lê como teto ZERO.
+ * Não é omissão: a leitura da competência faz LEFT JOIN e usa
+ * `coalesce(teto_centavos, 0)` (`modulos/orcamento/servico.ts`) — por isso
+ * não existe (nem faz falta) um valor default na coluna.
+ *
+ * `tetoCentavos` PODE ficar negativo (RN-14: sem categoria com sobra para
+ * financiar o remanejamento, o app oferece deixar o destino negativo em vez
+ * de recusar) — por isso, ao contrário de `contas.saldoInicialCentavos`, não
+ * há CHECK de não-negatividade nesta coluna.
+ */
+export const orcamentosMes = pgTable(
+  'orcamentos_mes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    familiaId: uuid('familia_id')
+      .notNull()
+      .references(() => familias.id, { onDelete: 'cascade' }),
+    categoriaId: uuid('categoria_id')
+      .notNull()
+      .references(() => categorias.id, { onDelete: 'cascade' }),
+    /** `AAAA-MM` (EF-03 §1). Junto de `categoriaId` forma a chave do teto. */
+    competencia: colunaCompetencia('competencia').notNull(),
+    tetoCentavos: dinheiroCentavos('teto_centavos').notNull(),
+    criadoEm: criadoEm(),
+    atualizadoEm: atualizadoEm(),
+  },
+  t => [
+    // RN-09 — um teto só por categoria×competência; é este índice que faz o
+    // upsert de `definirTeto`/`criarRemanejamento` (servico.ts) ser seguro.
+    uniqueIndex('orcamentos_mes_categoria_competencia_unico').on(
+      t.categoriaId,
+      t.competencia,
+    ),
+    index('orcamentos_mes_por_familia_competencia').on(t.familiaId, t.competencia),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Remanejamento — histórico de quem moveu teto entre categorias (EF-03 §1).
+// RN-13: altera só a competência corrente, e registra o autor.
+// ---------------------------------------------------------------------------
+
+export const remanejamentos = pgTable(
+  'remanejamentos',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    familiaId: uuid('familia_id')
+      .notNull()
+      .references(() => familias.id, { onDelete: 'cascade' }),
+    competencia: colunaCompetencia('competencia').notNull(),
+    categoriaOrigemId: uuid('categoria_origem_id')
+      .notNull()
+      .references(() => categorias.id, { onDelete: 'cascade' }),
+    categoriaDestinoId: uuid('categoria_destino_id')
+      .notNull()
+      .references(() => categorias.id, { onDelete: 'cascade' }),
+    valorCentavos: dinheiroCentavos('valor_centavos').notNull(),
+    /** RN-13 — o autor, e é imutável: nunca se atualiza esta linha. */
+    autorMembroId: uuid('autor_membro_id')
+      .notNull()
+      .references(() => membros.id),
+    criadoEm: criadoEm(),
+  },
+  t => [
+    index('remanejamentos_por_familia_competencia').on(t.familiaId, t.competencia),
+    // Defesa em profundidade — a mesma validação já vive no Zod da rota
+    // (`modulos/orcamento/esquemas.ts`): valor precisa ser positivo, e mover
+    // teto de uma categoria para ELA MESMA não é remanejamento nenhum.
+    check('remanejamentos_valor_positivo', sql`${t.valorCentavos} > 0`),
+    check(
+      'remanejamentos_origem_diferente_destino',
+      sql`${t.categoriaOrigemId} <> ${t.categoriaDestinoId}`,
+    ),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Competencia — hoje existe só para guardar `RendaPrevista` (EF-03 §1),
+// atributo da competência, não da categoria. Uma linha por família×mês;
+// ausência de linha lê como renda prevista ZERO (mesmo espírito de RN-40:
+// nenhuma RN exige outro default, e RN-12 já garante que renda prevista não
+// entra na fórmula de teto nenhum — só é referência de planejamento).
+// ---------------------------------------------------------------------------
+
+export const competencias = pgTable(
+  'competencias',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    familiaId: uuid('familia_id')
+      .notNull()
+      .references(() => familias.id, { onDelete: 'cascade' }),
+    competencia: colunaCompetencia('competencia').notNull(),
+    rendaPrevistaCentavos: dinheiroCentavos('renda_prevista_centavos').notNull().default(0),
+    criadoEm: criadoEm(),
+    atualizadoEm: atualizadoEm(),
+  },
+  t => [
+    uniqueIndex('competencias_familia_competencia_unico').on(t.familiaId, t.competencia),
+  ],
+);
+
+// ---------------------------------------------------------------------------
 // Relações
 // ---------------------------------------------------------------------------
 
@@ -307,6 +443,52 @@ export const familiasRelacoes = relations(familias, ({ many }) => ({
   membros: many(membros),
   convites: many(convites),
   contas: many(contas),
+  categorias: many(categorias),
+}));
+
+export const categoriasRelacoes = relations(categorias, ({ one, many }) => ({
+  familia: one(familias, {
+    fields: [categorias.familiaId],
+    references: [familias.id],
+  }),
+  orcamentosMes: many(orcamentosMes),
+}));
+
+export const orcamentosMesRelacoes = relations(orcamentosMes, ({ one }) => ({
+  familia: one(familias, {
+    fields: [orcamentosMes.familiaId],
+    references: [familias.id],
+  }),
+  categoria: one(categorias, {
+    fields: [orcamentosMes.categoriaId],
+    references: [categorias.id],
+  }),
+}));
+
+export const remanejamentosRelacoes = relations(remanejamentos, ({ one }) => ({
+  familia: one(familias, {
+    fields: [remanejamentos.familiaId],
+    references: [familias.id],
+  }),
+  categoriaOrigem: one(categorias, {
+    fields: [remanejamentos.categoriaOrigemId],
+    references: [categorias.id],
+  }),
+  categoriaDestino: one(categorias, {
+    fields: [remanejamentos.categoriaDestinoId],
+    references: [categorias.id],
+  }),
+  autor: one(membros, {
+    fields: [remanejamentos.autorMembroId],
+    references: [membros.id],
+  }),
+}));
+
+export const competenciasRelacoes = relations(competencias, ({ one }) => ({
+  familia: one(familias, {
+    fields: [competencias.familiaId],
+    references: [familias.id],
+  }),
 }));
 
 export const contasRelacoes = relations(contas, ({ one }) => ({
@@ -357,3 +539,7 @@ export type Convite = typeof convites.$inferSelect;
 export type Sessao = typeof sessoes.$inferSelect;
 export type Conta = typeof contas.$inferSelect;
 export type NovaContaDb = typeof contas.$inferInsert;
+export type Categoria = typeof categorias.$inferSelect;
+export type OrcamentoMes = typeof orcamentosMes.$inferSelect;
+export type Remanejamento = typeof remanejamentos.$inferSelect;
+export type CompetenciaDb = typeof competencias.$inferSelect;

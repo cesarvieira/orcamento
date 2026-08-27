@@ -1,0 +1,563 @@
+// ORÇAMENTO (EF-03) — tela `config` do mockup ("Orçamento do mês") + folhas
+// `sheetEditCat` e `sheetRemanejar`, que são FONTE e não ilustração: o
+// recorte vive em `MOCKUP-EF-03.md` (não commitado — artefato do condutor).
+//
+// As cores, raios e tamanhos vêm do desenho, traduzidos para as variáveis do
+// sistema visual do shell (`base.scss`) sempre que existe uma equivalente —
+// mesmo princípio de `contas.scss`. As classes `.sheet*` são as MESMAS de
+// `contas.scss`, mas `scoped` do Vue não vaza entre páginas: redeclaradas
+// aqui de propósito (escopo desta tarefa é só este arquivo — extrair um
+// parcial `base/_folha.scss` tocaria `base.scss`, fora do escopo declarado).
+
+// O título "Orçamento" já vem do shell (`topo__titulo`). Esta tela só
+// acrescenta a sublinha, colada visualmente embaixo dele.
+.orcamento__subtitulo {
+  margin: -8px 0 16px;
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
+// ── estados vazios ───────────────────────────────────────────────────────
+
+.orcamento__vazio {
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--texto-fraco);
+
+  &--erro {
+    color: var(--alerta);
+  }
+}
+
+// ── RENDA PREVISTA ───────────────────────────────────────────────────────
+
+.orcamento__renda {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-grande);
+  padding: 15px;
+  margin-bottom: 14px;
+}
+
+.orcamento__renda-rotulo {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--texto-medio);
+}
+
+.orcamento__renda-controle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.orcamento__renda-valor {
+  min-width: 120px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.orcamento__renda-aviso {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--texto-fraco);
+  text-align: center;
+}
+
+// ── botão redondo −/+ (reaproveitado na renda, no teto e nas fontes) ─────
+
+.orcamento__passo {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border: 1px solid var(--borda-media);
+  background: var(--superficie);
+  border-radius: 9999px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--tinta);
+  cursor: pointer;
+
+  &--pequeno {
+    width: 30px;
+    height: 30px;
+    font-size: 15px;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+// ── lista de categorias ──────────────────────────────────────────────────
+
+.orcamento__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.orcamento__cartao {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 11px 12px;
+}
+
+.orcamento__linha {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.orcamento__identidade {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  color: var(--texto);
+  text-align: left;
+  cursor: pointer;
+}
+
+.orcamento__icone {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 8px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+
+  &--pequeno {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+.orcamento__texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.orcamento__nome {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.orcamento__sub {
+  display: block;
+  font-size: 11px;
+  color: var(--texto-fraco);
+  margin-top: 1px;
+}
+
+.orcamento__acoes {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.orcamento__remover {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border: none;
+  background: none;
+  border-radius: 9999px;
+  font-size: 15px;
+  color: var(--texto-apagado);
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+// ── categoria estourada · cartão canônico do mockup ──────────────────────
+//
+// Porta literal de MOCKUP-EF-03.md §6 (adendo) — o cartão vive na tela
+// `home` do protótipo (`sc-if temEstouro`); aqui é o MESMO cartão, dentro do
+// escopo de `/orcamento` (ver comentário em `orcamento.vue`).
+
+.orcamento__cartao-estouro {
+  margin-top: 8px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--superficie);
+  border: 1px solid rgba(198, 40, 40, 0.28);
+  border-radius: var(--raio);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.orcamento__cartao-estouro-texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.orcamento__cartao-estouro-titulo {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--alerta);
+}
+
+.orcamento__cartao-estouro-subtitulo {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: var(--texto-medio);
+}
+
+.orcamento__cartao-estouro-botao {
+  flex: none;
+  height: 34px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 9999px;
+  background: var(--tinta);
+  color: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+// ── rodapé · criar categoria ──────────────────────────────────────────────
+
+.orcamento__nova {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.orcamento__nova-input {
+  flex: 1;
+  min-width: 0;
+  height: 42px;
+  border: 1px solid var(--borda-media);
+  border-radius: var(--raio-pequeno);
+  padding: 0 13px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--texto);
+  background: var(--superficie);
+  outline: none;
+
+  &::placeholder {
+    color: var(--texto-apagado);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+.orcamento__nova-botao {
+  flex: none;
+  height: 42px;
+  padding: 0 18px;
+  border: none;
+  border-radius: var(--raio-pequeno);
+  background: var(--tinta);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:disabled {
+    background: #aab2be;
+    cursor: default;
+  }
+}
+
+// ── FOLHA (comum às duas — sheetEditCat e sheetRemanejar) ────────────────
+
+.sheet-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(12, 22, 40, 0.42);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.sheet {
+  background: var(--fundo);
+  border-radius: 22px 22px 0 0;
+  padding: 18px;
+  max-height: 92vh;
+  overflow-y: auto;
+  flex: none;
+
+  @media (min-width: 768px) {
+    width: 100%;
+    max-width: 460px;
+    margin: 0 auto;
+    border-radius: var(--raio-grande);
+    margin-bottom: 24px;
+  }
+}
+
+.sheet__cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.sheet__titulo {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.sheet__fechar {
+  flex: none;
+  background: none;
+  border: none;
+  font-size: 15px;
+  color: var(--texto-fraco);
+  cursor: pointer;
+  padding: 0;
+}
+
+.sheet__nome {
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--borda-media);
+  border-radius: var(--raio-pequeno);
+  padding: 0 13px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--texto);
+  outline: none;
+  background: var(--superficie);
+}
+
+.sheet__rotulo-secao {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--texto-fraco);
+  margin: 16px 2px 8px;
+}
+
+.sheet__erro {
+  margin: 12px 2px 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--alerta);
+}
+
+.sheet__salvar {
+  margin-top: 18px;
+}
+
+// ── sheetEditCat · COR — grade de círculos ────────────────────────────────
+
+.sheet__cores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sheet__cor-opcao {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 9999px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 15px;
+  box-shadow: 0 0 0 1px var(--borda-media);
+
+  &--ativo {
+    box-shadow: 0 0 0 2px var(--tinta-forte);
+  }
+}
+
+// ── sheetEditCat · ÍCONE — grade de 6 colunas ─────────────────────────────
+
+.sheet__icones {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.sheet__icone-opcao {
+  height: 46px;
+  border-radius: 11px;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--superficie);
+  color: var(--texto-medio);
+  box-shadow: inset 0 0 0 1px var(--borda-media);
+
+  i {
+    font-size: 20px;
+  }
+
+  &--ativo {
+    background: var(--tinta);
+    color: #fff;
+    box-shadow: 0 0 0 2px var(--tinta-forte);
+  }
+}
+
+// ── sheetRemanejar · subtítulo e estado sem fonte (RN-14) ────────────────
+
+.orcamento__remanejar-subtitulo {
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: var(--texto-medio);
+}
+
+.orcamento__sem-fonte {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 14px;
+  margin: 0 0 4px;
+  font-size: 12.5px;
+  color: var(--texto-medio);
+}
+
+// ── sheetRemanejar · barra de totais ──────────────────────────────────────
+
+.orcamento__totais {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--tinta);
+  color: #fff;
+  border-radius: var(--raio);
+  padding: 13px 15px;
+  margin-bottom: 12px;
+}
+
+.orcamento__totais-lado {
+  &--direita {
+    text-align: right;
+  }
+}
+
+.orcamento__totais-rotulo {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  opacity: 0.62;
+}
+
+.orcamento__totais-valor {
+  font-size: 20px;
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+.orcamento__totais-lado--direita .orcamento__totais-valor {
+  font-size: 15px;
+}
+
+// ── sheetRemanejar · lista de fontes ──────────────────────────────────────
+
+.orcamento__fontes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.orcamento__fonte {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 11px 12px;
+
+  &--com-valor {
+    border-color: rgba(20, 50, 90, 0.45);
+  }
+}
+
+.orcamento__fonte-linha1 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.orcamento__fonte-valor {
+  flex: none;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.orcamento__fonte-linha2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.orcamento__fonte-slider {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--tinta);
+}
+
+.orcamento__fonte-atalho {
+  flex: none;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--borda-media);
+  background: var(--superficie);
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tinta);
+  cursor: pointer;
+}
+
+// ── sheetRemanejar · deixar negativo (RN-14) ──────────────────────────────
+
+.orcamento__negativo {
+  width: 100%;
+  height: 44px;
+  margin-top: 8px;
+  border: 1px solid var(--borda-media);
+  background: var(--superficie);
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--texto);
+  cursor: pointer;
+}

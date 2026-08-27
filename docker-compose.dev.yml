@@ -18,7 +18,12 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-orcamento}
       POSTGRES_DB: ${POSTGRES_DB:-orcamento}
     ports:
-      - '${POSTGRES_PORT:-5432}:5432'
+      # 5433 no default, não 5432: a porta separada da stack de prova (D-02) é
+      # o que deixa as duas de pé ao mesmo tempo, e ela precisa valer para quem
+      # só tem os arquivos RASTREADOS. Enquanto o default era 5432, a topologia
+      # documentada só existia na máquina de quem tinha um `.env.dev` local —
+      # e um clone limpo (ou um worktree) subia o banco na porta errada.
+      - '${POSTGRES_PORT:-5433}:5432'
     volumes:
       - dados-dev:/var/lib/postgresql/data
       # A suíte de integração usa um banco separado, criado na primeira subida.
