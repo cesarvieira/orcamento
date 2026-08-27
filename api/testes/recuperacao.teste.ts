@@ -198,7 +198,7 @@ describe('concluir recuperação', () => {
       email: 'perdeu@exemplo.test',
       senha: SENHA_ANTIGA,
     };
-    await request(app).post('/contas').send(cadastro).expect(201);
+    await request(app).post('/cadastros').send(cadastro).expect(201);
 
     // RN-06 em pé: o login está bloqueado antes da recuperação.
     const antes = await request(app)

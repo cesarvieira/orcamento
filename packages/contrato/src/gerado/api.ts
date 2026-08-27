@@ -130,7 +130,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/contas": {
+    "/cadastros": {
         parameters: {
             query?: never;
             header?: never;
@@ -140,14 +140,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Cria uma família nova e envia a confirmação de email */
-        post: operations["post_contas"];
+        post: operations["post_cadastros"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/contas/confirmar": {
+    "/cadastros/confirmar": {
         parameters: {
             query?: never;
             header?: never;
@@ -157,7 +157,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Confirma o email do cadastro e abre a sessão */
-        post: operations["post_contas_confirmar"];
+        post: operations["post_cadastros_confirmar"];
         delete?: never;
         options?: never;
         head?: never;
@@ -213,6 +213,42 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/contas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** As contas da família da sessão, com saldo derivado */
+        get: operations["get_contas"];
+        put?: never;
+        /** Cria uma conta (DEBITO, CREDITO ou RESERVA) na família da sessão */
+        post: operations["post_contas"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/contas/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Exclui uma conta da família da sessão, se ela não tiver lançamentos (RN-06) */
+        delete: operations["delete_contas__id_"];
+        options?: never;
+        head?: never;
+        /** Atualiza uma conta da família da sessão (substitui os dados do tipo) */
+        patch: operations["patch_contas__id_"];
         trace?: never;
     };
 }
@@ -337,6 +373,95 @@ export interface components {
             metodo: "google";
             codigo: string;
             codigoAutorizacao: string;
+        };
+        NovaConta: {
+            /** @enum {string} */
+            tipo: "DEBITO";
+            /** @description Nome da conta, escolhido pela família. */
+            nome: string;
+            icone: string;
+            cor: string;
+            saldoInicialCentavos: number;
+        } | {
+            /** @enum {string} */
+            tipo: "RESERVA";
+            /** @description Nome da conta, escolhido pela família. */
+            nome: string;
+            icone: string;
+            cor: string;
+            saldoInicialCentavos: number;
+        } | {
+            /** @enum {string} */
+            tipo: "CREDITO";
+            /** @description Nome da conta, escolhido pela família. */
+            nome: string;
+            icone: string;
+            cor: string;
+            limiteCentavos: number;
+            /** @description Dia do mês, 1–28 (RN-08): dia 29–31 não existe em todo mês. */
+            diaFechamento: number;
+            /** @description Dia do mês, 1–28 (RN-08): dia 29–31 não existe em todo mês. */
+            diaVencimento: number;
+        };
+        AtualizarConta: {
+            /** @enum {string} */
+            tipo: "DEBITO";
+            /** @description Nome da conta, escolhido pela família. */
+            nome: string;
+            icone: string;
+            cor: string;
+            saldoInicialCentavos: number;
+        } | {
+            /** @enum {string} */
+            tipo: "RESERVA";
+            /** @description Nome da conta, escolhido pela família. */
+            nome: string;
+            icone: string;
+            cor: string;
+            saldoInicialCentavos: number;
+        } | {
+            /** @enum {string} */
+            tipo: "CREDITO";
+            /** @description Nome da conta, escolhido pela família. */
+            nome: string;
+            icone: string;
+            cor: string;
+            limiteCentavos: number;
+            /** @description Dia do mês, 1–28 (RN-08): dia 29–31 não existe em todo mês. */
+            diaFechamento: number;
+            /** @description Dia do mês, 1–28 (RN-08): dia 29–31 não existe em todo mês. */
+            diaVencimento: number;
+        };
+        Conta: {
+            id: string;
+            /** @enum {string} */
+            tipo: "DEBITO" | "CREDITO" | "RESERVA";
+            nome: string;
+            icone: string;
+            cor: string;
+            saldoInicialCentavos: number | null;
+            limiteCentavos: number | null;
+            diaFechamento: number | null;
+            diaVencimento: number | null;
+            /** @description Derivado: saldoInicialCentavos + Σ lançamentos da conta (EF-02 §1). Nunca materializado. */
+            saldoCentavos: number;
+        };
+        ContasListadas: {
+            contas: {
+                id: string;
+                /** @enum {string} */
+                tipo: "DEBITO" | "CREDITO" | "RESERVA";
+                nome: string;
+                icone: string;
+                cor: string;
+                saldoInicialCentavos: number | null;
+                limiteCentavos: number | null;
+                diaFechamento: number | null;
+                diaVencimento: number | null;
+                /** @description Derivado: saldoInicialCentavos + Σ lançamentos da conta (EF-02 §1). Nunca materializado. */
+                saldoCentavos: number;
+            }[];
+            totalEmContaHojeCentavos: number;
         };
     };
     responses: never;
@@ -703,7 +828,7 @@ export interface operations {
             };
         };
     };
-    post_contas: {
+    post_cadastros: {
         parameters: {
             query?: never;
             header?: never;
@@ -745,7 +870,7 @@ export interface operations {
             };
         };
     };
-    post_contas_confirmar: {
+    post_cadastros_confirmar: {
         parameters: {
             query?: never;
             header?: never;
@@ -983,6 +1108,177 @@ export interface operations {
             };
             /** @description Código invalidado por excesso de tentativas (RN-11) */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    get_contas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description As contas da família */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContasListadas"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    post_contas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NovaConta"];
+            };
+        };
+        responses: {
+            /** @description Conta criada */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Conta"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Corpo inválido — inclusive RN-08 (fechamento/vencimento fora de 1–28) */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    delete_contas__id_: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Conta excluída */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Conta inexistente nesta família */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Conta tem lançamentos e não pode ser excluída (RN-06) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    patch_contas__id_: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AtualizarConta"];
+            };
+        };
+        responses: {
+            /** @description Conta atualizada */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Conta"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Conta inexistente nesta família */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Corpo inválido — inclusive RN-08 (fechamento/vencimento fora de 1–28) */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };

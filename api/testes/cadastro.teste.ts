@@ -49,7 +49,7 @@ afterAll(async () => {
 
 describe('criar a própria família', () => {
   it('cria família e membro, mas NÃO abre sessão (RN-06)', async () => {
-    const resposta = await request(app).post('/contas').send(CADASTRO);
+    const resposta = await request(app).post('/cadastros').send(CADASTRO);
 
     expect(resposta.status).toBe(201);
     expect(resposta.body.email).toBe(CADASTRO.email);
@@ -62,7 +62,7 @@ describe('criar a própria família', () => {
   });
 
   it('RN-06: o login é RECUSADO enquanto o email não for confirmado', async () => {
-    await request(app).post('/contas').send(CADASTRO).expect(201);
+    await request(app).post('/cadastros').send(CADASTRO).expect(201);
 
     const login = await request(app)
       .post('/sessoes')
@@ -73,11 +73,11 @@ describe('criar a própria família', () => {
   });
 
   it('RN-06: confirmado o email, o login passa a funcionar', async () => {
-    await request(app).post('/contas').send(CADASTRO).expect(201);
+    await request(app).post('/cadastros').send(CADASTRO).expect(201);
     const token = await tokenDeConfirmacao(CADASTRO.email);
 
     const confirmacao = await request(app)
-      .post('/contas/confirmar')
+      .post('/cadastros/confirmar')
       .send({ email: CADASTRO.email, codigo: token });
     expect(confirmacao.status).toBe(201);
     expect(confirmacao.body.familiaNome).toBe(CADASTRO.familiaNome);
@@ -89,12 +89,12 @@ describe('criar a própria família', () => {
   });
 
   it('RN-09: o código de confirmação é de uso único', async () => {
-    await request(app).post('/contas').send(CADASTRO).expect(201);
+    await request(app).post('/cadastros').send(CADASTRO).expect(201);
     const token = await tokenDeConfirmacao(CADASTRO.email);
     const corpo = { email: CADASTRO.email, codigo: token };
 
-    await request(app).post('/contas/confirmar').send(corpo).expect(201);
-    const segunda = await request(app).post('/contas/confirmar').send(corpo);
+    await request(app).post('/cadastros/confirmar').send(corpo).expect(201);
+    const segunda = await request(app).post('/cadastros/confirmar').send(corpo);
 
     // Confirmado, não há mais confirmação PENDENTE para aquele email.
     expect(segunda.status).toBe(404);
@@ -102,11 +102,11 @@ describe('criar a própria família', () => {
   });
 
   it('RN-10/RN-11: código errado é 401, e na quinta vez a confirmação é bloqueada', async () => {
-    await request(app).post('/contas').send(CADASTRO).expect(201);
+    await request(app).post('/cadastros').send(CADASTRO).expect(201);
     const token = await tokenDeConfirmacao(CADASTRO.email);
     const errado = token === '000000' ? '111111' : '000000';
     const tentar = (codigo: string) =>
-      request(app).post('/contas/confirmar').send({ email: CADASTRO.email, codigo });
+      request(app).post('/cadastros/confirmar').send({ email: CADASTRO.email, codigo });
 
     for (let i = 0; i < 4; i += 1) {
       const parcial = await tentar(errado);
@@ -127,7 +127,7 @@ describe('criar a própria família', () => {
     const familia = await criarFamiliaComMembro('Família que já existe');
 
     const resposta = await request(app)
-      .post('/contas')
+      .post('/cadastros')
       .send({ ...CADASTRO, email: familia.email });
 
     expect(resposta.status).toBe(409);
@@ -144,7 +144,7 @@ describe('criar a própria família', () => {
       .expect(201);
 
     const resposta = await request(app)
-      .post('/contas')
+      .post('/cadastros')
       .send({ ...CADASTRO, email: 'convidada@exemplo.test' });
 
     expect(resposta.status).toBe(409);
@@ -171,7 +171,7 @@ describe('criar a própria família', () => {
       .expect(204);
 
     const resposta = await request(app)
-      .post('/contas')
+      .post('/cadastros')
       .send({ ...CADASTRO, email: 'nao-quero@exemplo.test' });
 
     expect(resposta.status).toBe(201);
@@ -210,7 +210,7 @@ describe('criar a própria família', () => {
   });
 
   it('recusa a senha curta demais, sem criar nada', async () => {
-    const resposta = await request(app).post('/contas').send({ ...CADASTRO, senha: 'ab' });
+    const resposta = await request(app).post('/cadastros').send({ ...CADASTRO, senha: 'ab' });
 
     expect(resposta.status).toBe(422);
     const linhas = await db.select().from(membros).where(eq(membros.email, CADASTRO.email));

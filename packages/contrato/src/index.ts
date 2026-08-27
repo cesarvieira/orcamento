@@ -14,9 +14,12 @@ export type { components, operations, paths };
 
 /** Todo valor monetário nestes tipos é INTEIRO EM CENTAVOS (D-06). */
 export type AceitarConvite = components['schemas']['AceitarConvite'];
+export type AtualizarConta = components['schemas']['AtualizarConta'];
 export type ConcluirRecuperacao = components['schemas']['ConcluirRecuperacao'];
 export type ConfirmarConta = components['schemas']['ConfirmarConta'];
+export type Conta = components['schemas']['Conta'];
 export type ContaCriada = components['schemas']['ContaCriada'];
+export type ContasListadas = components['schemas']['ContasListadas'];
 export type ConviteCriado = components['schemas']['ConviteCriado'];
 export type ConvitePendente = components['schemas']['ConvitePendente'];
 export type ConvitesPendentes = components['schemas']['ConvitesPendentes'];
@@ -28,6 +31,7 @@ export type FamiliaAtual = components['schemas']['FamiliaAtual'];
 export type Invalidacao = components['schemas']['Invalidacao'];
 export type LoginGoogle = components['schemas']['LoginGoogle'];
 export type MembroDaFamilia = components['schemas']['MembroDaFamilia'];
+export type NovaConta = components['schemas']['NovaConta'];
 export type PedirRecuperacao = components['schemas']['PedirRecuperacao'];
 export type RecuperacaoPedida = components['schemas']['RecuperacaoPedida'];
 export type RecusarConvite = components['schemas']['RecusarConvite'];

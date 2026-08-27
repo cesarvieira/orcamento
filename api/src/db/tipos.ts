@@ -23,8 +23,7 @@ import { char, date, integer, timestamp } from 'drizzle-orm/pg-core';
  *
  * A formatação para exibição acontece só na borda, no componente.
  *
- * @fundacao ninguém usa ainda — a EF-00 não tem entidade de domínio. É pra
- * EF-02 em diante.
+ * Em uso desde a EF-02 (`contas.saldoInicialCentavos` e `contas.limiteCentavos`).
  */
 export const dinheiroCentavos = (nome: string) => integer(nome);
 

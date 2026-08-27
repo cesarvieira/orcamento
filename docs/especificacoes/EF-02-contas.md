@@ -66,9 +66,17 @@ Capturar dado que ninguém lê é como não ter o campo.
 
 ## §5 — Definition of Done
 
-- [ ] Um teste de integração por RN acima
-- [ ] Excluir conta com lançamento é recusado com mensagem clara
-- [ ] Isolamento entre famílias
-- [ ] Dois clientes: a conta criada num aparece no outro sem refresh
-- [ ] A tela abre no artefato de deploy, com dado do seed
-- [ ] `PROVA_DE_COMPORTAMENTO=PASS`
+- [x] Um teste de integração por RN acima
+- [ ] Excluir conta com lançamento é recusado com mensagem clara — **parcial:** o caminho HTTP
+      está fiado e correto (`DELETE /contas/:id` mapeia `tem_lancamentos` para 409 com mensagem
+      clara), mas é inalcançável hoje: `contaPodeSerExcluida()` sempre devolve `true` enquanto a
+      tabela `lancamentos` não existir (EF-04). Nenhum teste exercita o ramo 409 — o teste de
+      RN-06 declara essa limitação na própria descrição em vez de fingir cobertura. Ver
+      `EF02-MC-001` em [MC-02](MC-02-contas.md)
+- [x] Isolamento entre famílias
+- [x] Dois clientes: a conta criada num aparece no outro sem refresh — **provado à mão pelo
+      condutor** (duas abas: a B recebeu a conta criada na A e o total foi de `R$ 2.500,00` a
+      `R$ 3.277,00` sem reload). Ainda **sem teste automatizado** de dois clientes para
+      `contas`: ver `EF02-MC-006` em [MC-02](MC-02-contas.md)
+- [x] A tela abre no artefato de deploy, com dado do seed
+- [x] `PROVA_DE_COMPORTAMENTO=PASS`

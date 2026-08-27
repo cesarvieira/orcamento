@@ -64,6 +64,22 @@ FRONT_BUILD="NUXT_BUILD_DIR=.nuxt-gate pnpm run build"
 TYPECHECK_CMD="NUXT_BUILD_DIR=.nuxt-gate pnpm run typecheck"
 
 # ---------------------------------------------------------------------------
+# ESTÁTICO  —  o que se prova sem subir nada. Os dois são OPCIONAIS e
+# NÃO-BLOQUEANTES: reprovam visivelmente na tabela do veredito, mas não
+# derrubam o carimbo. Estilo e código morto não quebram comportamento.
+# ---------------------------------------------------------------------------
+# Rodam da RAIZ do projeto, não de FRONT_DIR. `pnpm`, como todo o resto deste
+# perfil — o exemplo da fábrica traz `npm`/`npx` porque é agnóstico.
+LINT_CMD="pnpm run lint"
+DEADCODE_CMD="pnpm run knip"
+
+# Estes dois já rodavam no `.githooks/pre-push`, e SÓ lá — foi assim que a
+# EF-02 fechou com PROVA_DE_COMPORTAMENTO=PASS carregando cinco exports sem
+# consumidor e uma etiqueta @fundacao vencida, pegos só na hora do push,
+# depois do merge. Hook que o gate mestre não enxerga é portão cego: quem
+# carimba pronto é o gate, então é ele que precisa ver.
+
+# ---------------------------------------------------------------------------
 # SUBIR O SISTEMA  —  o gate que pega o que o build nunca vê
 # ---------------------------------------------------------------------------
 # O compose de PRODUÇÃO é o alvo (D-02). O docker-compose.dev.yml sobe só o
