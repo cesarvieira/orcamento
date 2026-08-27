@@ -130,7 +130,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/contas": {
+    "/cadastros": {
         parameters: {
             query?: never;
             header?: never;
@@ -140,14 +140,14 @@ export interface paths {
         get?: never;
         put?: never;
         /** Cria uma família nova e envia a confirmação de email */
-        post: operations["post_contas"];
+        post: operations["post_cadastros"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/contas/confirmar": {
+    "/cadastros/confirmar": {
         parameters: {
             query?: never;
             header?: never;
@@ -157,7 +157,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** Confirma o email do cadastro e abre a sessão */
-        post: operations["post_contas_confirmar"];
+        post: operations["post_cadastros_confirmar"];
         delete?: never;
         options?: never;
         head?: never;
@@ -703,7 +703,7 @@ export interface operations {
             };
         };
     };
-    post_contas: {
+    post_cadastros: {
         parameters: {
             query?: never;
             header?: never;
@@ -745,7 +745,7 @@ export interface operations {
             };
         };
     };
-    post_contas_confirmar: {
+    post_cadastros_confirmar: {
         parameters: {
             query?: never;
             header?: never;

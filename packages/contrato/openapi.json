@@ -922,13 +922,13 @@
         }
       }
     },
-    "/contas": {
+    "/cadastros": {
       "post": {
         "summary": "Cria uma família nova e envia a confirmação de email",
         "tags": [
           "acesso"
         ],
-        "operationId": "post_contas",
+        "operationId": "post_cadastros",
         "requestBody": {
           "required": true,
           "content": {
@@ -974,13 +974,13 @@
         }
       }
     },
-    "/contas/confirmar": {
+    "/cadastros/confirmar": {
       "post": {
         "summary": "Confirma o email do cadastro e abre a sessão",
         "tags": [
           "acesso"
         ],
-        "operationId": "post_contas_confirmar",
+        "operationId": "post_cadastros_confirmar",
         "requestBody": {
           "required": true,
           "content": {
