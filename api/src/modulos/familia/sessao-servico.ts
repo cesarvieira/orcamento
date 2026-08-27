@@ -39,10 +39,15 @@ function hashDoToken(token: string): string {
 }
 
 /**
- * Gerador genérico de token seguro. A sessão o usa para o cookie; o convite
- * (EF-01, `modulos/familia/convites.ts`) o reaproveita para o próprio token.
+ * O token do cookie de sessão: 32 bytes de aleatoriedade real.
+ *
+ * Já foi compartilhado com o convite, quando o convite também viajava como
+ * segredo longo. Desde RN-10 o convite é um código de 6 dígitos digitado
+ * (`gerarCodigo`, abaixo) e os dois não têm mais nada em comum além do nome —
+ * este aqui é inadivinhável por construção; aquele depende do teto de
+ * tentativas para ser seguro.
  */
-export function gerarToken(): string {
+function gerarToken(): string {
   return randomBytes(32).toString('base64url');
 }
 

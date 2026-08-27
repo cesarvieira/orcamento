@@ -53,7 +53,7 @@ export interface CadastroCriado {
 }
 
 /** RN-08: pendente é o que não foi usado, não foi recusado e não expirou. */
-export async function convitePendenteParaEmail(db: Db, email: string) {
+async function convitePendenteParaEmail(db: Db, email: string) {
   const [linha] = await db
     .select({ id: convites.id })
     .from(convites)
