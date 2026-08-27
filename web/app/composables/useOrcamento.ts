@@ -177,13 +177,6 @@ export const PASSO_FONTE_BOTAO_CENTAVOS = 5000;
 /** Passo do slider de cada fonte — porta literal de `step 10` (R$ 10) do mockup. */
 export const PASSO_FONTE_SLIDER_CENTAVOS = 1000;
 
-/** A competência corrente, no formato `AAAA-MM` que a API exige (`esquemas.ts#PADRAO_COMPETENCIA`). */
-export function competenciaAtual(): string {
-  const agora = new Date();
-  const mes = String(agora.getMonth() + 1).padStart(2, '0');
-  return `${agora.getFullYear()}-${mes}`;
-}
-
 export function useOrcamento() {
   const api = useApi();
   const origemClienteId = useOrigemClienteId();

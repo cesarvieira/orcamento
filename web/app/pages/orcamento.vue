@@ -29,11 +29,11 @@ import {
   PASSO_RENDA_CENTAVOS,
   PASSO_TETO_CENTAVOS,
   classeDoIconeCategoria,
-  competenciaAtual,
   nomeDaCor,
   nomeDoIcone,
   useOrcamento,
 } from '~/composables/useOrcamento';
+import { centavosParaTexto, formatarCentavos, textoParaCentavos } from '~/utils/dinheiro';
 
 const {
   criarCategoria,
@@ -45,16 +45,17 @@ const {
   criarRemanejamento,
 } = useOrcamento();
 
-/** Centavos → reais. Só aqui, na borda (D-06) — nunca no composable. */
-function formatarCentavos(centavos: number): string {
-  return (centavos / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
-
 // ── LEITURA DA COMPETÊNCIA ──────────────────────────────────────────────
 
-// Este módulo não tem seletor de mês (fora do recorte de tela da EF-03 §3) —
-// a tela mostra sempre a competência corrente.
-const competencia = ref(competenciaAtual());
+/**
+ * O mês ativo NÃO é estado desta tela: vem do shell, via `useCompetencia`.
+ * O seletor mora na barra de topo do app, porque a EF-04 (visão do mês) e a
+ * EF-08 (fechamento) leem a MESMA competência — duas telas com dois meses
+ * ativos seria segunda fonte da verdade sobre o período.
+ *
+ * Aqui a tela só OBSERVA: quando o mês muda, ela relê. Quem troca é o shell.
+ */
+const { competencia, rotulo: rotuloDoMesAtivo } = useCompetencia();
 
 const leitura = ref<CompetenciaLida | null>(null);
 
@@ -80,6 +81,12 @@ async function carregar(): Promise<void> {
 }
 
 onMounted(carregar);
+
+// O mês é do shell: quando ele troca, esta tela recarrega a competência nova.
+watch(competencia, async () => {
+  carregando.value = true;
+  await carregar();
+});
 
 // Tempo real (EF-00 R2-R5): ao chegar invalidação do recurso "orcamento" —
 // ou ao reconectar —, refaz a leitura da competência ativa. O próprio eco
@@ -114,6 +121,36 @@ function rendaMenos(): void {
 }
 function rendaMais(): void {
   void mudarRenda(rendaPrevistaCentavos.value + PASSO_RENDA_CENTAVOS);
+}
+
+/**
+ * O campo digitável da renda prevista — para valor quebrado, que o passo de
+ * `PASSO_RENDA_CENTAVOS` não alcança sem dezenas de cliques.
+ *
+ * Os steppers CONTINUAM: eles são o caminho rápido do desenho, e o campo é o
+ * caminho preciso. Mesmo par que a folha de conta já usa.
+ *
+ * `editandoRenda` existe para o valor não ser reformatado embaixo do cursor
+ * enquanto a pessoa digita — e para a releitura da competência (que o socket
+ * pode disparar a qualquer momento) não sobrescrever o que ela está escrevendo.
+ */
+const rendaTexto = ref(centavosParaTexto(0));
+const editandoRenda = ref(false);
+
+watch(rendaPrevistaCentavos, centavos => {
+  if (!editandoRenda.value) rendaTexto.value = centavosParaTexto(centavos);
+}, { immediate: true });
+
+function focarRenda(): void {
+  editandoRenda.value = true;
+}
+
+/** Ao sair do campo: normaliza o texto e só chama a API se o valor mudou de verdade. */
+function confirmarRenda(): void {
+  editandoRenda.value = false;
+  const centavos = textoParaCentavos(rendaTexto.value);
+  rendaTexto.value = centavosParaTexto(centavos);
+  if (centavos !== rendaPrevistaCentavos.value) void mudarRenda(centavos);
 }
 
 // ── LISTA DE CATEGORIAS · teto direto (−/+) e remoção (✕) ───────────────
@@ -183,13 +220,43 @@ const iconeCategoria = ref<string>(ICONES_CATEGORIA[0]!);
 const salvandoCategoria = ref(false);
 const erroCategoria = ref<string | null>(null);
 
+/**
+ * O teto entra na folha para poder ser DIGITADO — valor quebrado pelos
+ * steppers da lista custa dezenas de cliques.
+ *
+ * ⚠️ Ele é de outro recurso: nome/cor/ícone são da `Categoria`
+ * (`PATCH /categorias/:id`), o teto é do par categoria × competência
+ * (`PUT /competencias/:c/categorias/:id/teto`, RN-09). Salvar a folha pode,
+ * portanto, disparar DUAS chamadas — e o tratamento de falha parcial abaixo
+ * existe por isso.
+ */
+const tetoTexto = ref(centavosParaTexto(0));
+const tetoOriginalCentavos = ref(0);
+
 function abrirEdicaoCategoria(c: CategoriaNaCompetencia): void {
   categoriaEmEdicao.value = c;
   nomeCategoria.value = c.nome;
   corCategoria.value = c.cor;
   iconeCategoria.value = c.icone;
+  tetoOriginalCentavos.value = c.tetoCentavos;
+  tetoTexto.value = centavosParaTexto(c.tetoCentavos);
   erroCategoria.value = null;
   sheetCategoriaAberta.value = true;
+}
+
+/** Normaliza o texto do teto ao sair do campo — sem chamar a API: quem salva é o "Concluir". */
+function normalizarTeto(): void {
+  tetoTexto.value = centavosParaTexto(textoParaCentavos(tetoTexto.value));
+}
+// Nomes distintos dos `tetoMenos`/`tetoMais` da LISTA de propósito: aqueles
+// mutam a API na hora, com a categoria como argumento; estes só mexem no texto
+// da folha, e quem salva é o "Concluir".
+function tetoDaFolhaMenos(): void {
+  const atual = textoParaCentavos(tetoTexto.value);
+  tetoTexto.value = centavosParaTexto(Math.max(0, atual - PASSO_TETO_CENTAVOS));
+}
+function tetoDaFolhaMais(): void {
+  tetoTexto.value = centavosParaTexto(textoParaCentavos(tetoTexto.value) + PASSO_TETO_CENTAVOS);
 }
 function fecharSheetCategoria(): void {
   sheetCategoriaAberta.value = false;
@@ -204,18 +271,44 @@ async function salvarCategoria(): Promise<void> {
     return;
   }
 
+  const id = categoriaEmEdicao.value.id;
+  const tetoCentavos = textoParaCentavos(tetoTexto.value);
+  const tetoMudou = tetoCentavos !== tetoOriginalCentavos.value;
+
   salvandoCategoria.value = true;
   erroCategoria.value = null;
+
+  // A folha muda DOIS recursos. Se a segunda chamada falhar, a primeira já
+  // aconteceu no servidor — a folha fica aberta, relê para mostrar o que de
+  // fato passou, e diz qual metade faltou. Sem inventar atomicidade: não há RN
+  // que a exija, e fingir transação onde não há é pior que declarar o estado.
+  let identidadeSalva = false;
   try {
-    await atualizarCategoria(categoriaEmEdicao.value.id, {
+    await atualizarCategoria(id, {
       nome,
       icone: iconeCategoria.value,
       cor: corCategoria.value,
     });
+    identidadeSalva = true;
+
+    if (tetoMudou) await definirTeto(competencia.value, id, tetoCentavos);
+
     await carregar();
     sheetCategoriaAberta.value = false;
   } catch (erro) {
-    erroCategoria.value = mensagemDoErro(erro, 'Não consegui salvar a categoria.');
+    const mensagem = mensagemDoErro(erro, 'Não consegui salvar a categoria.');
+    erroCategoria.value = identidadeSalva
+      ? `Nome, cor e ícone foram salvos; o teto não (${mensagem}). Confira o valor e tente de novo.`
+      : mensagem;
+
+    await carregar();
+    // Realinha a folha com o que o servidor tem agora, para um novo "Concluir"
+    // não reenviar o que já passou nem apagar o que a pessoa acabou de digitar.
+    const atualizada = categorias.value.find(c => c.id === id);
+    if (atualizada) {
+      categoriaEmEdicao.value = atualizada;
+      tetoOriginalCentavos.value = atualizada.tetoCentavos;
+    }
   } finally {
     salvandoCategoria.value = false;
   }
@@ -419,7 +512,17 @@ function deixarNegativo(): void {
           >
             −
           </button>
-          <span class="orcamento__renda-valor">{{ formatarCentavos(rendaPrevistaCentavos) }}</span>
+          <input
+            v-model="rendaTexto"
+            class="orcamento__renda-campo"
+            type="text"
+            inputmode="decimal"
+            aria-label="Renda prevista no mês"
+            :disabled="mutandoRenda"
+            @focus="focarRenda"
+            @blur="confirmarRenda"
+            @keyup.enter="confirmarRenda"
+          >
           <button
             type="button"
             class="orcamento__passo"
@@ -447,10 +550,8 @@ function deixarNegativo(): void {
                 <i class="ti" :class="classeDoIconeCategoria(c.icone)"></i>
               </span>
               <span class="orcamento__texto">
-                <span class="orcamento__nome">{{ c.nome }}</span>
-                <span class="orcamento__sub">
-                  teto {{ formatarCentavos(c.tetoCentavos) }} · ícone e cor
-                </span>
+                <span class="orcamento__nome">{{ formatarCentavos(c.tetoCentavos) }}</span>
+                <span class="orcamento__sub">{{ c.nome }}</span>
               </span>
             </button>
 
@@ -527,6 +628,38 @@ function deixarNegativo(): void {
         </div>
 
         <input v-model="nomeCategoria" type="text" placeholder="Nome da categoria" class="sheet__nome">
+
+        <div class="sheet__rotulo-secao">TETO DO MÊS</div>
+        <div class="sheet__teto">
+          <button
+            type="button"
+            class="orcamento__passo"
+            aria-label="Diminuir teto"
+            :disabled="salvandoCategoria"
+            @click="tetoDaFolhaMenos"
+          >
+            −
+          </button>
+          <input
+            v-model="tetoTexto"
+            class="sheet__teto-campo"
+            type="text"
+            inputmode="decimal"
+            :aria-label="`Teto de ${rotuloDoMesAtivo}`"
+            :disabled="salvandoCategoria"
+            @blur="normalizarTeto"
+          >
+          <button
+            type="button"
+            class="orcamento__passo"
+            aria-label="Aumentar teto"
+            :disabled="salvandoCategoria"
+            @click="tetoDaFolhaMais"
+          >
+            +
+          </button>
+        </div>
+        <p class="sheet__teto-nota">Vale só para {{ rotuloDoMesAtivo }} — o teto é do mês, não da categoria.</p>
 
         <div class="sheet__rotulo-secao">COR</div>
         <div class="sheet__cores">

@@ -283,7 +283,184 @@
     font-size: 20px;
   }
 
+  // O seletor de mês vai para a DIREITA da barra branca. `margin-left: auto`
+  // em vez de `justify-content: space-between` no `.topo` porque o slot `topo`
+  // pode trazer mais de um elemento — empurrar só este mantém o resto à
+  // esquerda, qualquer que seja o conteúdo da tela.
+  .mes {
+    margin-top: 0;
+    margin-left: auto;
+  }
+
+  // No desktop a folha deixa de ser gaveta e vira cartão centrado: gaveta de
+  // rodapé numa janela larga é gesto de telefone.
+  .mes-fundo {
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .mes-folha {
+    width: 100%;
+    max-width: 380px;
+    border-radius: var(--raio-grande);
+  }
+
   .conteudo {
     padding: 26px 30px 40px;
   }
+}
+
+// ── MÊS ATIVO ────────────────────────────────────────────────────────────
+// Não vem do mockup, que mostra "Agosto" fixo. Vive no shell porque três telas
+// leem a mesma competência (EF-03, EF-04, EF-08).
+//
+// MOBILE: centralizado no topo, abaixo do título da tela.
+// DESKTOP: empurrado para a DIREITA da barra branca (ver a media query).
+
+.mes {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.mes__passo {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--borda-media);
+  background: var(--superficie);
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 16px;
+  color: var(--tinta);
+  cursor: pointer;
+}
+
+.mes__atual {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--borda-media);
+  border-radius: 9999px;
+  background: var(--superficie);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--tinta);
+  cursor: pointer;
+}
+
+.mes__nome {
+  white-space: nowrap;
+}
+
+// ── FOLHA DO SELETOR DE MÊS ──────────────────────────────────────────────
+// Folha inferior no mobile, cartão centrado no desktop — a mesma moldura que
+// as folhas das telas usam, redesenhada aqui porque o shell não importa o SCSS
+// de nenhuma página.
+
+.mes-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(12, 22, 40, 0.42);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.mes-folha {
+  background: var(--fundo);
+  border-radius: 22px 22px 0 0;
+  padding: 18px;
+}
+
+.mes-folha__cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.mes-folha__titulo {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.mes-folha__fechar {
+  background: none;
+  border: none;
+  font-size: 15px;
+  color: var(--texto-fraco);
+  cursor: pointer;
+  padding: 0;
+}
+
+.mes-folha__ano {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 4px 0 14px;
+}
+
+.mes-folha__ano-valor {
+  min-width: 74px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.mes-folha__grade {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.mes-folha__opcao {
+  height: 46px;
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-pequeno);
+  background: var(--superficie);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--tinta);
+  cursor: pointer;
+
+  // O mês de hoje fica marcado mesmo quando não é o ativo: é a âncora de quem
+  // navegou para longe.
+  &--hoje {
+    border-color: var(--tinta);
+  }
+
+  &--ativo {
+    background: var(--tinta);
+    border-color: var(--tinta);
+    color: var(--superficie);
+  }
+}
+
+.mes-folha__voltar {
+  width: 100%;
+  height: 44px;
+  margin-top: 14px;
+  border: 1px solid var(--borda-media);
+  border-radius: 9999px;
+  background: var(--superficie);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--tinta);
+  cursor: pointer;
 }
