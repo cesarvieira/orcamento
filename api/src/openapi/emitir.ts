@@ -23,6 +23,7 @@ import './esquemas';
 import '../http/rotas/saude';
 import '../modulos/familia/rotas';
 import '../modulos/contas/rotas';
+import '../modulos/orcamento/rotas';
 
 const destino = path.resolve(__dirname, '..', '..', '..', 'packages', 'contrato', 'openapi.json');
 

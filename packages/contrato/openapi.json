@@ -895,6 +895,378 @@
           "totalEmContaHojeCentavos"
         ],
         "additionalProperties": false
+      },
+      "NovaCategoria": {
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Nome da categoria, escolhido pela família."
+          },
+          "icone": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cor": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "nome",
+          "icone",
+          "cor"
+        ],
+        "additionalProperties": false
+      },
+      "AtualizarCategoria": {
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Nome da categoria, escolhido pela família."
+          },
+          "icone": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cor": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "nome",
+          "icone",
+          "cor"
+        ],
+        "additionalProperties": false
+      },
+      "Categoria": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Nome da categoria, escolhido pela família."
+          },
+          "icone": {
+            "type": "string",
+            "minLength": 1
+          },
+          "cor": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "icone",
+          "cor"
+        ],
+        "additionalProperties": false,
+        "description": "O envelope de gasto — sem valor (RN-09). O teto é leitura da competência."
+      },
+      "CategoriasListadas": {
+        "type": "object",
+        "properties": {
+          "categorias": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "nome": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Nome da categoria, escolhido pela família."
+                },
+                "icone": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "cor": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "required": [
+                "id",
+                "nome",
+                "icone",
+                "cor"
+              ],
+              "additionalProperties": false,
+              "description": "O envelope de gasto — sem valor (RN-09). O teto é leitura da competência."
+            }
+          }
+        },
+        "required": [
+          "categorias"
+        ],
+        "additionalProperties": false
+      },
+      "DefinirTeto": {
+        "type": "object",
+        "properties": {
+          "tetoCentavos": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Teto em centavos (D-06). Definido diretamente aqui é sempre ≥ 0."
+          }
+        },
+        "required": [
+          "tetoCentavos"
+        ],
+        "additionalProperties": false
+      },
+      "OrcamentoMesLido": {
+        "type": "object",
+        "properties": {
+          "categoriaId": {
+            "type": "string"
+          },
+          "competencia": {
+            "type": "string",
+            "description": "AAAA-MM."
+          },
+          "tetoCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Pode ser negativo aqui: um remanejamento (RN-14) pode deixar o teto negativo mesmo que a definição direta (acima) só aceite valor ≥ 0."
+          }
+        },
+        "required": [
+          "categoriaId",
+          "competencia",
+          "tetoCentavos"
+        ],
+        "additionalProperties": false
+      },
+      "DefinirRendaPrevista": {
+        "type": "object",
+        "properties": {
+          "rendaPrevistaCentavos": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Referência de planejamento da competência (D-06). Não é teto de nada (RN-12)."
+          }
+        },
+        "required": [
+          "rendaPrevistaCentavos"
+        ],
+        "additionalProperties": false
+      },
+      "CategoriaNaCompetencia": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "icone": {
+            "type": "string"
+          },
+          "cor": {
+            "type": "string"
+          },
+          "tetoCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "RN-40: 0 quando a categoria não tem OrcamentoMes nesta competência."
+          },
+          "gastoCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "RN-10: soma dos lançamentos DESPESA da categoria nesta competência. Os lançamentos são da EF-04 (ainda não construída) — hoje esta soma é sempre 0 (ver servico.ts)."
+          },
+          "disponivelCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "RN-10: teto − gasto. Negativo significa que a categoria estourou."
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "icone",
+          "cor",
+          "tetoCentavos",
+          "gastoCentavos",
+          "disponivelCentavos"
+        ],
+        "additionalProperties": false
+      },
+      "CompetenciaLida": {
+        "type": "object",
+        "properties": {
+          "competencia": {
+            "type": "string",
+            "description": "AAAA-MM."
+          },
+          "rendaPrevistaCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "planejadoCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "RN-11: Σ tetos das categorias."
+          },
+          "recebidoCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "RN-39 (EF-04 §2): soma dos lançamentos RECEITA desta competência. Os lançamentos são da EF-04 (ainda não construída) — hoje esta soma é sempre 0 (ver servico.ts)."
+          },
+          "naoAlocadoCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "RN-11: recebido − planejado."
+          },
+          "categorias": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "nome": {
+                  "type": "string"
+                },
+                "icone": {
+                  "type": "string"
+                },
+                "cor": {
+                  "type": "string"
+                },
+                "tetoCentavos": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "RN-40: 0 quando a categoria não tem OrcamentoMes nesta competência."
+                },
+                "gastoCentavos": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "RN-10: soma dos lançamentos DESPESA da categoria nesta competência. Os lançamentos são da EF-04 (ainda não construída) — hoje esta soma é sempre 0 (ver servico.ts)."
+                },
+                "disponivelCentavos": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "RN-10: teto − gasto. Negativo significa que a categoria estourou."
+                }
+              },
+              "required": [
+                "id",
+                "nome",
+                "icone",
+                "cor",
+                "tetoCentavos",
+                "gastoCentavos",
+                "disponivelCentavos"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "competencia",
+          "rendaPrevistaCentavos",
+          "planejadoCentavos",
+          "recebidoCentavos",
+          "naoAlocadoCentavos",
+          "categorias"
+        ],
+        "additionalProperties": false
+      },
+      "NovoRemanejamento": {
+        "type": "object",
+        "properties": {
+          "categoriaOrigemId": {
+            "type": "string",
+            "description": "De onde o teto sai."
+          },
+          "categoriaDestinoId": {
+            "type": "string",
+            "description": "Para onde o teto vai."
+          },
+          "valorCentavos": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "categoriaOrigemId",
+          "categoriaDestinoId",
+          "valorCentavos"
+        ],
+        "additionalProperties": false
+      },
+      "Remanejamento": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "competencia": {
+            "type": "string",
+            "description": "AAAA-MM — RN-13: só a competência corrente muda."
+          },
+          "categoriaOrigemId": {
+            "type": "string"
+          },
+          "categoriaDestinoId": {
+            "type": "string"
+          },
+          "valorCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "autorMembroId": {
+            "type": "string",
+            "description": "RN-13: quem fez o remanejamento."
+          },
+          "criadoEm": {
+            "type": "string",
+            "description": "ISO 8601."
+          }
+        },
+        "required": [
+          "id",
+          "competencia",
+          "categoriaOrigemId",
+          "categoriaDestinoId",
+          "valorCentavos",
+          "autorMembroId",
+          "criadoEm"
+        ],
+        "additionalProperties": false
       }
     },
     "securitySchemes": {
@@ -1889,6 +2261,494 @@
           },
           "409": {
             "description": "Conta tem lançamentos e não pode ser excluída (RN-06)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/categorias": {
+      "get": {
+        "summary": "As categorias da família da sessão (nome, ícone, cor — sem valor)",
+        "tags": [
+          "orcamento"
+        ],
+        "operationId": "get_categorias",
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "As categorias da família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CategoriasListadas"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Cria uma categoria (envelope de gasto) na família da sessão",
+        "tags": [
+          "orcamento"
+        ],
+        "operationId": "post_categorias",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaCategoria"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Categoria criada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Categoria"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido — informe nome, ícone e cor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/categorias/{id}": {
+      "patch": {
+        "summary": "Atualiza nome, ícone e cor de uma categoria da família da sessão",
+        "tags": [
+          "orcamento"
+        ],
+        "operationId": "patch_categorias__id_",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtualizarCategoria"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Categoria atualizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Categoria"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Categoria inexistente nesta família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido — informe nome, ícone e cor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Apaga uma categoria da família da sessão (leva junto teto e histórico)",
+        "tags": [
+          "orcamento"
+        ],
+        "operationId": "delete_categorias__id_",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Categoria apagada"
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Categoria inexistente nesta família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/competencias/{competencia}": {
+      "get": {
+        "summary": "A leitura de uma competência: renda prevista, planejado, recebido, não alocado e as categorias com teto/gasto/disponível",
+        "tags": [
+          "orcamento"
+        ],
+        "operationId": "get_competencias__competencia_",
+        "parameters": [
+          {
+            "name": "competencia",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A leitura da competência",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompetenciaLida"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Competência fora do formato AAAA-MM",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/competencias/{competencia}/renda-prevista": {
+      "put": {
+        "summary": "Define a renda prevista da competência (referência de planejamento — RN-12: não é teto)",
+        "tags": [
+          "orcamento"
+        ],
+        "operationId": "put_competencias__competencia__renda_prevista",
+        "parameters": [
+          {
+            "name": "competencia",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefinirRendaPrevista"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Renda prevista definida"
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo ou competência inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/competencias/{competencia}/categorias/{categoriaId}/teto": {
+      "put": {
+        "summary": "Define o teto de UMA categoria NESTA competência (RN-09) — cria ou substitui a linha de OrcamentoMes",
+        "tags": [
+          "orcamento"
+        ],
+        "operationId": "put_competencias__competencia__categorias__categoriaId__teto",
+        "parameters": [
+          {
+            "name": "competencia",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoriaId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DefinirTeto"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Teto definido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrcamentoMesLido"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Categoria inexistente nesta família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo ou competência inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/competencias/{competencia}/remanejamentos": {
+      "post": {
+        "summary": "Remaneja teto de uma categoria de origem para uma de destino, NESTA competência (RN-13). Sem trava (RN-14).",
+        "tags": [
+          "orcamento"
+        ],
+        "operationId": "post_competencias__competencia__remanejamentos",
+        "parameters": [
+          {
+            "name": "competencia",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoRemanejamento"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Remanejamento registrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Remanejamento"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Categoria de origem ou destino inexistente nesta família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo ou competência inválidos",
             "content": {
               "application/json": {
                 "schema": {
