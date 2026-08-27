@@ -124,7 +124,7 @@ export function montarEmailHtml(conteudo: ConteudoDoEmail): string {
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
               <tr>
                 <td style="font-family:Arial,Helvetica,sans-serif; font-size:15px; font-weight:bold; color:#ffffff; letter-spacing:-0.2px; mso-line-height-rule:exactly; line-height:20px;">
-                  Orçamento da casa
+                  Orçamento familiar
                 </td>
               </tr>
             </table>

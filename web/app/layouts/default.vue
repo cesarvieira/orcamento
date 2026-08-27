@@ -54,7 +54,7 @@ const rotaDeLancamento = '/extrato';
       <div class="marca">
         <span class="marca__selo"><i class="ti ti-home-dollar"></i></span>
         <span class="marca__texto">
-          <span class="marca__titulo">Orçamento da casa</span>
+          <span class="marca__titulo">Orçamento familiar</span>
           <span class="marca__sub">{{ sessao?.familiaNome ?? '—' }}</span>
         </span>
       </div>
