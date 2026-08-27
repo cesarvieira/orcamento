@@ -15,11 +15,14 @@
  * a moldura errada aparece por um quadro e volta.
  */
 import {
-  ABAS_DO_MOBILE,
+  ABAS_A_DIREITA,
+  ABAS_A_ESQUERDA,
   DESTINOS,
   ROTA_MAIS,
   destinoDaRota,
 } from '../config/navegacao';
+import type { Destino } from '../config/navegacao';
+import { MESES_DO_ANO, competenciaAtual, competenciaDe } from '~/utils/competencia';
 
 const rota = useRoute();
 const { sessao, sair } = useSessao();
@@ -45,6 +48,68 @@ const maisEstaAtivo = computed(
  * extrato: é a moldura fazendo o que sabe, sem simular o que não tem.
  */
 const rotaDeLancamento = '/extrato';
+
+/**
+ * O ícone de um destino, respeitando o estado. `iconeAtivo` é opcional de
+ * propósito — hoje nenhum destino o preenche, porque a fonte carregada não tem
+ * variante preenchida (o porquê, medido, está em `config/navegacao.ts`). O
+ * fallback garante que o dia em que alguém preencher, funcione; e que enquanto
+ * ninguém preencher, nada apareça vazio.
+ */
+function iconeDe(destino: Destino, ativo: boolean): string {
+  return ativo ? (destino.iconeAtivo ?? destino.icone) : destino.icone;
+}
+
+/**
+ * O MÊS ATIVO vive no shell, não numa tela.
+ *
+ * Três telas leem a mesma competência — orçamento (EF-03), visão do mês (EF-04)
+ * e fechamento (EF-08). Deixar o seletor dentro de uma delas faria as outras
+ * duas ou repetirem o controle, ou discordarem sobre qual mês está aberto.
+ * O estado é compartilhado (`useCompetencia`), e quem o desenha é a moldura.
+ */
+const {
+  competencia: competenciaAtiva,
+  rotulo: rotuloDoMes,
+  ehMesCorrente,
+  ano: anoDoMesAtivo,
+  ir: irParaCompetencia,
+  anterior: mesAnterior,
+  seguinte: mesSeguinte,
+  voltarParaCorrente,
+} = useCompetencia();
+
+const seletorDeMesAberto = ref(false);
+const anoNaFolha = ref(anoDoMesAtivo.value);
+
+function abrirSeletorDeMes(): void {
+  anoNaFolha.value = anoDoMesAtivo.value;
+  seletorDeMesAberto.value = true;
+}
+function fecharSeletorDeMes(): void {
+  seletorDeMesAberto.value = false;
+}
+function escolherMes(alvo: string): void {
+  irParaCompetencia(alvo);
+  fecharSeletorDeMes();
+}
+function irParaMesCorrente(): void {
+  voltarParaCorrente();
+  fecharSeletorDeMes();
+}
+
+/** Os doze meses do ano que a folha mostra, já sabendo qual é o ativo e qual é o de hoje. */
+const mesesDoAnoNaFolha = computed(() =>
+  MESES_DO_ANO.map((nome, indice) => {
+    const alvo = competenciaDe(anoNaFolha.value, indice + 1);
+    return {
+      nome,
+      competencia: alvo,
+      ativo: alvo === competenciaAtiva.value,
+      ehHoje: alvo === competenciaAtual(),
+    };
+  }),
+);
 </script>
 
 <template>
@@ -68,7 +133,7 @@ const rotaDeLancamento = '/extrato';
           :class="{ 'sidebar__item--ativo': destinoAtivo?.id === destino.id }"
           :aria-current="destinoAtivo?.id === destino.id ? 'page' : undefined"
         >
-          <i class="ti" :class="destino.icone"></i>
+          <i class="ti" :class="iconeDe(destino, destinoAtivo?.id === destino.id)"></i>
           <span class="sidebar__rotulo">{{ destino.rotulo }}</span>
         </NuxtLink>
       </nav>
@@ -98,8 +163,34 @@ const rotaDeLancamento = '/extrato';
     <div class="corpo">
       <header class="topo">
         <slot name="topo">
-          <h1 class="topo__titulo">{{ destinoAtivo?.rotulo ?? 'Orçamento' }}</h1>
+          <h1 class="topo__titulo">{{ destinoAtivo?.rotulo ?? '' }}</h1>
         </slot>
+
+        <!--
+          ── MÊS ATIVO ─────────────────────────────────────────────────────
+          Desktop: à DIREITA da barra branca (`margin-left: auto`).
+          Mobile:  centralizado no topo, abaixo do título.
+          O mesmo bloco nos dois — só o CSS muda, como no resto do shell.
+        -->
+        <div class="mes">
+          <button type="button" class="mes__passo" aria-label="Mês anterior" @click="mesAnterior">
+            <i class="ti ti-chevron-left"></i>
+          </button>
+
+          <button
+            type="button"
+            class="mes__atual"
+            :aria-label="`Mês ativo: ${rotuloDoMes}. Escolher outro mês`"
+            @click="abrirSeletorDeMes"
+          >
+            <span class="mes__nome">{{ rotuloDoMes }}</span>
+            <i class="ti ti-chevron-down"></i>
+          </button>
+
+          <button type="button" class="mes__passo" aria-label="Mês seguinte" @click="mesSeguinte">
+            <i class="ti ti-chevron-right"></i>
+          </button>
+        </div>
       </header>
 
       <main class="conteudo">
@@ -108,16 +199,21 @@ const rotaDeLancamento = '/extrato';
     </div>
 
     <!-- ── TAB BAR · < 768px ────────────────────────────────────────────── -->
+    <!--
+      A ordem é `Mês · Contas · [+] · Extrato · Mais`, como no mockup: o botão
+      de lançar fica no CENTRO, não no fim. A divisão das abas vem de
+      `config/navegacao.ts` — o template não fatia a lista por conta própria.
+    -->
     <nav class="tabbar" aria-label="Navegação principal">
       <NuxtLink
-        v-for="destino in ABAS_DO_MOBILE"
+        v-for="destino in ABAS_A_ESQUERDA"
         :key="destino.id"
         :to="destino.rota"
         class="tabbar__aba"
         :class="{ 'tabbar__aba--ativa': destinoAtivo?.id === destino.id }"
         :aria-current="destinoAtivo?.id === destino.id ? 'page' : undefined"
       >
-        <i class="ti" :class="destino.icone"></i>
+        <i class="ti" :class="iconeDe(destino, destinoAtivo?.id === destino.id)"></i>
         <span>{{ destino.rotuloCurto }}</span>
       </NuxtLink>
 
@@ -126,6 +222,18 @@ const rotaDeLancamento = '/extrato';
           <i class="ti ti-plus"></i>
         </NuxtLink>
       </div>
+
+      <NuxtLink
+        v-for="destino in ABAS_A_DIREITA"
+        :key="destino.id"
+        :to="destino.rota"
+        class="tabbar__aba"
+        :class="{ 'tabbar__aba--ativa': destinoAtivo?.id === destino.id }"
+        :aria-current="destinoAtivo?.id === destino.id ? 'page' : undefined"
+      >
+        <i class="ti" :class="iconeDe(destino, destinoAtivo?.id === destino.id)"></i>
+        <span>{{ destino.rotuloCurto }}</span>
+      </NuxtLink>
 
       <NuxtLink
         :to="ROTA_MAIS"
@@ -137,6 +245,60 @@ const rotaDeLancamento = '/extrato';
         <span>Mais</span>
       </NuxtLink>
     </nav>
+
+    <!-- ── FOLHA DO SELETOR DE MÊS ────────────────────────────────────────
+         Do shell, não de uma tela: o mês é do app. Sem limite de quão longe se
+         navega — a competência é `char(7)` e o back devolve teto zero para
+         categoria sem `OrcamentoMes` (RN-40), então mês futuro vazio é leitura
+         válida, não erro. -->
+    <div v-if="seletorDeMesAberto" class="mes-fundo" @click.self="fecharSeletorDeMes">
+      <div class="mes-folha">
+        <div class="mes-folha__cabecalho">
+          <span class="mes-folha__titulo">Escolher o mês</span>
+          <button type="button" class="mes-folha__fechar" aria-label="Fechar" @click="fecharSeletorDeMes">
+            ✕
+          </button>
+        </div>
+
+        <div class="mes-folha__ano">
+          <button type="button" class="mes__passo" aria-label="Ano anterior" @click="anoNaFolha -= 1">
+            −
+          </button>
+          <span class="mes-folha__ano-valor">{{ anoNaFolha }}</span>
+          <button type="button" class="mes__passo" aria-label="Próximo ano" @click="anoNaFolha += 1">
+            +
+          </button>
+        </div>
+
+        <div class="mes-folha__grade">
+          <button
+            v-for="m in mesesDoAnoNaFolha"
+            :key="m.competencia"
+            type="button"
+            class="mes-folha__opcao"
+            :class="{
+              'mes-folha__opcao--ativo': m.ativo,
+              'mes-folha__opcao--hoje': m.ehHoje && !m.ativo,
+            }"
+            :aria-current="m.ativo ? 'true' : undefined"
+            @click="escolherMes(m.competencia)"
+          >
+            {{ m.nome }}
+          </button>
+        </div>
+
+        <!-- Só aparece fora do mês corrente: quem navegou para 2029 precisa de
+             um caminho óbvio de volta. -->
+        <button
+          v-if="!ehMesCorrente"
+          type="button"
+          class="mes-folha__voltar"
+          @click="irParaMesCorrente"
+        >
+          Ir para o mês atual
+        </button>
+      </div>
+    </div>
   </div>
 </template>
 

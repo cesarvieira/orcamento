@@ -17,6 +17,7 @@
  */
 import type { AtualizarConta, Conta, NovaConta } from '@orcamento/contrato';
 import { classeDoIcone, ICONES_CONTA, MAPA_COR_POR_TIPO, TIPOS_CONTA, useContas } from '~/composables/useContas';
+import { centavosParaTexto, formatarCentavos, textoParaCentavos } from '~/utils/dinheiro';
 
 const { listarContas, criarConta, atualizarConta, excluirConta } = useContas();
 
@@ -53,11 +54,6 @@ useRealtime({
     await carregar();
   },
 });
-
-/** Centavos → reais. Só aqui, na borda (D-06) — nunca no composable. */
-function formatarCentavos(centavos: number): string {
-  return (centavos / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-}
 
 /**
  * A linha de apoio de cada conta (`a.sub` no mockup) — o protótipo a manda
@@ -121,47 +117,6 @@ const PASSO_VALOR_CENTAVOS = 1000;
 const valorTexto = ref(formatarCentavos(0));
 const editandoValor = ref(false);
 
-/**
- * A forma canônica é a MESMA do resto da tela — `R$ 1.234,56`, via
- * `formatarCentavos`. O campo não perde o cifrão do desenho só por ter virado
- * editável; quem digita não precisa reproduzi-lo, porque o parser ignora tudo
- * que não é dígito ou separador.
- */
-function centavosParaTexto(centavos: number): string {
-  return formatarCentavos(centavos);
-}
-
-/**
- * Aceita o que a pessoa realmente digita: `1234,56`, `1.234,56`, `1234.56`,
- * `1234`. A regra é uma só — o ÚLTIMO separador é o decimal, e só quando
- * deixa duas casas ou menos; qualquer outro ponto ou vírgula é de milhar.
- *
- * Trunca em centavos em vez de arredondar: o usuário digitou o que digitou, e
- * inventar meio centavo é o tipo de divergência que D-06 existe para impedir.
- */
-function textoParaCentavos(texto: string): number {
-  const limpo = texto.replace(/[^\d.,]/g, '');
-  if (!limpo) return 0;
-
-  const ultimoSeparador = Math.max(limpo.lastIndexOf(','), limpo.lastIndexOf('.'));
-  const casasDecimais = ultimoSeparador === -1 ? 0 : limpo.length - ultimoSeparador - 1;
-  const ehDecimal = casasDecimais > 0 && casasDecimais <= 2;
-
-  // Quando o último separador NÃO é decimal, ele é de milhar — e aí TODOS os
-  // dígitos são da parte inteira, não só os que vêm antes dele. Pegar só o
-  // pedaço anterior lia `1.000` como R$ 1,00: alguém digitando mil reais
-  // guardaria um.
-  //
-  // ⚠️ SEM TESTE AUTOMATIZADO. A suíte deste projeto roda só em `api/`
-  // (`TEST_CMD` do perfil), e esta função vive num `.vue`. Foi verificada à
-  // mão contra 17 casos — inclusive `1.000`, `1.234.567,89`, `,5` e `10,999` —
-  // mas nada disso regride sozinho. Registrado como lacuna na MC-02.
-  const inteiro = (ehDecimal ? limpo.slice(0, ultimoSeparador) : limpo).replace(/\D/g, '');
-  const decimal = ehDecimal ? limpo.slice(ultimoSeparador + 1).replace(/\D/g, '') : '';
-
-  const centavos = Number(inteiro || '0') * 100 + Number(decimal.padEnd(2, '0').slice(0, 2) || '0');
-  return Number.isFinite(centavos) ? Math.max(0, centavos) : 0;
-}
 
 /** Enquanto o campo tem foco, o texto é do usuário — não o reformate embaixo dele. */
 watch(valorTexto, texto => {

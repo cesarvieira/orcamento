@@ -22,6 +22,28 @@ export interface Destino {
   /** Ícone do Tabler, o mesmo conjunto do mockup. */
   icone: string;
   /**
+   * O ícone quando o destino está ATIVO. Opcional: sem ele, o ativo usa o
+   * `icone` normal e a seleção é comunicada só por cor e peso.
+   *
+   * ⚠️ POR QUE ESTÁ VAZIO EM TODOS HOJE — e não é esquecimento. O mockup usa a
+   * variante PREENCHIDA aqui (`ti-wallet-filled`, `ti-layout-grid-filled`).
+   * Essas classes NÃO EXISTEM na fonte que o app carrega: medido no pacote
+   * instalado (`@tabler/icons-webfont@3.46.0`), a folha do `nuxt.config`
+   * (`tabler-icons.min.css`) tem **zero** classes com sufixo `-filled`. A folha
+   * irmã `tabler-icons-filled.min.css` existe, mas redefine AS MESMAS 1057
+   * classes com os glifos cheios — carregá-la deixaria o app inteiro preenchido,
+   * ativo ou não, em vez de acrescentar variantes.
+   *
+   * Preencher este campo com um nome inventado renderiza **ícone vazio** e não
+   * gera erro de console: o gate de navegação passaria, e o defeito só apareceria
+   * para quem olhasse a tela. O próprio protótipo se protegia disso com um teste
+   * em runtime antes de usar a variante cheia.
+   *
+   * Então o contrato existe e o consumidor já o respeita (com fallback); os
+   * valores entram quando houver fonte que os sustente.
+   */
+  iconeAtivo?: string;
+  /**
    * Se aparece direto na tab bar do mobile. São poucas: a tab bar tem quatro
    * lugares e um botão central. O resto entra por *Mais*.
    */
@@ -121,8 +143,25 @@ export const ROTA_DE_ENTRADA = '/entrar';
 /** A tela-índice do mobile, onde entram os destinos que não cabem na tab bar. */
 export const ROTA_MAIS = '/mais';
 
-export const ABAS_DO_MOBILE = DESTINOS.filter(d => d.abaNoMobile);
+/**
+ * As abas da tab bar, na ordem. Não é exportada: quem consome são as duas
+ * metades abaixo, que já sabem de que lado do botão central cada uma fica.
+ */
+const ABAS_DO_MOBILE = DESTINOS.filter(d => d.abaNoMobile);
 export const DESTINOS_EM_MAIS = DESTINOS.filter(d => !d.abaNoMobile);
+
+/**
+ * A tab bar do mobile é `Mês · Contas · [+] · Extrato · Mais` — cinco lugares,
+ * com o botão de lançar no CENTRO, como no mockup. O centro não é um destino:
+ * é ação, e por isso não sai de `DESTINOS`.
+ *
+ * A divisão mora aqui, e não no layout, pela mesma razão que a lista mora aqui:
+ * quem acrescentar uma aba edita UM arquivo. Um `slice(0, 2)` solto no template
+ * moveria o botão central sem ninguém perceber assim que a quarta aba entrasse.
+ */
+const ABAS_ANTES_DO_CENTRO = 2;
+export const ABAS_A_ESQUERDA = ABAS_DO_MOBILE.slice(0, ABAS_ANTES_DO_CENTRO);
+export const ABAS_A_DIREITA = ABAS_DO_MOBILE.slice(ABAS_ANTES_DO_CENTRO);
 
 /** O destino ativo para uma rota. `/contas/123` continua sendo *Contas*. */
 export function destinoDaRota(rota: string): Destino | undefined {

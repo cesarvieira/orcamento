@@ -63,6 +63,38 @@
   letter-spacing: -0.02em;
 }
 
+// O campo digitável herda a métrica exata do valor que ele substituiu: quem
+// olha a tela não percebe que virou input até clicar nele.
+.orcamento__renda-campo {
+  min-width: 120px;
+  max-width: 190px;
+  flex: 1;
+  text-align: center;
+  font-family: inherit;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--tinta);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--raio-pequeno);
+  padding: 2px 6px;
+  outline: none;
+
+  &:hover:not(:disabled) {
+    border-color: var(--borda-media);
+  }
+
+  &:focus {
+    border-color: var(--tinta);
+    background: var(--superficie);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
 .orcamento__renda-aviso {
   margin: 8px 0 0;
   font-size: 11px;
@@ -560,4 +592,42 @@
   font-weight: 700;
   color: var(--texto);
   cursor: pointer;
+}
+
+// ── TETO NA FOLHA DE EDITAR CATEGORIA ────────────────────────────────────
+
+.sheet__teto {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sheet__teto-campo {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  text-align: center;
+  border: 1px solid var(--borda-media);
+  border-radius: var(--raio-pequeno);
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--tinta);
+  background: var(--superficie);
+  outline: none;
+
+  &:focus {
+    border-color: var(--tinta);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+.sheet__teto-nota {
+  margin: 8px 2px 0;
+  font-size: 11px;
+  color: var(--texto-fraco);
 }

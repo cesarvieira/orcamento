@@ -69,7 +69,7 @@ async function concluir(): Promise<void> {
     <div class="entrar__coluna">
       <div class="entrar__hero">
         <span class="entrar__selo"><i class="ti ti-home-dollar"></i></span>
-        <h1 class="entrar__hero-titulo">Orçamento<br>da casa</h1>
+        <h1 class="entrar__hero-titulo">Orçamento<br>familiar</h1>
         <p class="entrar__hero-sub">Vamos recuperar seu acesso.</p>
       </div>
 
