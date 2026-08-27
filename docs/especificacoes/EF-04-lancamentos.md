@@ -42,9 +42,22 @@ inexprimível.
 | RN-20 | Parcelamento até 48×: gera **N lançamentos**, um por competência                          | serviço                           | `financeiro/credito`                             |
 | RN-21 | O resíduo do parcelamento vai para a **última** parcela; a soma é exatamente o total      | serviço                           | D-06                                             |
 | RN-22 | Competência **selada** não aceita novo lançamento                                         | validação                         | [EF-08](EF-08-fechamento.md)                     |
+| RN-39 | `recebido` da competência = **soma dos lançamentos `RECEITA`** daquela competência        | leitura da competência            | decisão do humano, 2026-08-27                    |
 
 **RN-18 e RN-19 juntas são competência × caixa** — a fonte de confusão mais comum em app de
 finanças, e a que o mockup acerta.
+
+**RN-39 nasceu fora desta EF, e isso está dito de propósito.** Ela foi decidida durante a
+[EF-03](EF-03-orcamento.md): RN-11 define `não alocado = recebido − planejado`, e nenhuma EF
+dizia como `recebido` era apurado — `recebido` aparecia como **nome de campo de tela** aqui
+no §3 e em [EF-08](EF-08-fechamento.md) §3, sem definição de cálculo. Uma revisão de diff
+barrou a skill de orçamento que tentou preencher a lacuna por conta própria, porque a regra
+não é dela: `Lancamento` é deste módulo, logo a agregação é daqui.
+
+**O que RN-39 NÃO decide:** se `recebido` conta a competência do lançamento (RN-15) ou a data
+de caixa. Ela diz **competência**, coerente com RN-15 e com o fato de `não alocado` ser leitura
+de uma competência — mas o par competência × caixa de RN-18/RN-19 merece um olhar quando esta
+EF for construída de verdade.
 
 ---
 
