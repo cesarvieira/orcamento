@@ -17,7 +17,7 @@ revisao: por-mudanca-de-regra
 ## O que é o negócio (em 3 linhas)
 
 O Orçamento Familiar rastreia o dinheiro da família em contas (débito, crédito e reserva) e
-calcula quanto realmente pode gastar — o **lastro**, que é caixa de verdade mais limite disponível
+calcula quanto realmente pode gastar — o **lastro**, que é caixa real mais limite livre
 do cartão. Quando o orçamento por categoria ultrapassa o lastro, o app recusa plano e bloqueia
 proporcionalmente — é o mecanismo que torna o app confiável: ele nunca promete mais do que existe.
 
@@ -36,19 +36,18 @@ proporcionalmente — é o mecanismo que torna o app confiável: ele nunca prome
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
 | Conta                      | lugar onde dinheiro fica; só existem três tipos: débito (corrente), crédito (cartão) e reserva (poupança ou "meu fundo de emergência") |
 | Débito (`DEBITO`)          | conta de saldo positivo, como uma corrente. O saldo é inicializado e depois derivado de lançamentos.                                   |
-| Crédito (`CREDITO`)        | cartão com limite. O saldo é o que já foi gasto (fatura em aberto); o limite disponível é limite − fatura.                            |
+| Crédito (`CREDITO`)        | cartão com limite (`limiteCentavos`); `diaFechamento` e `diaVencimento` (1–28) só existem neste tipo.                                  |
 | Reserva (`RESERVA`)        | poupança ou fundo de emergência; inicializado, depois derivado. **Fica fora do lastro** — o dinheiro está comprometido com as metas.  |
-| Saldo inicial              | valor em centavos que a conta começa com (débito e reserva só). Definido pelo usuário, nunca muda depois (é baseline para derivar saldo real). |
-| Limite                     | teto de gasto em centavos (crédito só); sempre existe neste tipo.                                                                      |
-| Dia de fechamento          | dia do mês (1–28) em que o período do cartão fecha (crédito só); define quando a fatura é congelada e começa o cálculo de vencimento. |
+| Saldo inicial              | valor em centavos que a conta começa com (débito e reserva só); é a base sobre a qual o saldo derivado soma os lançamentos.            |
+| Limite                     | teto de gasto em centavos (`limiteCentavos`); só existe em `CREDITO`.                                                                  |
+| Dia de fechamento          | dia do mês (1–28) em que o período do cartão fecha (`CREDITO` só); a faixa 1–28 existe porque nem todo mês tem dia 29–31.             |
 | Dia de vencimento          | dia do mês (1–28) em que a fatura vence (crédito só); quando o pagamento é esperado.                                                 |
 | Saldo derivado             | saldo de verdade da conta = saldo inicial + Σ lançamentos da conta. Nunca materializado em coluna: é calculado na leitura.            |
 | Caixa real                 | soma dos saldos positivos das contas de débito. `max(0, saldoDebito1) + max(0, saldoDebito2) + ...`; reserva **não entra**.             |
-| Limite livre do cartão     | quanto do limite ainda não foi gasto. `limiteCartao − faturaEmAberto`. Um cartão bloqueado tem limite livre zero.                     |
+| Limite livre do cartão     | quanto do limite ainda não foi gasto. `limiteCartao − faturaEmAberto`.                                                                 |
 | Lastro                     | dinheiro gastável de verdade: `caixaReal + Σ limiteLivre de todos os cartões`. É a base de cálculo do bloqueio.                       |
 | Deficit de lastro          | quanto o orçamento das categorias ultrapassa o lastro. `max(0, restanteTotal − lastro)`.                                              |
 | Gasto bloqueado (categoria)| quanto da categoria foi "congelado" quando há déficit. Distribuído pró-rata pelo disponível.                                           |
-| Caixa de verdade           | a mesma coisa que "caixa real"; termos sinônimos neste projeto.                                                                        |
 
 ## Regras de negócio (as invioláveis)
 
@@ -80,8 +79,8 @@ proporcionalmente — é o mecanismo que torna o app confiável: ele nunca prome
 
 1. **Registrar conta** — membro entra em "Contas", clica em +, escolhe tipo (débito/crédito/reserva),
    preenche nome, saldo inicial ou limite, (se cartão: fechamento e vencimento) → persiste.
-2. **Editar conta** — membro abre a conta, altera nome/limite/datas → atualiza. Saldo inicial de
-   débito/reserva não é editável (é baseline; só lançamentos mudam saldo).
+2. **Editar conta** — membro abre a conta e passa pelo mesmo fluxo do cadastro (nome → tipo →
+   valor → datas, se cartão) para atualizar os dados.
 3. **Deletar conta** — membro clica × na conta. Sistema valida: se tem lançamento, recusa com mensagem
    clara; se não tem, deleta.
 4. **Ver saldo** — o app mostra saldo em tempo real de cada conta (derivado de saldo inicial +
@@ -101,16 +100,14 @@ proporcionalmente — é o mecanismo que torna o app confiável: ele nunca prome
 
 ## Edge cases e exceções do domínio
 
-- **Conta de débito com saldo negativo:** permitido no registro, é saque cheque (modelo aberto).
-  Entra em `max(0, saldo)` no cálculo de caixa real — débito negativo **não conta** como caixa.
-- **Cartão sem limite:** limite zero é válido; `limiteLivre = 0 − fatura = −fatura` (se houver
-  fatura), ou zero se sem fatura. Cartão bloqueado contribui zero para o lastro.
-- **Datas de fechamento = vencimento:** permitido (exemplo: parcela de crédito pessoal fechada e
-  vencida na mesma data). Não é erro.
-- **Exclusão de conta com lançamento:** RN-06 recusa — mensagem clara: _"Não é possível deletar
-  conta com lançamentos. Estorne o saldo ou reclassifique primeiro."_
-- **Rateio do lastro com uma categoria:** 100% da disponível é bloqueado, sem resíduo (0% de
-  resíduo em 1 = 0). Caso trivial de RN-32.
+- **Conta de débito com saldo negativo:** o cálculo de caixa real usa `max(0, saldo)` — débito
+  negativo **não conta** como caixa (nem entra negativo no total).
+- **Exclusão de conta com lançamento:** RN-06 recusa a exclusão; a fonte exige apenas que a
+  recusa venha com "mensagem clara" — o texto exato da mensagem não é desta fonte.
+- **Rateio do lastro com uma categoria:** com uma única categoria, `disponível == restanteTotal`,
+  logo pela fórmula `bloqueado = disponível × déficit / restanteTotal` tem-se
+  `bloqueado == déficit` exatamente — que só se iguala a 100% da disponível no caso extremo em
+  que o lastro é zero.
 - **Rateio com quebra:** exemplo: restante = R$ 100, déficit = R$ 30, categoria com saldo R$ 50
   (1/2 do total de disponível). Bloqueado = R$ 50 × 30/100 = R$ 15 exatamente. Se houver
   quebra em centavos, o resíduo vai para a de maior saldo, e a soma fecha em R$ 30.
@@ -123,7 +120,7 @@ proporcionalmente — é o mecanismo que torna o app confiável: ele nunca prome
 - [docs/especificacoes/EF-06-lastro.md](../../../docs/especificacoes/EF-06-lastro.md) — EF
   aceita que define o conceito de **lastro** e as regras RN-27 a RN-32. Marcada como "Escalada de
   Regra #0": o lastro **não é conhecimento de domínio financeiro**, é **regra de produto**,
-  nascida no protótipo e decidida com o humano em 2026-08-22. Não há outra fonte de mercado.
+  nascida no protótipo e decidida com o humano. Não há outra fonte de mercado.
 - [docs/decisoes/D-06-dinheiro-em-centavos.md](../../../docs/decisoes/D-06-dinheiro-em-centavos.md)
   — ADR aceita que decide que dinheiro é inteiro em centavos na pilha toda, e como lidar com
   resíduos de divisão. Obrigatória para toda implementação de lastro e parcelamento.
