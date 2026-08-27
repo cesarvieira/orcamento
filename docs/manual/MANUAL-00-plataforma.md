@@ -43,8 +43,8 @@ o que religar ali).
 instalar-hooks.mjs` (script `prepare` do `package.json`) fixa `core.hooksPath=.githooks` a cada
   `pnpm install`, para o segundo bloco nunca depender de alguém lembrar de religar.
 - **CSS não vive mais em `.vue`.** Todo `<style scoped>` virou `<style lang="scss" src="~/assets/
-scss/..." scoped>`, apontando para um parcial em `web/assets/scss/{layouts,pages,components}/`.
-  `web/assets/css/base.css` virou `web/assets/scss/base.scss`. Precisa do pacote `sass` (dart-sass)
+scss/..." scoped>`, apontando para um parcial em `web/app/assets/scss/{layouts,pages,components}/`.
+  `web/app/assets/css/base.css` virou `web/app/assets/scss/base.scss`. Precisa do pacote `sass` (dart-sass)
   como devDependency do `web` — o Vite não compila `.scss` sem ele.
 
 ## Banco de dados
@@ -84,21 +84,21 @@ drizzle CASCADE`) por isso.
   cliente. Handshake sem cookie válido é recusado antes do `connection`.
 - **Emissor:** `api/src/realtime/emissor.ts` — emite só **invalidação** (o quê mudou, não o dado),
   com `origemClienteId` para o remetente descartar o próprio eco.
-- **Cliente:** `web/composables/useRealtime.ts` — conecta só após hidratação (evita socket no SSR),
+- **Cliente:** `web/app/composables/useRealtime.ts` — conecta só após hidratação (evita socket no SSR),
   descarta eventos com o próprio `origemClienteId`, e resincroniza a competência ativa ao
   reconectar. **Este último trecho não tem teste automatizado** — ver MC-00.
 
 ## Shell responsivo
 
-- `web/layouts/default.vue` — tab bar (< 768px) / sidebar (≥ 768px), extraído do mockup: sidebar
+- `web/app/layouts/default.vue` — tab bar (< 768px) / sidebar (≥ 768px), extraído do mockup: sidebar
   252px `#14325a`, item 42px, ativo em branco; tab bar grid `1fr 1fr 76px 1fr 1fr` com FAB central;
   topo 76px. Fontes (Manrope) e ícones (Tabler) empacotados via `pnpm`, não CDN — o gate de
   navegação cobra zero erro de rede.
-- `web/layouts/limpo.vue` — layout sem moldura, disponível para telas pré-família (`entrar.vue`
+- `web/app/layouts/limpo.vue` — layout sem moldura, disponível para telas pré-família (`entrar.vue`
   não usa mais: o visual novo do mockup é full-bleed, incompatível com o wrapper centralizado de
   380px do `limpo`). Segue reservado para a EF-01 (aceite de convite), que decide seu próprio
   visual quando tiver mockup.
-- `web/pages/entrar.vue` — atualizado 2026-08-24 contra o mockup (Claude Design, projeto
+- `web/app/pages/entrar.vue` — atualizado 2026-08-24 contra o mockup (Claude Design, projeto
   `b7d13c37-0d57-4a92-9df6-c50357cb587d`): mobile com hero escuro + cartão branco flutuante;
   desktop com painel de marca (44%, `#14325a`, headline + 3 bullets) e cartão centralizado
   (412px). **Só email+senha é real.** Google, Apple, "criar conta da família" e "esqueci minha
@@ -106,18 +106,18 @@ drizzle CASCADE`) por isso.
   fluxo que não existe (Google OAuth, cadastro de família e recuperação de senha são da EF-01,
   ainda sem EF escrita). Decisão do humano, não da IA: visual completo, lógica só do que está
   especificado.
-- `web/config/navegacao.ts` — as sete rotas de domínio num só lugar (fonte para tab bar e sidebar).
-- `web/components/MolduraDeModulo.vue` — cada `web/pages/*.vue` de domínio (`orcamento`, `contas`,
+- `web/app/config/navegacao.ts` — as sete rotas de domínio num só lugar (fonte para tab bar e sidebar).
+- `web/app/components/MolduraDeModulo.vue` — cada `web/app/pages/*.vue` de domínio (`orcamento`, `contas`,
   `extrato`, `faturas`, `metas`, `fechamento`, `mais`) é hoje essa moldura, marcando de quem é a
   tela — o conteúdo de domínio é das EFs 01-08. `index.vue` redireciona para a home real.
-- `web/middleware/sessao.global.ts` — guarda de rota global: sem sessão válida, redireciona para
+- `web/app/middleware/sessao.global.ts` — guarda de rota global: sem sessão válida, redireciona para
   `/entrar`.
 
 ## Contrato
 
 `packages/contrato` é gerado (`packages/contrato/gerar.mjs`) do OpenAPI que a API emite
 (`api/src/openapi/emitir.ts` + `registro.ts` + `esquemas.ts`). O front importa os tipos gerados
-(ex. `SessaoAtual`, `Invalidacao`) via `web/composables/useApi.ts` e `useRealtime.ts` — nenhum
+(ex. `SessaoAtual`, `Invalidacao`) via `web/app/composables/useApi.ts` e `useRealtime.ts` — nenhum
 modelo é redeclarado (R6).
 
 ## Docker / ambiente

@@ -79,9 +79,6 @@ Desktop.ini
 $RECYCLE.BIN/
 .DS_Store
 .idea/
-.vscode/*
-!.vscode/extensions.json
-!.vscode/settings.shared.json
 *.swp
 *~
 
@@ -104,9 +101,15 @@ dist/
 build/
 .next/
 .nuxt/
+# O build do gate, isolado do `.nuxt` de dev (ver preator-perfil.sh).
+.nuxt-gate/
 .output/
 *.tsbuildinfo
 npm-debug.log*
+
+# Turborepo: cache e logs por tarefa. `dev` não é cacheável (turbo.json), mas
+# o diretório aparece do mesmo jeito.
+.turbo/
 
 # Saída da suíte — o gate conta os testes a partir dela, não se versiona.
 api/relatorio-testes.json

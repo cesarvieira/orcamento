@@ -2,7 +2,7 @@
 
 ## §0 — Escopo & fronteira
 
-**Pasta:** `api/src/modulos/fechamento` · `web/pages/fechamento`.
+**Pasta:** `api/src/modulos/fechamento` · `web/app/pages/fechamento`.
 
 **É deste módulo:** o resumo da competência e o ato de selá-la. **Não é:** mover dinheiro.
 
@@ -10,8 +10,8 @@
 
 ## §1 — Dados
 
-| Entidade | Papel | Decisão |
-|---|---|---|
+| Entidade        | Papel              | Decisão                                                    |
+| --------------- | ------------------ | ---------------------------------------------------------- |
 | `FechamentoMes` | competência selada | `competencia`, `sobraCentavos` apurada, `fechadoEm`, autor |
 
 **Fechar não gera lançamento.** É registro contábil da competência, não movimento de caixa.
@@ -20,11 +20,11 @@
 
 ## §2 — Regras
 
-| # | Regra | Onde é imposta | Fonte |
-|---|---|---|---|
-| RN-36 | Fechar o mês **sela a competência**. A sobra **permanece na conta corrente** | `POST /competencias/:c/fechar` | decisão humana |
-| RN-37 | Competência selada **não aceita novo lançamento** | validação em [EF-04](EF-04-lancamentos.md) | esta EF |
-| RN-38 | A sobra, por ficar em caixa, entra no **lastro do mês seguinte** | [EF-06](EF-06-lastro.md) | consequência de RN-36 |
+| #     | Regra                                                                        | Onde é imposta                             | Fonte                 |
+| ----- | ---------------------------------------------------------------------------- | ------------------------------------------ | --------------------- |
+| RN-36 | Fechar o mês **sela a competência**. A sobra **permanece na conta corrente** | `POST /competencias/:c/fechar`             | decisão humana        |
+| RN-37 | Competência selada **não aceita novo lançamento**                            | validação em [EF-04](EF-04-lancamentos.md) | esta EF               |
+| RN-38 | A sobra, por ficar em caixa, entra no **lastro do mês seguinte**             | [EF-06](EF-06-lastro.md)                   | consequência de RN-36 |
 
 **Por que a sobra não vai para a reserva.** Fechar o mês é operação de **contabilidade**; guardar
 é operação de **caixa**. Juntar as duas num botão faz o app mover dinheiro sem que a família tenha
@@ -45,8 +45,8 @@ anterior **aberto**, nunca em mês fechado.
 
 **Referência de tela:** tela `fechamento` do mockup.
 
-| Recurso | Rota | Fluxo |
-|---|---|---|
+| Recurso    | Rota          | Fluxo                                                                         |
+| ---------- | ------------- | ----------------------------------------------------------------------------- |
 | Fechamento | `/fechamento` | recebido · planejado · gasto · sobra projetada · onde passou do teto · fechar |
 
 ---
@@ -55,10 +55,10 @@ anterior **aberto**, nunca em mês fechado.
 
 **Duas frases do mockup ficaram incorretas** com RN-36 e mudam junto com esta EF:
 
-| No mockup | Deve ser |
-|---|---|
-| botão *"Fechar mês e guardar a sobra"* | *"Fechar mês"* |
-| aviso *"movidos para a Reserva"* | sem menção à reserva |
+| No mockup                              | Deve ser             |
+| -------------------------------------- | -------------------- |
+| botão _"Fechar mês e guardar a sobra"_ | _"Fechar mês"_       |
+| aviso _"movidos para a Reserva"_       | sem menção à reserva |
 
 ---
 
@@ -68,6 +68,6 @@ anterior **aberto**, nunca em mês fechado.
 - [ ] **Fechar não cria lançamento nem altera saldo de conta nenhuma**
 - [ ] Competência selada recusa novo lançamento, inclusive retroativo
 - [ ] A sobra aparece no **lastro da competência seguinte**
-- [ ] A tela abre no artefato de deploy, incluindo o estado *"nenhuma categoria passou do teto"*
+- [ ] A tela abre no artefato de deploy, incluindo o estado _"nenhuma categoria passou do teto"_
 - [ ] Isolamento entre famílias · dois clientes veem o fechamento sem refresh
 - [ ] `PROVA_DE_COMPORTAMENTO=PASS`

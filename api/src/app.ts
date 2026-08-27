@@ -18,6 +18,7 @@ import express from 'express';
 
 import { ambiente } from './config/ambiente';
 import { tratarErro, tratarNaoEncontrado } from './http/middleware/erro';
+import { registrarAcesso } from './http/middleware/registro-de-acesso';
 import {
   carregarSessao,
   descartarTenantDoCliente,
@@ -32,6 +33,14 @@ export function criarApp(): Express {
 
   app.disable('x-powered-by');
 
+  // Primeiro de todos: a linha só sai no `finish`, então ele enxerga inclusive
+  // o que morre no CORS ou cai no 404 — que é justamente o que a pessoa quer
+  // ver quando está caçando "por que o front não recebeu nada".
+  app.use(registrarAcesso);
+
+  // Origem explícita, nunca `*`: com `credentials: true` o navegador recusa o
+  // curinga, e aceitar qualquer origem num app que guarda dado financeiro
+  // seria abrir de par em par.
   app.use(
     cors({
       origin: ambiente.ORIGEM_WEB,

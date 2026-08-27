@@ -19,12 +19,12 @@ tempo real, shell responsivo, seed, composes e o preenchimento do `preator-perfi
 
 Nenhuma entidade de domínio. Este módulo entrega a **fundação**:
 
-| Peça | Onde | Nota |
-|---|---|---|
-| Schema | `api/src/db/schema.ts` | TypeScript, fonte única do modelo |
-| Migrations | `api/drizzle/*.sql` | geradas por `drizzle-kit generate`, versionadas, nunca à mão |
-| Conexão | `api/src/db/index.ts` | `drizzle(pool)` de `drizzle-orm/node-postgres` |
-| Contrato | `packages/contrato` | **saída** do OpenAPI, não fonte; não se edita |
+| Peça       | Onde                   | Nota                                                         |
+| ---------- | ---------------------- | ------------------------------------------------------------ |
+| Schema     | `api/src/db/schema.ts` | TypeScript, fonte única do modelo                            |
+| Migrations | `api/drizzle/*.sql`    | geradas por `drizzle-kit generate`, versionadas, nunca à mão |
+| Conexão    | `api/src/db/index.ts`  | `drizzle(pool)` de `drizzle-orm/node-postgres`               |
+| Contrato   | `packages/contrato`    | **saída** do OpenAPI, não fonte; não se edita                |
 
 **Dinheiro:** o tipo padrão de valor monetário é definido aqui e usado por todos —
 `integer` em centavos, com a ressalva de 32 bits registrada em
@@ -38,14 +38,14 @@ A competência é calculada **na escrita** e persistida.
 
 ## §2 — Regras
 
-| # | Regra | Onde é imposta | Fonte |
-|---|---|---|---|
-| R1 | O `familiaId` vem do token, nunca do request | middleware de tenant, antes de qualquer handler | [D-05](../decisoes/D-05-acesso-familiar.md) |
-| R2 | A room do socket é resolvida no **handshake**, do cookie de sessão | `/realtime` | [D-04](../decisoes/D-04-tempo-real.md) |
-| R3 | O servidor emite **invalidação**, nunca estado derivado | emissor central | D-04 |
-| R4 | Ao reconectar, o cliente refaz a leitura da competência ativa | `useRealtime` | D-04 |
-| R5 | O cliente descarta eventos de `origemClienteId` igual ao seu | `useRealtime` | D-04 |
-| R6 | O front importa o tipo gerado; não redeclara o modelo | build | [D-03](../decisoes/D-03-contrato-gerado.md) |
+| #   | Regra                                                              | Onde é imposta                                  | Fonte                                       |
+| --- | ------------------------------------------------------------------ | ----------------------------------------------- | ------------------------------------------- |
+| R1  | O `familiaId` vem do token, nunca do request                       | middleware de tenant, antes de qualquer handler | [D-05](../decisoes/D-05-acesso-familiar.md) |
+| R2  | A room do socket é resolvida no **handshake**, do cookie de sessão | `/realtime`                                     | [D-04](../decisoes/D-04-tempo-real.md)      |
+| R3  | O servidor emite **invalidação**, nunca estado derivado            | emissor central                                 | D-04                                        |
+| R4  | Ao reconectar, o cliente refaz a leitura da competência ativa      | `useRealtime`                                   | D-04                                        |
+| R5  | O cliente descarta eventos de `origemClienteId` igual ao seu       | `useRealtime`                                   | D-04                                        |
+| R6  | O front importa o tipo gerado; não redeclara o modelo              | build                                           | [D-03](../decisoes/D-03-contrato-gerado.md) |
 
 ---
 
@@ -54,11 +54,11 @@ A competência é calculada **na escrita** e persistida.
 **Referência de tela:** o shell dos dois arquivos do mockup — tab bar no mobile, sidebar no
 desktop. **As mesmas sete telas**, não dois produtos.
 
-| Peça | Rota | Nota |
-|---|---|---|
-| Layout | `web/layouts/default.vue` | tab bar < 768px; sidebar acima |
-| Navegação | `web/config/navegacao.ts` | os sete destinos, um só lugar |
-| Tempo real | `web/composables/useRealtime.ts` | conecta **só no cliente**, após hidratação |
+| Peça       | Rota                                 | Nota                                       |
+| ---------- | ------------------------------------ | ------------------------------------------ |
+| Layout     | `web/app/layouts/default.vue`        | tab bar < 768px; sidebar acima             |
+| Navegação  | `web/app/config/navegacao.ts`        | os sete destinos, um só lugar              |
+| Tempo real | `web/app/composables/useRealtime.ts` | conecta **só no cliente**, após hidratação |
 
 Nenhuma tela de domínio é construída aqui — só a moldura onde elas entram.
 

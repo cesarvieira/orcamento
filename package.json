@@ -5,13 +5,14 @@
   "description": "Orçamento familiar por envelope com lastro — monorepo",
   "packageManager": "pnpm@11.10.0",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.19.0"
   },
   "scripts": {
     "build": "pnpm --filter @orcamento/api run build && pnpm run contrato:gerar",
     "contrato:gerar": "pnpm --filter @orcamento/api run openapi:emitir && pnpm --filter @orcamento/contrato run gerar",
     "teste": "pnpm --filter @orcamento/api run teste",
     "teste:contar": "node scripts/contar-testes.mjs",
+    "dev": "pnpm run dev:banco && turbo run dev",
     "dev:banco": "docker compose -f docker-compose.dev.yml --env-file .env.dev up -d",
     "dev:api": "pnpm --filter @orcamento/api run dev",
     "dev:web": "pnpm --filter @orcamento/web run dev",
@@ -37,6 +38,7 @@
     "lint-staged": "^17.3.0",
     "playwright": "^1.49.0",
     "prettier": "^3.9.6",
+    "turbo": "^2.10.11",
     "typescript": "^5.7.0",
     "typescript-eslint": "^8.64.0",
     "vue-eslint-parser": "^10.4.1"

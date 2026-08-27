@@ -29,12 +29,55 @@ const esquema = z.object({
   SESSAO_SEGREDO: z.string().default('segredo-de-desenvolvimento'),
   SESSAO_TTL_HORAS: z.coerce.number().int().positive().default(720),
 
-  /** Origem do front autorizada a mandar cookie (CORS com credenciais). */
+  /**
+   * Origem do front autorizada a mandar cookie (CORS com credenciais). É UMA:
+   * a mesma variável monta os links dos emails (convite, confirmação), e um
+   * link não pode ter duas origens.
+   *
+   * Alcançando o app por outro nome (`orcamento.localhost:3001`), aponte esta
+   * variável para ELE — não acrescente uma segunda. Além de o CORS passar, os
+   * links do email passam a levar para o host que a pessoa de fato usa.
+   */
   ORIGEM_WEB: z.string().default('http://localhost:3001'),
 
   MAIL_DRIVER: z.enum(['log', 'smtp', 'resend', 'ses']).default('log'),
   MAIL_FROM: z.string().default(''),
+  /** Credencial do provedor de API (Resend/SES). Vazia quando MAIL_DRIVER=log|smtp. */
+  MAIL_API_KEY: z.string().default(''),
+  /** Só usados quando MAIL_DRIVER=smtp — qualquer fornecedor que fale o protocolo. */
+  SMTP_HOST: z.string().default(''),
+  SMTP_PORT: z.coerce.number().int().positive().default(587),
+  SMTP_USER: z.string().default(''),
+  SMTP_PASS: z.string().default(''),
   CONVITE_TTL_HORAS: z.coerce.number().int().positive().default(72),
+  // Prazo do link que confirma o email de quem criou a família (RN-09).
+  // Menor que o do convite de propósito: quem acabou de se cadastrar está com
+  // a caixa de entrada aberta; convite espera a agenda de outra pessoa.
+  CADASTRO_TTL_HORAS: z.coerce.number().int().positive().default(24),
+  // Prazo do código que troca a senha esquecida (RN-12). O MENOR dos três de
+  // propósito: é o código mais perigoso — quem o tem troca a senha e, por
+  // RN-14, derruba todas as sessões da dona da conta. Quem pediu está com a
+  // caixa de entrada aberta agora; não há motivo para ele sobreviver ao dia.
+  RECUPERACAO_TTL_HORAS: z.coerce.number().int().positive().default(1),
+
+  /**
+   * O client id OAuth do Google — não é segredo (viaja no próprio token), mas
+   * é a AUDIÊNCIA que a verificação do ID token exige (EF-01). Vazio desliga
+   * o login por Google com um erro claro, em vez de aceitar qualquer token.
+   */
+  GOOGLE_CLIENT_ID: z.string().default(''),
+  /**
+   * O client SECRET do Google — este SIM é segredo, e é o primeiro deste
+   * projeto que precisa mesmo existir em produção.
+   *
+   * Ele entrou quando o fluxo passou a ser o de CÓDIGO DE AUTORIZAÇÃO: o
+   * navegador devolve um código de uso único, e é a API que o troca por um ID
+   * token junto ao Google — troca que exige provar quem é o cliente.
+   *
+   * ⚠️ NUNCA repasse para o `web`: o front só precisa do client id. Um
+   * `NUXT_PUBLIC_*` com este valor o publicaria no HTML de todo mundo.
+   */
+  GOOGLE_CLIENT_SECRET: z.string().default(''),
 });
 
 const analise = esquema.safeParse(process.env);

@@ -14,13 +14,14 @@
 # AMBIENTE — e, se não achar, declara no veredito que não cobriu a área logada.
 #
 # ─────────────────────────────────────────────────────────────────────────────
-# ANTES DE RODAR O GATE MESTRE: a stack precisa estar DE PÉ.
+# RODAR O GATE MESTRE
 #
 # Os gates `contrato` e `navegacao` consultam a API e o front RODANDO, e o gate
-# `test` é de integração contra Postgres de verdade. O gate mestre não sobe
-# nada sozinho (só `deploy-fresh` sobe, e ele é destrutivo e opcional):
+# `test` é de integração contra Postgres de verdade (o de DEV, 5433 — ver
+# docker-compose.dev.yml, sempre no ar). STACK_UP_CMD/STACK_DOWN_CMD abaixo
+# sobem e derrubam o stack de PRODUÇÃO sozinhos — não precisa mais fazer isso
+# na mão:
 #
-#     docker compose up -d --build
 #     bash preator/esteira/gates/prova-comportamento.sh .
 #
 # ─────────────────────────────────────────────────────────────────────────────
@@ -53,8 +54,14 @@ TEST_COUNT_CMD="node scripts/contar-testes.mjs"
 # FRONT  —  Nuxt em SSR sobre Vite
 # ---------------------------------------------------------------------------
 FRONT_DIR="web"
-FRONT_BUILD="pnpm run build"
-TYPECHECK_CMD="pnpm run typecheck"
+
+# `NUXT_BUILD_DIR` isola o build do gate do `.nuxt` que o `pnpm dev` usa.
+# Sem isso, `nuxt build` apaga o `.nuxt/manifest/meta/dev.json` — o alvo do
+# alias `#app-manifest` em desenvolvimento — e o front de dev quebra com um
+# erro que não diz nada sobre a causa. Mesma razão das portas 3010/3011: a
+# prova não atropela o ambiente que fica no ar.
+FRONT_BUILD="NUXT_BUILD_DIR=.nuxt-gate pnpm run build"
+TYPECHECK_CMD="NUXT_BUILD_DIR=.nuxt-gate pnpm run typecheck"
 
 # ---------------------------------------------------------------------------
 # SUBIR O SISTEMA  —  o gate que pega o que o build nunca vê
@@ -62,14 +69,29 @@ TYPECHECK_CMD="pnpm run typecheck"
 # O compose de PRODUÇÃO é o alvo (D-02). O docker-compose.dev.yml sobe só o
 # Postgres e nunca é alvo de gate — provar o dev-build seria o "verde stale"
 # que a estrutura de portões existe para impedir.
+#
+# Portas ISOLADAS do ambiente de dev (que fica no ar o tempo todo em 3000/3001
+# via `pnpm dev` nativo — colidir com ele foi o motivo do gate travar em
+# 'contrato' numa execução real). O stack de teste sobe num projeto docker
+# compose à parte (`-p orcamento-teste`), então nunca compartilha container
+# com o que já está rodando.
 COMPOSE="docker-compose.yml"
-API_PORT=3000
-FRONT_PORT=3001
+API_PORT=3010
+FRONT_PORT=3011
+
+STACK_UP_CMD="API_PORT=$API_PORT FRONT_PORT=$FRONT_PORT API_BASE_PUBLICA=http://localhost:$API_PORT ORIGEM_WEB=http://localhost:$FRONT_PORT docker compose -f $COMPOSE -p orcamento-teste up -d --build"
+STACK_DOWN_CMD="docker compose -f $COMPOSE -p orcamento-teste down"
 
 # ---------------------------------------------------------------------------
 # CONTRATO  —  o front importa o tipo gerado, não redeclara o modelo do back
 # ---------------------------------------------------------------------------
-OPENAPI_URL="$API_BASE/openapi.json"
+# ⚠️ Não use $API_BASE aqui: no momento em que este arquivo carrega, o
+# raiz.sh ainda não corrigiu $API_BASE para a porta que ACABAMOS de declarar
+# acima — ele só faz essa correção DEPOIS do perfil terminar de carregar.
+# $API_PORT, por outro lado, já é o valor certo (foi setado duas linhas
+# acima, no mesmo arquivo) — é ele que deve alimentar qualquer URL derivada
+# aqui dentro. Confira com `bash preator/esteira/raiz.sh` se tiver dúvida.
+OPENAPI_URL="http://localhost:$API_PORT/openapi.json"
 
 # ---------------------------------------------------------------------------
 # NAVEGAÇÃO  —  a prova de que a tela ABRE, não de que compila

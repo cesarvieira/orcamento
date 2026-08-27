@@ -1,0 +1,135 @@
+// Mesma linguagem visual de `entrar.scss` — cartão claro, campos com ícone e
+// rótulo, botão cheio — mas sem o painel de marca: esta tela roda dentro do
+// layout `limpo` (centralizado, sem shell), reservado pela EF-00 para telas
+// de acesso sem sessão.
+
+.convite {
+  text-align: center;
+  background: var(--superficie);
+  border-radius: 20px;
+  padding: 28px 22px;
+  box-shadow: var(--sombra-carta);
+}
+
+.convite__selo {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: var(--tinta);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  margin-bottom: 18px;
+}
+
+.convite__titulo {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--texto);
+}
+
+.convite__subtitulo {
+  margin: 8px 0 22px;
+  font-size: 14px;
+  color: var(--texto-medio);
+}
+
+.convite__campos {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+}
+
+.convite__mensagem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--sucesso);
+
+  &--erro {
+    color: var(--alerta);
+  }
+}
+
+.convite__divisor {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 14px;
+
+  span:not(:nth-child(2)) {
+    flex: 1;
+    height: 1px;
+    background: var(--borda-media);
+  }
+
+  span:nth-child(2) {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--texto-fraco);
+  }
+}
+
+.convite__google {
+  width: 100%;
+  height: 48px;
+  border: 1px solid var(--borda-media);
+  border-radius: var(--raio);
+  background: var(--superficie);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--texto);
+  cursor: pointer;
+
+  i {
+    font-size: 18px;
+  }
+
+  &:disabled {
+    color: var(--texto-fraco);
+    cursor: default;
+  }
+}
+
+// ⚠️ DERIVA do sistema visual: esta tela desenha o campo em `--superficie` com
+// `--raio`, enquanto `entrar` (a única extraída do mockup) usa `--fundo` e
+// 13px. Fica explícito aqui em vez de escondido numa cópia do bloco inteiro.
+// Unificar é decisão de design, não de refactor.
+.campo {
+  background: var(--superficie);
+  border-radius: var(--raio);
+}
+
+.botao {
+  margin-top: 4px;
+}
+
+// Ação secundária: recusar o convite (RN-08). Discreta de propósito — aceitar
+// é o caminho principal; recusar é a saída de quem não quer entrar.
+.convite__recusar {
+  margin: 16px 0 0;
+  text-align: center;
+
+  button {
+    border: none;
+    background: none;
+    color: var(--texto-fraco);
+    font-family: inherit;
+    font-size: 12.5px;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+}

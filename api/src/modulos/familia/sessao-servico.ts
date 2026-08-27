@@ -6,7 +6,7 @@
  * `resolverSessaoPorToken` (handshake do socket) — e não existe caminho que
  * aceite o valor vindo do cliente.
  */
-import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 
 import { and, eq, gt, isNull } from 'drizzle-orm';
 
@@ -39,11 +39,15 @@ function hashDoToken(token: string): string {
 }
 
 /**
- * @fundacao gerador genérico de token seguro — reaproveitável por qualquer
- * módulo que precise de um (ex.: `convites.token`, na EF-01). Só a sessão o
- * usa hoje.
+ * O token do cookie de sessão: 32 bytes de aleatoriedade real.
+ *
+ * Já foi compartilhado com o convite, quando o convite também viajava como
+ * segredo longo. Desde RN-10 o convite é um código de 6 dígitos digitado
+ * (`gerarCodigo`, abaixo) e os dois não têm mais nada em comum além do nome —
+ * este aqui é inadivinhável por construção; aquele depende do teto de
+ * tentativas para ser seguro.
  */
-export function gerarToken(): string {
+function gerarToken(): string {
   return randomBytes(32).toString('base64url');
 }
 
@@ -161,6 +165,22 @@ export async function encerrarSessao(db: Db, sessaoId: string): Promise<void> {
     .where(eq(sessoes.id, sessaoId));
 }
 
+/**
+ * RN-14 — derruba TODA sessão daquele membro, em todo dispositivo. É o que
+ * separa "esqueci a senha" de "tomaram minha conta": sem isto, quem tivesse
+ * entrado indevidamente continuaria dentro depois da troca, e a recuperação
+ * seria teatro.
+ *
+ * Só mexe nas ainda abertas — reescrever `encerradaEm` de uma sessão já
+ * encerrada falsificaria quando ela acabou.
+ */
+export async function encerrarSessoesDoMembro(db: Db, membroId: string): Promise<void> {
+  await db
+    .update(sessoes)
+    .set({ encerradaEm: new Date() })
+    .where(and(eq(sessoes.membroId, membroId), isNull(sessoes.encerradaEm)));
+}
+
 /** As opções do cookie. `httpOnly` é exigência do SSR e de segurança (D-01). */
 export function opcoesDoCookie(expiraEm: Date) {
   return {
@@ -171,3 +191,20 @@ export function opcoesDoCookie(expiraEm: Date) {
     expires: expiraEm,
   };
 }
+
+/**
+ * O CÓDIGO de 6 dígitos que vai por email (RN-10) — convite e confirmação.
+ *
+ * `randomInt` do `node:crypto`, não `Math.random`: o segundo é previsível e
+ * aqui o que está atrás do código é a conta de uma família.
+ *
+ * Seis dígitos são ~1 milhão de combinações, o que só é seguro porque RN-11
+ * limita as tentativas. Quem trocar isto por algo menor, ou remover o teto,
+ * devolve a força bruta ao jogo.
+ */
+export function gerarCodigo(): string {
+  return String(randomInt(0, 1_000_000)).padStart(6, '0');
+}
+
+/** RN-11 — quantos erros um código tolera antes de ser invalidado. */
+export const TENTATIVAS_MAXIMAS = 5;

@@ -25,7 +25,7 @@ const ESPERA = Number(process.env.CRAWL_TIMEOUT_MS ?? 20000);
 const ROTA_PUBLICA = '/entrar';
 
 /**
- * As rotas logadas. Espelham `web/config/navegacao.ts` — os sete destinos mais
+ * As rotas logadas. Espelham `web/app/config/navegacao.ts` — os sete destinos mais
  * a tela-índice do mobile.
  *
  * A duplicação é deliberada e é o ponto: se alguém acrescentar destino lá e

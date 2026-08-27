@@ -188,6 +188,301 @@
           "origemClienteId"
         ],
         "additionalProperties": false
+      },
+      "LoginGoogle": {
+        "type": "object",
+        "properties": {
+          "codigoAutorizacao": {
+            "type": "string",
+            "minLength": 1,
+            "description": "O código de autorização de uso único que o Google devolveu ao navegador. Quem o troca por um ID token é a API, porque a troca exige o client secret."
+          }
+        },
+        "required": [
+          "codigoAutorizacao"
+        ],
+        "additionalProperties": false
+      },
+      "CriarConvite": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 3
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "additionalProperties": false
+      },
+      "CriarConta": {
+        "type": "object",
+        "properties": {
+          "familiaNome": {
+            "type": "string",
+            "minLength": 2,
+            "description": "Como a família se chama no app."
+          },
+          "nome": {
+            "type": "string",
+            "minLength": 2
+          },
+          "email": {
+            "type": "string",
+            "minLength": 3
+          },
+          "senha": {
+            "type": "string",
+            "minLength": 8,
+            "description": "Mínimo de 8 caracteres."
+          }
+        },
+        "required": [
+          "familiaNome",
+          "nome",
+          "email",
+          "senha"
+        ],
+        "additionalProperties": false
+      },
+      "ConfirmarConta": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 3
+          },
+          "codigo": {
+            "type": "string",
+            "pattern": "^\\d{6}$"
+          }
+        },
+        "required": [
+          "email",
+          "codigo"
+        ],
+        "additionalProperties": false
+      },
+      "PedirRecuperacao": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 3
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "additionalProperties": false
+      },
+      "ConcluirRecuperacao": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 3
+          },
+          "codigo": {
+            "type": "string",
+            "pattern": "^\\d{6}$"
+          },
+          "senha": {
+            "type": "string",
+            "minLength": 8,
+            "description": "Mínimo de 8 caracteres."
+          }
+        },
+        "required": [
+          "email",
+          "codigo",
+          "senha"
+        ],
+        "additionalProperties": false
+      },
+      "RecuperacaoPedida": {
+        "type": "object",
+        "properties": {
+          "mensagem": {
+            "type": "string",
+            "description": "Texto idêntico exista ou não a conta."
+          }
+        },
+        "required": [
+          "mensagem"
+        ],
+        "additionalProperties": false
+      },
+      "RecusarConvite": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "minLength": 3
+          },
+          "codigo": {
+            "type": "string",
+            "pattern": "^\\d{6}$"
+          }
+        },
+        "required": [
+          "email",
+          "codigo"
+        ],
+        "additionalProperties": false
+      },
+      "ContaCriada": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Para onde o email de confirmação foi enviado."
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "additionalProperties": false
+      },
+      "ConviteCriado": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "expiraEm": {
+            "type": "string",
+            "description": "ISO 8601 — quando o convite deixa de valer (RN-03)."
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "expiraEm"
+        ],
+        "additionalProperties": false
+      },
+      "ConvitePendente": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "expiraEm": {
+            "type": "string",
+            "description": "ISO 8601 — quando o convite deixa de valer (RN-03)."
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "expiraEm"
+        ],
+        "additionalProperties": false
+      },
+      "ConvitesPendentes": {
+        "type": "object",
+        "properties": {
+          "convites": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "email": {
+                  "type": "string"
+                },
+                "expiraEm": {
+                  "type": "string",
+                  "description": "ISO 8601 — quando o convite deixa de valer (RN-03)."
+                }
+              },
+              "required": [
+                "id",
+                "email",
+                "expiraEm"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "convites"
+        ],
+        "additionalProperties": false
+      },
+      "AceitarConvite": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "metodo": {
+                "type": "string",
+                "enum": [
+                  "senha"
+                ]
+              },
+              "codigo": {
+                "type": "string",
+                "pattern": "^\\d{6}$"
+              },
+              "nome": {
+                "type": "string",
+                "minLength": 1
+              },
+              "email": {
+                "type": "string",
+                "minLength": 3
+              },
+              "senha": {
+                "type": "string",
+                "minLength": 8
+              }
+            },
+            "required": [
+              "metodo",
+              "codigo",
+              "nome",
+              "email",
+              "senha"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "metodo": {
+                "type": "string",
+                "enum": [
+                  "google"
+                ]
+              },
+              "codigo": {
+                "type": "string",
+                "pattern": "^\\d{6}$"
+              },
+              "codigoAutorizacao": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "metodo",
+              "codigo",
+              "codigoAutorizacao"
+            ],
+            "additionalProperties": false
+          }
+        ]
       }
     },
     "securitySchemes": {
@@ -263,6 +558,68 @@
           },
           "401": {
             "description": "Email ou senha não conferem",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Email ainda não confirmado (RN-06)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessoes/google": {
+      "post": {
+        "summary": "Abre uma sessão com um código de autorização do Google",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "post_sessoes_google",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginGoogle"
+              }
+            }
+          }
+        },
+        "security": [],
+        "responses": {
+          "201": {
+            "description": "Sessão aberta; cookie httpOnly definido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessaoAtual"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Código inválido, email não verificado ou sem conta",
             "content": {
               "application/json": {
                 "schema": {
@@ -372,6 +729,531 @@
           },
           "401": {
             "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/convites": {
+      "post": {
+        "summary": "Convida um novo membro para a família da sessão",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "post_convites",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CriarConvite"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Convite criado e despachado por email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConviteCriado"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Os convites pendentes da família da sessão",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "get_convites",
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Os convites pendentes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConvitesPendentes"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/convites/aceitar": {
+      "post": {
+        "summary": "Aceita um convite e abre sessão na família dele",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "post_convites_aceitar",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AceitarConvite"
+              }
+            }
+          }
+        },
+        "security": [],
+        "responses": {
+          "201": {
+            "description": "Convite aceito; sessão aberta",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessaoAtual"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Código do convite incorreto (RN-10), código do Google inválido ou email não verificado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nenhum convite pendente para este email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Convite já usado, recusado, ou email de outra família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Convite expirado (RN-03)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Código invalidado por excesso de tentativas (RN-11)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contas": {
+      "post": {
+        "summary": "Cria uma família nova e envia a confirmação de email",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "post_contas",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CriarConta"
+              }
+            }
+          }
+        },
+        "security": [],
+        "responses": {
+          "201": {
+            "description": "Família criada; confirmação enviada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContaCriada"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email já cadastrado (RN-07) ou com convite pendente (RN-08)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contas/confirmar": {
+      "post": {
+        "summary": "Confirma o email do cadastro e abre a sessão",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "post_contas_confirmar",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmarConta"
+              }
+            }
+          }
+        },
+        "security": [],
+        "responses": {
+          "201": {
+            "description": "Email confirmado; sessão aberta",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessaoAtual"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Código incorreto (RN-10)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nenhuma confirmação pendente para este email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Código expirado (RN-09)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Código invalidado por excesso de tentativas (RN-11)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/convites/recusar": {
+      "post": {
+        "summary": "Recusa um convite pendente",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "post_convites_recusar",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecusarConvite"
+              }
+            }
+          }
+        },
+        "security": [],
+        "responses": {
+          "204": {
+            "description": "Convite recusado"
+          },
+          "401": {
+            "description": "Código incorreto (RN-10)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nenhum convite pendente para este email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Convite já usado ou já recusado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Convite expirado (RN-03)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Código invalidado por excesso de tentativas (RN-11)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recuperacoes": {
+      "post": {
+        "summary": "Pede o código que troca a senha esquecida",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "post_recuperacoes",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PedirRecuperacao"
+              }
+            }
+          }
+        },
+        "security": [],
+        "responses": {
+          "202": {
+            "description": "Pedido aceito — resposta idêntica exista ou não a conta (RN-13)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecuperacaoPedida"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recuperacoes/concluir": {
+      "post": {
+        "summary": "Troca a senha com o código recebido e abre a sessão",
+        "tags": [
+          "acesso"
+        ],
+        "operationId": "post_recuperacoes_concluir",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConcluirRecuperacao"
+              }
+            }
+          }
+        },
+        "security": [],
+        "responses": {
+          "201": {
+            "description": "Senha trocada; sessões antigas encerradas e nova sessão aberta",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessaoAtual"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Código incorreto (RN-12)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nenhuma recuperação pendente para este email",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Código expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Código invalidado por excesso de tentativas (RN-11)",
             "content": {
               "application/json": {
                 "schema": {
