@@ -28,14 +28,26 @@ agosto seria reescrito toda vez que alguém ajustasse o mês seguinte.
 
 ## §2 — Regras
 
-| #     | Regra                                                                  | Onde é imposta                         | Fonte                    |
-| ----- | ---------------------------------------------------------------------- | -------------------------------------- | ------------------------ |
-| RN-09 | O teto pertence ao par **categoria × competência**, nunca à categoria  | schema + handlers                      | mockup                   |
-| RN-10 | `disponível = teto − gasto do mês`. Negativo significa **estourou**    | leitura da competência                 | mockup                   |
-| RN-11 | `planejado = Σ tetos`; `não alocado = recebido − planejado`            | leitura da competência                 | mockup                   |
-| RN-12 | Renda acima da prevista **não altera teto nenhum**                     | —                                      | [EF-06](EF-06-lastro.md) |
-| RN-13 | Remanejar altera **só a competência corrente**, e registra quem fez    | `POST /competencias/:c/remanejamentos` | mockup                   |
-| RN-14 | Sem categoria com sobra, o app oferece **deixar negativo** — não trava | tela                                   | mockup                   |
+| #     | Regra                                                                  | Onde é imposta                         | Fonte                         |
+| ----- | ---------------------------------------------------------------------- | -------------------------------------- | ----------------------------- |
+| RN-09 | O teto pertence ao par **categoria × competência**, nunca à categoria  | schema + handlers                      | mockup                        |
+| RN-10 | `disponível = teto − gasto do mês`. Negativo significa **estourou**    | leitura da competência                 | mockup                        |
+| RN-11 | `planejado = Σ tetos`; `não alocado = recebido − planejado`            | leitura da competência                 | mockup                        |
+| RN-12 | Renda acima da prevista **não altera teto nenhum**                     | —                                      | [EF-06](EF-06-lastro.md)      |
+| RN-13 | Remanejar altera **só a competência corrente**, e registra quem fez    | `POST /competencias/:c/remanejamentos` | mockup                        |
+| RN-14 | Sem categoria com sobra, o app oferece **deixar negativo** — não trava | tela                                   | mockup                        |
+| RN-40 | Categoria sem `OrcamentoMes` na competência aparece com **teto zero**  | leitura da competência                 | decisão do humano, 2026-08-27 |
+
+**RN-40 fecha uma lacuna que a decomposição desta história encontrou.** A `Categoria` existe
+independente da competência (§1), então uma competência recém-aberta não tem `OrcamentoMes`
+nenhum — e nada dizia o que a leitura devolve. Teto zero é o que sai direto de RN-09 (o teto é
+do par categoria × competência: sem par, sem teto) e mantém RN-11 coerente
+(`planejado = Σ tetos = 0`, e todo o `recebido` fica como não alocado).
+
+**As duas alternativas foram consideradas e recusadas:** _herdar os tetos do mês anterior_ é
+regra nova que esta EF não tem, e só seria admissível como **cópia** no momento da criação da
+competência — nunca como link, que reescreveria o histórico e violaria RN-13. _Omitir a
+categoria da lista_ é coerente com o modelo, mas dá tela vazia todo dia 1º.
 
 **RN-12 merece cuidado.** O mockup escreve _"os tetos se ajustam sozinhos ao que entrou"_, o que
 sugere teto subindo. Não é isso: o valor do teto **nunca** muda sozinho. O que se ajusta é o
