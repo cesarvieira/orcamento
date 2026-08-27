@@ -53,10 +53,18 @@ credentials.*
 # Agora a fonte da fila é o GitHub Issues e nada aqui precisa de exceção.
 /.motor/
 
-# O carimbo do gate: é por execução, e vale só na máquina que o produziu.
-# Versioná-lo seria transformar um veredito local em declaração de "pronto" —
-# exatamente o que o Preator existe para impedir.
+# Os DOIS carimbos do ciclo: são por execução, e valem só na máquina que os
+# produziu. Versioná-los seria transformar um veredito local em declaração de
+# "pronto" — exatamente o que o Preator existe para impedir.
+#
+#   .prova-comportamento.json   roda?        do gate mestre
+#   .revisao-de-diff.json       está certo?  do revisor
+#
+# O segundo entrou depois: o revisor é recente, e a lista não o acompanhou.
+# Consequência real, medida na história #17 — o carimbo ficava não rastreado na
+# raiz e REPROVAVA o pré-voo da história seguinte, por working tree suja.
 /.prova-comportamento.json
+/.revisao-de-diff.json
 
 # ---------------------------------------------------------------------------
 # ✅ O QUE **NÃO** SE IGNORA — está aqui para você não ignorar por engano
@@ -118,8 +126,11 @@ api/relatorio-testes.json
 playwright-report/
 test-results/
 
-# Carimbo do gate mestre — é veredito de execução, não fonte.
+# Carimbos do ciclo — vereditos de execução, não fonte. Repetidos aqui sem a
+# barra inicial de propósito: as regras acima ancoram na raiz, estas pegam
+# qualquer worktree ou subpasta onde o gate for rodado.
 .prova-comportamento.json
+.revisao-de-diff.json
 
 # --- Python ---
 # __pycache__/
