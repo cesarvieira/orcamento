@@ -78,7 +78,7 @@ export async function listarContas(
 }
 
 /** O único jeito de ler UMA conta — sempre filtrado por família (R1). */
-export async function buscarContaDaFamilia(
+async function buscarContaDaFamilia(
   db: Db,
   familiaId: string,
   id: string,

@@ -56,7 +56,7 @@ export interface ContextoDoSeed {
  * seria pior que um seed honesto e curto. A EF-02 (contas) é a primeira a se
  * registrar.
  */
-export const SEMEADORES_DE_MODULO: SemeadorDeModulo[] = [semeadorDeContas];
+const SEMEADORES_DE_MODULO: SemeadorDeModulo[] = [semeadorDeContas];
 
 const FAMILIA_DE_TESTE = 'Família de teste';
 

@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { registrarEsquema } from '../../openapi/registro';
 
 /** O tipo de conta — STRING no contrato (mesmo motivo do schema, ver `db/schema.ts`). */
-export const EsquemaTipoConta = z.enum(['DEBITO', 'CREDITO', 'RESERVA']);
+const EsquemaTipoConta = z.enum(['DEBITO', 'CREDITO', 'RESERVA']);
 
 /** RN-08 — dia de fechamento/vencimento só existe em CREDITO, e vale 1–28. */
 const EsquemaDiaDoMes = z
@@ -79,7 +79,7 @@ export const EsquemaAtualizarConta = registrarEsquema('AtualizarConta', EsquemaE
  * ausentes: um esquema com forma fixa é mais simples para o front do que uma
  * união discriminada na leitura.
  */
-export const EsquemaConta = registrarEsquema(
+const EsquemaConta = registrarEsquema(
   'Conta',
   z.object({
     id: z.string(),
@@ -104,7 +104,7 @@ export const EsquemaConta = registrarEsquema(
  * soma o `saldoCentavos` de toda conta cujo tipo NÃO é RESERVA. O lastro em si
  * (caixaReal, limiteLivre) é derivação própria da EF-06 e não mora aqui.
  */
-export const EsquemaContasListadas = registrarEsquema(
+registrarEsquema(
   'ContasListadas',
   z.object({
     contas: z.array(EsquemaConta),
