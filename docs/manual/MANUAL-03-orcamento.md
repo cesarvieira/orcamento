@@ -164,9 +164,9 @@ lançamentos RECEITA` citando `EF-04 §1`, que só declarava o enum `Lancamento.
   ("`<Categoria>` passou `R$ X` do teto" + "Cobrir com o saldo de outra categoria" + botão pill
   "Remanejar") é o desenho canônico do mockup, mas a colocação **canônica** dele é a tela `home`
   (`web/app/pages/index`), que é da EF-04 e não existe ainda. `/orcamento` reproduz o **mesmo**
-  cartão dentro da lista de categorias (`orcamento.vue:452-460`, `orcamento.scss:194-243`) — para
+  cartão dentro da lista de categorias (`orcamento.vue:493-501`, `orcamento.scss:194-242`) — para
   que a folha de remanejar e o estado "sem fonte" (exigidos pelo DoD) fiquem alcançáveis hoje.
-  Comentário em `orcamento.vue:226-237` e `orcamento.scss:193-197` avisa quem construir a EF-04
+  Comentário em `orcamento.vue:226-237` e `orcamento.scss:194-198` avisa quem construir a EF-04
   para **reaproveitar** este cartão, não desenhar um terceiro. Isso não foi decidido pelo agente
   sozinho: a extração inicial do mockup não trazia esse trecho, o agente abriu fork em vez de
   inventar um botão próprio, e o condutor corrigiu a premissa a meio da revisão de diff da #45. Ver
