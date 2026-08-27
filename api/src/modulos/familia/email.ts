@@ -61,7 +61,7 @@ function corpoHtmlDoConvite(convite: ConviteParaEnviar): string {
     sobretitulo: 'Convite',
     titulo: `Você foi convidado para a família ${convite.familiaNome}`,
     paragrafos: [
-      'Alguém da família criou um acesso para você no Orçamento da casa — o lugar onde vocês ' +
+      'Alguém da família criou um acesso para você no Orçamento familiar — o lugar onde vocês ' +
       'planejam o mês por categoria e acompanham o que realmente dá para gastar.',
       'Abra a tela de convite, digite o código abaixo junto com este email e crie sua senha ' +
       '(ou entre com o Google).',
@@ -75,7 +75,7 @@ function corpoHtmlDoConvite(convite: ConviteParaEnviar): string {
     },
     acao: { rotulo: 'Abrir a tela de convite', url: convite.link },
     rodape:
-      'Você recebeu este email porque alguém do Orçamento da casa convidou este endereço. ' +
+      'Você recebeu este email porque alguém do Orçamento familiar convidou este endereço. ' +
       'Se não foi você quem esperava este convite, pode ignorar esta mensagem — sem aceitar, nada é criado.',
   });
 }
@@ -94,7 +94,7 @@ function corpoHtmlDaConfirmacao(c: ConfirmacaoParaEnviar): string {
     sobretitulo: 'Confirme seu email',
     titulo: `Falta um passo para abrir a família ${c.familiaNome}`,
     paragrafos: [
-      'Você criou a família no Orçamento da casa. Antes de entrar, precisamos ter certeza ' +
+      'Você criou a família no Orçamento familiar. Antes de entrar, precisamos ter certeza ' +
       'de que este email é seu — é por ele que a recuperação de acesso vai passar.',
       'Digite o código abaixo na tela de confirmação e você já entra direto.',
     ],
@@ -108,7 +108,7 @@ function corpoHtmlDaConfirmacao(c: ConfirmacaoParaEnviar): string {
     acao: { rotulo: 'Abrir a tela de confirmação', url: c.link },
     rodape:
       'Você recebeu este email porque alguém usou este endereço para criar uma família no ' +
-      'Orçamento da casa. Se não foi você, ignore — sem a confirmação, ninguém entra nessa conta.',
+      'Orçamento familiar. Se não foi você, ignore — sem a confirmação, ninguém entra nessa conta.',
   });
 }
 
@@ -127,7 +127,7 @@ function corpoHtmlDaRecuperacao(r: RecuperacaoParaEnviar): string {
     sobretitulo: 'Recuperar senha',
     titulo: 'Vamos trocar sua senha',
     paragrafos: [
-      'Alguém pediu para trocar a senha desta conta no Orçamento da casa. Se foi você, é só ' +
+      'Alguém pediu para trocar a senha desta conta no Orçamento familiar. Se foi você, é só ' +
       'digitar o código abaixo e escolher a senha nova.',
       'Se não foi você, não precisa fazer nada — sem o código, senha nenhuma muda.',
     ],
@@ -141,7 +141,7 @@ function corpoHtmlDaRecuperacao(r: RecuperacaoParaEnviar): string {
     acao: { rotulo: 'Abrir a tela de recuperação', url: r.link },
     rodape:
       'Você recebeu este email porque este endereço foi usado para pedir uma troca de senha no ' +
-      'Orçamento da casa. Se não foi você, ignore esta mensagem.',
+      'Orçamento familiar. Se não foi você, ignore esta mensagem.',
   });
 }
 
