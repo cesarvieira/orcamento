@@ -1,7 +1,10 @@
 <script setup lang="ts">
 /**
- * CONTAS (EF-02) — a tela `contas` + a folha `sheetConta` do mockup (ver
- * `MOCKUP-CONTAS.md` na raiz do worktree, seções 1 e 2).
+ * CONTAS (EF-02) — a tela `contas` + a folha `sheetConta` do mockup.
+ *
+ * O mockup é FONTE, não ilustração, e vive no Claude Design — o link está em
+ * `.preator/CONTEXT.md`. Abrir exige consentimento por sessão; não improvise a
+ * tela a partir deste arquivo.
  *
  * O título "Contas" já vem do shell (`layouts/default.vue`, via
  * `config/navegacao.ts` — a rota `/contas` resolve certo em `destinoDaRota`),
@@ -105,7 +108,7 @@ const labelBotaoSalvar = computed(() => {
 });
 
 // O desenho só tem stepper para o valor, sem campo numérico (ver
-// MOCKUP-CONTAS.md §2) — R$10 por clique é um passo prático para nudge de um
+// a folha `sheetConta` do mockup) — R$10 por clique é um passo prático para um
 // valor já perto do certo; não há especificação de passo no mockup.
 const PASSO_VALOR_CENTAVOS = 1000;
 
