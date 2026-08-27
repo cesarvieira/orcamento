@@ -15,8 +15,9 @@
  * dinheiro é `dinheiroCentavos` (D-06), e quem tem data tem também
  * competência — duas colunas distintas.
  */
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 import {
+  check,
   index,
   integer,
   pgEnum,
@@ -27,7 +28,7 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { atualizadoEm, criadoEm } from './tipos';
+import { atualizadoEm, criadoEm, dinheiroCentavos } from './tipos';
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -41,6 +42,13 @@ export const provedorIdentidade = pgEnum('provedor_identidade', [
   'google',
   'senha',
 ]);
+
+/**
+ * O tipo de uma conta (EF-02 §1). STRING no banco e no contrato, mesmo motivo
+ * de `provedorIdentidade` acima: enum inteiro serializado vira número na tela
+ * e o gate de contrato reprova.
+ */
+export const tipoConta = pgEnum('tipo_conta', ['DEBITO', 'CREDITO', 'RESERVA']);
 
 // ---------------------------------------------------------------------------
 // Familia — o tenant. Raiz de todo isolamento.
@@ -230,12 +238,82 @@ export const sessoes = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Conta — onde o dinheiro está (EF-02). DEBITO · CREDITO · RESERVA.
+// ---------------------------------------------------------------------------
+
+/**
+ * O saldo NÃO mora aqui: é derivado na leitura como `saldoInicialCentavos +
+ * Σ lançamentos da conta` (EF-02 §1). Materializar saldo em coluna criaria uma
+ * segunda verdade que diverge no primeiro lançamento retroativo — por isso não
+ * existe `saldo_centavos` nesta tabela, e não é omissão.
+ *
+ * Os quatro CHECKs abaixo impõem RN-08 e a regra "campo só existe no tipo
+ * certo" (EF-02 §1) no próprio banco — a validação Zod (`modulos/contas/esquemas.ts`)
+ * impõe a mesma regra na borda, antes de a escrita sequer tentar o banco.
+ */
+export const contas = pgTable(
+  'contas',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** Todo dado do produto pende da família (R1). Vem sempre do token. */
+    familiaId: uuid('familia_id')
+      .notNull()
+      .references(() => familias.id, { onDelete: 'cascade' }),
+    tipo: tipoConta('tipo').notNull(),
+    nome: text('nome').notNull(),
+    icone: text('icone').notNull(),
+    cor: text('cor').notNull(),
+    /** Só `DEBITO`/`RESERVA` (EF-02 §1); nulo em `CREDITO`. */
+    saldoInicialCentavos: dinheiroCentavos('saldo_inicial_centavos'),
+    /** Só `CREDITO` (EF-02 §1); nulo em `DEBITO`/`RESERVA`. */
+    limiteCentavos: dinheiroCentavos('limite_centavos'),
+    /** RN-08 — só `CREDITO`, 1–28 (dia 29–31 não existe em todo mês). */
+    diaFechamento: integer('dia_fechamento'),
+    /** RN-08 — só `CREDITO`, 1–28. */
+    diaVencimento: integer('dia_vencimento'),
+    criadoEm: criadoEm(),
+    atualizadoEm: atualizadoEm(),
+  },
+  t => [
+    index('contas_por_familia').on(t.familiaId),
+    // RN-08 — a faixa vale só quando o campo está presente; ausência (NULL) é
+    // legítima em DEBITO/RESERVA e é outro CHECK, abaixo, que garante isso.
+    check(
+      'contas_dia_fechamento_intervalo',
+      sql`${t.diaFechamento} is null or (${t.diaFechamento} between 1 and 28)`,
+    ),
+    check(
+      'contas_dia_vencimento_intervalo',
+      sql`${t.diaVencimento} is null or (${t.diaVencimento} between 1 and 28)`,
+    ),
+    // RN-08 + EF-02 §1 — fechamento, vencimento e limite só existem em CREDITO.
+    check(
+      'contas_campos_de_credito_apenas_em_credito',
+      sql`${t.tipo} = 'CREDITO' or (${t.limiteCentavos} is null and ${t.diaFechamento} is null and ${t.diaVencimento} is null)`,
+    ),
+    // EF-02 §1 — saldo inicial só existe em DEBITO/RESERVA, nunca em CREDITO.
+    check(
+      'contas_saldo_inicial_nao_em_credito',
+      sql`${t.tipo} <> 'CREDITO' or ${t.saldoInicialCentavos} is null`,
+    ),
+  ],
+);
+
+// ---------------------------------------------------------------------------
 // Relações
 // ---------------------------------------------------------------------------
 
 export const familiasRelacoes = relations(familias, ({ many }) => ({
   membros: many(membros),
   convites: many(convites),
+  contas: many(contas),
+}));
+
+export const contasRelacoes = relations(contas, ({ one }) => ({
+  familia: one(familias, {
+    fields: [contas.familiaId],
+    references: [familias.id],
+  }),
 }));
 
 export const membrosRelacoes = relations(membros, ({ one, many }) => ({
@@ -277,3 +355,5 @@ export type Membro = typeof membros.$inferSelect;
 export type Identidade = typeof identidades.$inferSelect;
 export type Convite = typeof convites.$inferSelect;
 export type Sessao = typeof sessoes.$inferSelect;
+export type Conta = typeof contas.$inferSelect;
+export type NovaContaDb = typeof contas.$inferInsert;

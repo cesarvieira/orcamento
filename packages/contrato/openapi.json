@@ -483,6 +483,418 @@
             "additionalProperties": false
           }
         ]
+      },
+      "NovaConta": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "tipo": {
+                "type": "string",
+                "enum": [
+                  "DEBITO"
+                ]
+              },
+              "nome": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Nome da conta, escolhido pela família."
+              },
+              "icone": {
+                "type": "string",
+                "minLength": 1
+              },
+              "cor": {
+                "type": "string",
+                "minLength": 1
+              },
+              "saldoInicialCentavos": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "tipo",
+              "nome",
+              "icone",
+              "cor",
+              "saldoInicialCentavos"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "tipo": {
+                "type": "string",
+                "enum": [
+                  "RESERVA"
+                ]
+              },
+              "nome": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Nome da conta, escolhido pela família."
+              },
+              "icone": {
+                "type": "string",
+                "minLength": 1
+              },
+              "cor": {
+                "type": "string",
+                "minLength": 1
+              },
+              "saldoInicialCentavos": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "tipo",
+              "nome",
+              "icone",
+              "cor",
+              "saldoInicialCentavos"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "tipo": {
+                "type": "string",
+                "enum": [
+                  "CREDITO"
+                ]
+              },
+              "nome": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Nome da conta, escolhido pela família."
+              },
+              "icone": {
+                "type": "string",
+                "minLength": 1
+              },
+              "cor": {
+                "type": "string",
+                "minLength": 1
+              },
+              "limiteCentavos": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "diaFechamento": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 28,
+                "description": "Dia do mês, 1–28 (RN-08): dia 29–31 não existe em todo mês."
+              },
+              "diaVencimento": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 28,
+                "description": "Dia do mês, 1–28 (RN-08): dia 29–31 não existe em todo mês."
+              }
+            },
+            "required": [
+              "tipo",
+              "nome",
+              "icone",
+              "cor",
+              "limiteCentavos",
+              "diaFechamento",
+              "diaVencimento"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "AtualizarConta": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "tipo": {
+                "type": "string",
+                "enum": [
+                  "DEBITO"
+                ]
+              },
+              "nome": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Nome da conta, escolhido pela família."
+              },
+              "icone": {
+                "type": "string",
+                "minLength": 1
+              },
+              "cor": {
+                "type": "string",
+                "minLength": 1
+              },
+              "saldoInicialCentavos": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "tipo",
+              "nome",
+              "icone",
+              "cor",
+              "saldoInicialCentavos"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "tipo": {
+                "type": "string",
+                "enum": [
+                  "RESERVA"
+                ]
+              },
+              "nome": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Nome da conta, escolhido pela família."
+              },
+              "icone": {
+                "type": "string",
+                "minLength": 1
+              },
+              "cor": {
+                "type": "string",
+                "minLength": 1
+              },
+              "saldoInicialCentavos": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "tipo",
+              "nome",
+              "icone",
+              "cor",
+              "saldoInicialCentavos"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "tipo": {
+                "type": "string",
+                "enum": [
+                  "CREDITO"
+                ]
+              },
+              "nome": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Nome da conta, escolhido pela família."
+              },
+              "icone": {
+                "type": "string",
+                "minLength": 1
+              },
+              "cor": {
+                "type": "string",
+                "minLength": 1
+              },
+              "limiteCentavos": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "diaFechamento": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 28,
+                "description": "Dia do mês, 1–28 (RN-08): dia 29–31 não existe em todo mês."
+              },
+              "diaVencimento": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 28,
+                "description": "Dia do mês, 1–28 (RN-08): dia 29–31 não existe em todo mês."
+              }
+            },
+            "required": [
+              "tipo",
+              "nome",
+              "icone",
+              "cor",
+              "limiteCentavos",
+              "diaFechamento",
+              "diaVencimento"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "Conta": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "DEBITO",
+              "CREDITO",
+              "RESERVA"
+            ]
+          },
+          "nome": {
+            "type": "string"
+          },
+          "icone": {
+            "type": "string"
+          },
+          "cor": {
+            "type": "string"
+          },
+          "saldoInicialCentavos": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "limiteCentavos": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "diaFechamento": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "diaVencimento": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "saldoCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Derivado: saldoInicialCentavos + Σ lançamentos da conta (EF-02 §1). Nunca materializado."
+          }
+        },
+        "required": [
+          "id",
+          "tipo",
+          "nome",
+          "icone",
+          "cor",
+          "saldoInicialCentavos",
+          "limiteCentavos",
+          "diaFechamento",
+          "diaVencimento",
+          "saldoCentavos"
+        ],
+        "additionalProperties": false
+      },
+      "ContasListadas": {
+        "type": "object",
+        "properties": {
+          "contas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "tipo": {
+                  "type": "string",
+                  "enum": [
+                    "DEBITO",
+                    "CREDITO",
+                    "RESERVA"
+                  ]
+                },
+                "nome": {
+                  "type": "string"
+                },
+                "icone": {
+                  "type": "string"
+                },
+                "cor": {
+                  "type": "string"
+                },
+                "saldoInicialCentavos": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "limiteCentavos": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "diaFechamento": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "diaVencimento": {
+                  "nullable": true,
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "saldoCentavos": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Derivado: saldoInicialCentavos + Σ lançamentos da conta (EF-02 §1). Nunca materializado."
+                }
+              },
+              "required": [
+                "id",
+                "tipo",
+                "nome",
+                "icone",
+                "cor",
+                "saldoInicialCentavos",
+                "limiteCentavos",
+                "diaFechamento",
+                "diaVencimento",
+                "saldoCentavos"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "totalEmContaHojeCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "contas",
+          "totalEmContaHojeCentavos"
+        ],
+        "additionalProperties": false
       }
     },
     "securitySchemes": {
@@ -1254,6 +1666,229 @@
           },
           "429": {
             "description": "Código invalidado por excesso de tentativas (RN-11)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contas": {
+      "get": {
+        "summary": "As contas da família da sessão, com saldo derivado",
+        "tags": [
+          "contas"
+        ],
+        "operationId": "get_contas",
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "As contas da família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContasListadas"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Cria uma conta (DEBITO, CREDITO ou RESERVA) na família da sessão",
+        "tags": [
+          "contas"
+        ],
+        "operationId": "post_contas",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaConta"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Conta criada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Conta"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido — inclusive RN-08 (fechamento/vencimento fora de 1–28)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/contas/{id}": {
+      "patch": {
+        "summary": "Atualiza uma conta da família da sessão (substitui os dados do tipo)",
+        "tags": [
+          "contas"
+        ],
+        "operationId": "patch_contas__id_",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtualizarConta"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conta atualizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Conta"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conta inexistente nesta família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido — inclusive RN-08 (fechamento/vencimento fora de 1–28)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Exclui uma conta da família da sessão, se ela não tiver lançamentos (RN-06)",
+        "tags": [
+          "contas"
+        ],
+        "operationId": "delete_contas__id_",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Conta excluída"
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conta inexistente nesta família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conta tem lançamentos e não pode ser excluída (RN-06)",
             "content": {
               "application/json": {
                 "schema": {
