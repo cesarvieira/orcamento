@@ -538,7 +538,7 @@ rotasDeFamilia.post('/convites/aceitar', async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
-// POST /contas — criar a PRÓPRIA família (RN-06 a RN-09)
+// POST /cadastros — criar a PRÓPRIA família (RN-06 a RN-09)
 // ---------------------------------------------------------------------------
 //
 // Não abre sessão de propósito: a identidade nasce não confirmada, e o login a
@@ -546,7 +546,7 @@ rotasDeFamilia.post('/convites/aceitar', async (req, res, next) => {
 
 registrarRota({
   metodo: 'post',
-  caminho: '/contas',
+  caminho: '/cadastros',
   resumo: 'Cria uma família nova e envia a confirmação de email',
   etiquetas: ['acesso'],
   exigeSessao: false,
@@ -558,7 +558,7 @@ registrarRota({
   ],
 });
 
-rotasDeFamilia.post('/contas', async (req, res, next) => {
+rotasDeFamilia.post('/cadastros', async (req, res, next) => {
   try {
     const analise = EsquemaCriarConta.safeParse(req.body);
     if (!analise.success) {
@@ -594,12 +594,12 @@ rotasDeFamilia.post('/contas', async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
-// POST /contas/confirmar — prova o email e entra (RN-06/RN-09)
+// POST /cadastros/confirmar — prova o email e entra (RN-06/RN-09)
 // ---------------------------------------------------------------------------
 
 registrarRota({
   metodo: 'post',
-  caminho: '/contas/confirmar',
+  caminho: '/cadastros/confirmar',
   resumo: 'Confirma o email do cadastro e abre a sessão',
   etiquetas: ['acesso'],
   exigeSessao: false,
@@ -614,7 +614,7 @@ registrarRota({
   ],
 });
 
-rotasDeFamilia.post('/contas/confirmar', async (req, res, next) => {
+rotasDeFamilia.post('/cadastros/confirmar', async (req, res, next) => {
   try {
     const analise = EsquemaConfirmarConta.safeParse(req.body);
     if (!analise.success) {

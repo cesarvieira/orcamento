@@ -25,7 +25,7 @@ export function useConta() {
   const { sessao } = useSessao();
 
   async function criarConta(dados: CriarConta): Promise<ContaCriada> {
-    return api<ContaCriada>('/contas', { method: 'POST', body: dados });
+    return api<ContaCriada>('/cadastros', { method: 'POST', body: dados });
   }
 
   /**
@@ -33,7 +33,7 @@ export function useConta() {
    * RN-10 o que prova é o par email + código digitado, não um link.
    */
   async function confirmarConta(dados: ConfirmarConta): Promise<SessaoAtual> {
-    const nova = await api<SessaoAtual>('/contas/confirmar', { method: 'POST', body: dados });
+    const nova = await api<SessaoAtual>('/cadastros/confirmar', { method: 'POST', body: dados });
     sessao.value = nova;
     return nova;
   }
