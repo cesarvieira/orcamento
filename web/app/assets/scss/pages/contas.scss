@@ -1,0 +1,406 @@
+// CONTAS (EF-02) — tela `contas` + folha `sheetConta` do mockup (ver
+// `MOCKUP-CONTAS.md`, seções 1 e 2, na raiz do worktree).
+//
+// As cores, raios e tamanhos vêm do desenho, traduzidos para as variáveis do
+// sistema visual do shell (`base.scss`) sempre que existe uma equivalente —
+// o mockup repete os valores inline porque não tem esse encadeamento; aqui
+// não há por que repetir o defeito junto com o desenho.
+
+// O título "Contas" já vem do shell (`topo__titulo`, via `config/navegacao.ts`).
+// Esta tela só acrescenta a sublinha, colada visualmente embaixo dele.
+.contas__subtitulo {
+  margin: -8px 0 16px;
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
+// ── EM CONTA HOJE ────────────────────────────────────────────────────────
+
+.contas__resumo {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-grande);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.contas__resumo-rotulo {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--texto-fraco);
+}
+
+.contas__resumo-valor {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-top: 2px;
+}
+
+.contas__resumo-aviso {
+  font-size: 11.5px;
+  color: var(--texto-medio);
+  margin-top: 6px;
+}
+
+// ── estados vazios ───────────────────────────────────────────────────────
+
+.contas__vazio {
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--texto-fraco);
+
+  &--erro {
+    color: var(--alerta);
+  }
+}
+
+// ── lista de contas ──────────────────────────────────────────────────────
+
+.contas__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.contas__cartao {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 14px;
+}
+
+.contas__linha {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  color: var(--texto);
+  text-align: left;
+  cursor: pointer;
+}
+
+.contas__icone {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: var(--raio-pequeno);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+}
+
+.contas__texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.contas__nome {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.contas__sub {
+  display: block;
+  font-size: 11px;
+  color: var(--texto-fraco);
+  margin-top: 1px;
+}
+
+.contas__valor {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.contas__seta {
+  font-size: 16px;
+  color: var(--texto-apagado);
+}
+
+// ── rodapé · cadastrar conta ─────────────────────────────────────────────
+
+.contas__nova {
+  width: 100%;
+  height: 48px;
+  margin-top: 12px;
+  border: 1px dashed rgba(20, 50, 90, 0.35);
+  background: none;
+  border-radius: var(--raio);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--tinta);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+// ── FOLHA · sheetConta ───────────────────────────────────────────────────
+
+.sheet-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(12, 22, 40, 0.42);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.sheet {
+  background: var(--fundo);
+  border-radius: 22px 22px 0 0;
+  padding: 18px;
+  max-height: 92vh;
+  overflow-y: auto;
+  flex: none;
+
+  // Em telas largas o desenho continua sendo o do mobile (folha de baixo),
+  // mas sem esticar de ponta a ponta — vira um painel centralizado.
+  @media (min-width: 768px) {
+    width: 100%;
+    max-width: 460px;
+    margin: 0 auto;
+    border-radius: var(--raio-grande);
+    margin-bottom: 24px;
+  }
+}
+
+.sheet__cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.sheet__titulo {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.sheet__fechar {
+  background: none;
+  border: none;
+  font-size: 15px;
+  color: var(--texto-fraco);
+  cursor: pointer;
+  padding: 0;
+}
+
+.sheet__nome {
+  width: 100%;
+  height: 46px;
+  border: 1px solid var(--borda-media);
+  border-radius: var(--raio-pequeno);
+  padding: 0 13px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--texto);
+  outline: none;
+  background: var(--superficie);
+}
+
+.sheet__rotulo-secao {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--texto-fraco);
+  margin: 16px 2px 8px;
+}
+
+// ── TIPO — três botões-anel ──────────────────────────────────────────────
+
+.sheet__tipos {
+  display: flex;
+  gap: 8px;
+}
+
+.sheet__tipo {
+  flex: 1;
+  height: 60px;
+  border-radius: var(--raio);
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: var(--superficie);
+  color: var(--texto-medio);
+  box-shadow: inset 0 0 0 1px var(--borda-media);
+
+  i {
+    font-size: 19px;
+  }
+
+  span {
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+
+  &--ativo {
+    background: var(--tinta);
+    color: #fff;
+    box-shadow: 0 0 0 2px var(--tinta-forte);
+  }
+}
+
+// ── valor (saldo atual / limite do cartão) · vencimento · fechamento ────
+
+.sheet__cartao {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 14px;
+  margin-top: 10px;
+}
+
+.sheet__cartao-rotulo {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--texto-medio);
+}
+
+.sheet__cartao-sub {
+  font-size: 11px;
+  color: var(--texto-fraco);
+  margin-top: 2px;
+}
+
+.sheet__stepper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.sheet__stepper-valor {
+  flex: 1;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.sheet__passo {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border: 1px solid var(--borda-media);
+  background: var(--superficie);
+  border-radius: 9999px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--tinta);
+  cursor: pointer;
+
+  &--pequeno {
+    width: 34px;
+    height: 34px;
+    font-size: 16px;
+  }
+}
+
+.sheet__linha-dia {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  &--com-topo {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--borda);
+  }
+}
+
+.sheet__dia-texto {
+  flex: 1;
+}
+
+.sheet__dia-valor {
+  min-width: 62px;
+  text-align: right;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+// ── ÍCONE — grade de 6 colunas ───────────────────────────────────────────
+
+.sheet__icones {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.sheet__icone-opcao {
+  height: 46px;
+  border-radius: 11px;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--superficie);
+  color: var(--texto-medio);
+  box-shadow: inset 0 0 0 1px var(--borda-media);
+
+  i {
+    font-size: 20px;
+  }
+
+  &--ativo {
+    background: var(--tinta);
+    color: #fff;
+    box-shadow: 0 0 0 2px var(--tinta-forte);
+  }
+}
+
+// ── erro · salvar · excluir ──────────────────────────────────────────────
+
+.sheet__erro {
+  margin: 12px 2px 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--alerta);
+}
+
+.sheet__salvar {
+  margin-top: 18px;
+}
+
+.sheet__excluir {
+  width: 100%;
+  height: 44px;
+  margin-top: 8px;
+  border: 1px solid rgba(198, 40, 40, 0.3);
+  background: var(--superficie);
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--alerta);
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
