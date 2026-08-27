@@ -96,6 +96,58 @@ export function classeDoIconeCategoria(icone: string): string {
 }
 
 /**
+ * Rótulo humano para cada uma das 8 cores da grade (`aria-label` — leitor de
+ * tela não deve anunciar o hex cru). Nome, não regra de negócio: livre para
+ * esta tela escolher, na mesma ordem de `CORES_CATEGORIA`.
+ */
+const NOME_DA_COR: Record<string, string> = {
+  '#14325a': 'Azul-marinho',
+  '#2e6b8f': 'Azul petróleo',
+  '#4c7d5a': 'Verde musgo',
+  '#8a5a2b': 'Marrom',
+  '#6b4a7d': 'Roxo',
+  '#2f6f6f': 'Verde-azulado',
+  '#a04a4a': 'Vermelho terracota',
+  '#3d5a8a': 'Azul-claro',
+};
+
+/** O nome acessível de uma cor da grade — cai no próprio hex se, por algum motivo, vier fora da lista. */
+export function nomeDaCor(cor: string): string {
+  return NOME_DA_COR[cor] ?? cor;
+}
+
+/**
+ * Rótulo humano para cada um dos 18 ícones da grade (`aria-label` — leitor de
+ * tela não deve anunciar a classe Tabler crua). Mesma ressalva de
+ * `NOME_DA_COR`: nome de UI, não regra de negócio.
+ */
+const NOME_DO_ICONE: Record<string, string> = {
+  'ti-shopping-cart': 'Carrinho de compras',
+  'ti-home': 'Casa',
+  'ti-school': 'Escola',
+  'ti-gas-station': 'Posto de gasolina',
+  'ti-heartbeat': 'Saúde',
+  'ti-glass-full': 'Bebidas',
+  'ti-device-tv': 'TV',
+  'ti-shirt': 'Roupas',
+  'ti-paw': 'Pet',
+  'ti-plane': 'Viagem',
+  'ti-barbell': 'Academia',
+  'ti-tools': 'Ferramentas',
+  'ti-gift': 'Presente',
+  'ti-pill': 'Remédio',
+  'ti-bus': 'Transporte',
+  'ti-wifi': 'Internet',
+  'ti-scissors': 'Cabelo e beleza',
+  'ti-tag': 'Outros',
+};
+
+/** O nome acessível de um ícone da grade — cai na própria classe se vier fora da lista. */
+export function nomeDoIcone(icone: string): string {
+  return NOME_DO_ICONE[icone] ?? icone;
+}
+
+/**
  * Passo do −/+ do teto de cada categoria, na lista principal. O mockup não
  * declara um valor para este stepper (só para os da folha de remanejar, ver
  * abaixo) — escolhido por analogia de grandeza com os tetos do seed

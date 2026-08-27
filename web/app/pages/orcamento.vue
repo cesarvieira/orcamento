@@ -30,6 +30,8 @@ import {
   PASSO_TETO_CENTAVOS,
   classeDoIconeCategoria,
   competenciaAtual,
+  nomeDaCor,
+  nomeDoIcone,
   useOrcamento,
 } from '~/composables/useOrcamento';
 
@@ -221,15 +223,23 @@ async function salvarCategoria(): Promise<void> {
 
 // ── FOLHA · sheetRemanejar — escolher de onde tirar, ou deixar negativo ──
 //
-// Entrada: um botão "estourou · remanejar" aparece na categoria quando
+// Entrada: o cartão de estouro aparece na categoria quando
 // `disponivelCentavos < 0` (RN-10) — hoje só acontece depois de um
 // remanejamento anterior ter deixado alguma categoria negativa (RN-14: a API
 // não impõe piso na origem), já que o gasto ainda é sempre 0 enquanto a
-// EF-04 não existe (ver `api/src/modulos/orcamento/servico.ts`). O mockup
-// não traz esse gatilho no recorte da tela `config` (MOCKUP-EF-03.md §1) —
-// decisão desta tela, documentada aqui em vez de escalada, porque não
-// inventa regra de negócio nenhuma: só decide ONDE, nesta página, o usuário
-// abre um fluxo que a EF-03 §3 já pede.
+// EF-04 não existe (ver `api/src/modulos/orcamento/servico.ts`).
+//
+// O cartão é o DESENHADO pelo mockup — MOCKUP-EF-03.md §6 (adendo): ele vive
+// na tela `home` do protótipo (`sc-if temEstouro`), fora do recorte original
+// desta tarefa, mas o gatilho e a cópia SÃO do desenho, não inventados. A
+// colocação canônica na `home` é da EF-04 (`web/app/pages/index`, fora do
+// escopo da #45) — quem construir aquela tela deve reaproveitar este mesmo
+// cartão e esta mesma cópia, não desenhar um terceiro.
+
+/** `estouroTitulo` do mockup — MOCKUP-EF-03.md §6: "<Categoria> passou R$ X do teto". */
+function tituloEstouro(c: CategoriaNaCompetencia): string {
+  return `${c.nome} passou ${formatarCentavos(Math.abs(c.disponivelCentavos))} do teto`;
+}
 
 interface FonteRemanejo {
   categoria: CategoriaNaCompetencia;
@@ -260,10 +270,7 @@ function fecharSheetRemanejar(): void {
 const estouroTitulo = computed(() => {
   const destino = categoriaDestino.value;
   if (!destino) return '';
-  if (destino.disponivelCentavos < 0) {
-    return `${destino.nome} passou ${formatarCentavos(Math.abs(destino.disponivelCentavos))} do teto`;
-  }
-  return `Remanejar para ${destino.nome}`;
+  return destino.disponivelCentavos < 0 ? tituloEstouro(destino) : `Remanejar para ${destino.nome}`;
 });
 
 /** RN-13, cópia literal do mockup (MOCKUP-EF-03.md §3). */
@@ -329,22 +336,57 @@ async function confirmarRemanejamento(): Promise<void> {
 
   salvandoRemanejo.value = true;
   erroRemanejo.value = null;
+
+  const aTentar = fontes.value.filter(f => f.valorCentavos > 0);
+  const aplicadas: FonteRemanejo[] = [];
+
   try {
     // A API só move UM par origem→destino por chamada — uma chamada por
     // fonte com valor > 0, em sequência (anotação do condutor em
-    // MOCKUP-EF-03.md §3: "o front manda a intenção e relê").
-    for (const fonte of fontes.value) {
-      if (fonte.valorCentavos <= 0) continue;
+    // MOCKUP-EF-03.md §3: "o front manda a intenção e relê"). PARA na
+    // PRIMEIRA falha — `for...of` com `await` já faz isso — em vez de
+    // seguir tentando as fontes restantes.
+    for (const fonte of aTentar) {
       await criarRemanejamento(competencia.value, {
         categoriaOrigemId: fonte.categoria.id,
         categoriaDestinoId: destino.id,
         valorCentavos: fonte.valorCentavos,
       });
+      aplicadas.push(fonte);
     }
+
     await carregar();
     sheetRemanejarAberta.value = false;
   } catch (erro) {
-    erroRemanejo.value = mensagemDoErro(erro, 'Não consegui remanejar o teto.');
+    // Falha parcial: o que já passou ficou de pé no servidor (cada chamada é
+    // um remanejamento próprio, RN-13) — a tela PRECISA reler para não
+    // mostrar número velho, e a folha PRECISA continuar aberta com o que
+    // ainda falta, em vez de fechar como se nada tivesse dado certo.
+    await carregar();
+
+    const destinoAtualizado = categorias.value.find(c => c.id === destino.id) ?? null;
+    categoriaDestino.value = destinoAtualizado;
+
+    // As fontes já aplicadas viram 0 — reenviá-las de novo DUPLICARIA a
+    // transferência que já aconteceu. As que ainda faltam mantêm o valor
+    // escolhido (ajustado ao teto que sobrou), prontas para um novo clique.
+    fontes.value = fontes.value.reduce<FonteRemanejo[]>((restantes, fonte) => {
+      const atualizada = categorias.value.find(c => c.id === fonte.categoria.id);
+      if (!atualizada) return restantes; // categoria removida por outra aba nesse meio-tempo
+      const foiAplicada = aplicadas.includes(fonte);
+      restantes.push({
+        categoria: atualizada,
+        valorCentavos: foiAplicada ? 0 : Math.min(fonte.valorCentavos, atualizada.disponivelCentavos),
+      });
+      return restantes;
+    }, []);
+
+    const mensagem = mensagemDoErro(erro, 'não consegui completar');
+    erroRemanejo.value =
+      aplicadas.length > 0
+        ? `${aplicadas.length} de ${aTentar.length} categorias já foram movidas para ${destino.nome} ` +
+          `antes de falhar (${mensagem}). Confira os valores e tente de novo para o restante.`
+        : `Não consegui remanejar nenhuma categoria: ${mensagem}`;
   } finally {
     salvandoRemanejo.value = false;
   }
@@ -443,10 +485,20 @@ function deixarNegativo(): void {
             </div>
           </div>
 
-          <button v-if="c.disponivelCentavos < 0" type="button" class="orcamento__estourou" @click="abrirRemanejar(c)">
-            <i class="ti ti-arrows-exchange"></i>
-            {{ c.nome }} passou {{ formatarCentavos(Math.abs(c.disponivelCentavos)) }} do teto — remanejar
-          </button>
+          <!--
+            Cartão canônico do mockup (MOCKUP-EF-03.md §6, adendo) — o mesmo
+            que a tela `home` (EF-04) vai usar quando existir; ver comentário
+            no <script> desta tela.
+          -->
+          <div v-if="c.disponivelCentavos < 0" class="orcamento__cartao-estouro">
+            <div class="orcamento__cartao-estouro-texto">
+              <p class="orcamento__cartao-estouro-titulo">{{ tituloEstouro(c) }}</p>
+              <p class="orcamento__cartao-estouro-subtitulo">Cobrir com o saldo de outra categoria</p>
+            </div>
+            <button type="button" class="orcamento__cartao-estouro-botao" @click="abrirRemanejar(c)">
+              Remanejar
+            </button>
+          </div>
         </div>
       </div>
 
@@ -485,7 +537,7 @@ function deixarNegativo(): void {
             class="sheet__cor-opcao"
             :class="{ 'sheet__cor-opcao--ativo': corCategoria === cor }"
             :style="{ background: cor }"
-            :aria-label="cor"
+            :aria-label="`Cor ${nomeDaCor(cor)}`"
             @click="corCategoria = cor"
           >
             <i v-if="corCategoria === cor" class="ti ti-check"></i>
@@ -500,7 +552,7 @@ function deixarNegativo(): void {
             type="button"
             class="sheet__icone-opcao"
             :class="{ 'sheet__icone-opcao--ativo': iconeCategoria === icone }"
-            :aria-label="icone"
+            :aria-label="nomeDoIcone(icone)"
             @click="iconeCategoria = icone"
           >
             <i class="ti" :class="icone"></i>

@@ -191,27 +191,53 @@
   }
 }
 
-// ── categoria estourada · entrada para a folha de remanejar ─────────────
+// ── categoria estourada · cartão canônico do mockup ──────────────────────
 //
-// Não existe no recorte do mockup para a tela `config` (a folha de
-// remanejar é alcançada de outro lugar do protótipo, fora deste escopo) —
-// decisão desta tela, documentada em `orcamento.vue`.
+// Porta literal de MOCKUP-EF-03.md §6 (adendo) — o cartão vive na tela
+// `home` do protótipo (`sc-if temEstouro`); aqui é o MESMO cartão, dentro do
+// escopo de `/orcamento` (ver comentário em `orcamento.vue`).
 
-.orcamento__estourou {
-  width: 100%;
+.orcamento__cartao-estouro {
   margin-top: 8px;
-  padding: 8px 10px;
+  padding: 14px;
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(198, 40, 40, 0.08);
-  border: 1px solid rgba(198, 40, 40, 0.25);
-  border-radius: 10px;
-  font-family: inherit;
-  font-size: 11.5px;
+  gap: 10px;
+  background: var(--superficie);
+  border: 1px solid rgba(198, 40, 40, 0.28);
+  border-radius: var(--raio);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.orcamento__cartao-estouro-texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.orcamento__cartao-estouro-titulo {
+  margin: 0;
+  font-size: 13px;
   font-weight: 700;
   color: var(--alerta);
-  text-align: left;
+}
+
+.orcamento__cartao-estouro-subtitulo {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: var(--texto-medio);
+}
+
+.orcamento__cartao-estouro-botao {
+  flex: none;
+  height: 34px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 9999px;
+  background: var(--tinta);
+  color: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
 }
 
