@@ -4,7 +4,7 @@
  * (familiaId sempre no WHERE) e o cálculo do saldo derivado morem num lugar
  * só.
  */
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, or, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 
 import type { Db } from '../../db';
@@ -182,23 +182,25 @@ export async function atualizarConta(
 }
 
 // ---------------------------------------------------------------------------
-// RN-06 — conta com lançamento não pode ser excluída
+// RN-06 — conta com lançamento não pode ser excluída (EF-02 §2, tarefa #52)
 // ---------------------------------------------------------------------------
 
 /**
- * O ponto de checagem de RN-06.
- *
- * DECISÃO DE DESENHO (tarefa #39): a tabela `lancamentos` não existe ainda —
- * ela é da EF-04, e fingir que já a consulta seria inventar dado que não
- * existe. Em vez de deixar a regra comentada ou espalhada num `if` dentro da
- * rota, ela vira esta função nomeada, com a assinatura que a EF-04 vai manter:
- * hoje o corpo SEMPRE devolve `true` (nenhuma conta tem lançamento, porque
- * lançamento não existe), e a EF-04 troca só o corpo por
- * `!(await db.select().from(lancamentos).where(eq(lancamentos.contaId, contaId)).limit(1)).length`
- * — `excluirConta` e a rota que a chama não mudam uma linha.
+ * O ponto de checagem de RN-06. Cobre as DUAS pontas: `contaId` (a conta é a
+ * origem/afetada de RECEITA, DESPESA ou TRANSFERENCIA) e `contaDestinoId` (a
+ * conta é DESTINO de uma TRANSFERENCIA) — as duas colunas têm
+ * `ON DELETE cascade` para `contas.id` (`db/schema.ts`), e o cascade existe
+ * para o caso de a FAMÍLIA inteira ser apagada, não para liberar RN-06: quem
+ * impede a exclusão indevida de UMA conta é esta checagem na aplicação,
+ * antes do DELETE chegar ao banco.
  */
-export async function contaPodeSerExcluida(_db: Db, _contaId: string): Promise<boolean> {
-  return true;
+export async function contaPodeSerExcluida(db: Db, contaId: string): Promise<boolean> {
+  const [linha] = await db
+    .select({ id: lancamentos.id })
+    .from(lancamentos)
+    .where(or(eq(lancamentos.contaId, contaId), eq(lancamentos.contaDestinoId, contaId)))
+    .limit(1);
+  return !linha;
 }
 
 export type ResultadoDeExclusao = 'excluida' | 'nao_encontrada' | 'tem_lancamentos';
