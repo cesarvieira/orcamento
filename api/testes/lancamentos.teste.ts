@@ -947,3 +947,58 @@ describe('tempo real — invalidação emitida no recurso lancamentos, com a com
     expect(evento.competencia).toBe('2026-08');
   });
 });
+
+// ---------------------------------------------------------------------------
+// UM POST, UMA LINHA — regressão do defeito relatado pelo humano em 2026-08-28
+//
+// Sintoma: "o lançamento de receitas está duplicando; excluo um e o outro
+// continua na tela". No banco de DEV havia duas linhas RECEITA idênticas com
+// 267µs de diferença em `criado_em` — e como o default da coluna é `now()`,
+// que no Postgres é o timestamp da TRANSAÇÃO, valores diferentes provam duas
+// transações distintas, não um insert duplo dentro da mesma.
+//
+// Este teste fecha o lado do SERVIDOR da pergunta: um POST HTTP grava uma
+// linha? Se ele passar, a duplicação nasce antes da API (dois requests), e não
+// dentro dela. Ele fica no lugar de uma investigação que teria de ser refeita
+// do zero na próxima vez.
+// ---------------------------------------------------------------------------
+describe('um POST cria exatamente UMA linha', () => {
+  it('RECEITA: um POST não grava duas linhas', async () => {
+    const conta = await criarConta(cookieA);
+    const resposta = await postLancamento(cookieA, {
+      tipo: 'RECEITA',
+      descricao: 'regressao-duplicacao-receita',
+      valorCentavos: 25000,
+      data: '2026-08-28',
+      contaId: conta.id,
+    });
+    expect(resposta.status).toBe(201);
+    expect((resposta.body.lancamentos as LancamentoLido[]).length).toBe(1);
+
+    const linhas = await db
+      .select({ id: lancamentos.id })
+      .from(lancamentos)
+      .where(eq(lancamentos.descricao, 'regressao-duplicacao-receita'));
+    expect(linhas).toHaveLength(1);
+  });
+
+  it('DESPESA avulsa: um POST não grava duas linhas', async () => {
+    const conta = await criarConta(cookieA);
+    const categoria = await criarCategoria(cookieA, 'Regressão duplicação');
+    const resposta = await postLancamento(cookieA, {
+      tipo: 'DESPESA',
+      descricao: 'regressao-duplicacao-despesa',
+      valorCentavos: 5000,
+      data: '2026-08-28',
+      contaId: conta.id,
+      categoriaId: categoria.id,
+    });
+    expect(resposta.status).toBe(201);
+
+    const linhas = await db
+      .select({ id: lancamentos.id })
+      .from(lancamentos)
+      .where(eq(lancamentos.descricao, 'regressao-duplicacao-despesa'));
+    expect(linhas).toHaveLength(1);
+  });
+});
