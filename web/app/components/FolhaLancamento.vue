@@ -68,7 +68,6 @@ const abertoCategoria = ref(false);
 const abertoConta = ref(false);
 const abertoContaDestino = ref(false);
 
-const avisoForaDeEscopo = ref<string | null>(null);
 const salvando = ref(false);
 const erro = ref<string | null>(null);
 
@@ -149,7 +148,6 @@ watch(aberta, novo => {
   abertoCategoria.value = false;
   abertoConta.value = false;
   abertoContaDestino.value = false;
-  avisoForaDeEscopo.value = null;
   erro.value = null;
 
   void carregarContas();
@@ -297,15 +295,6 @@ const labelSalvar = computed(() => {
   return 'Lançar despesa';
 });
 
-// ── FORA DE ESCOPO — recibo, importar, atalhos (recorte §2.2 e `.preator/CONTEXT.md`) ──
-
-function avisarRecibo(): void {
-  avisoForaDeEscopo.value = 'Fotografar o recibo ainda não está disponível.';
-}
-function avisarImportar(): void {
-  avisoForaDeEscopo.value = 'Importar extrato ainda não está disponível.';
-}
-
 // ── SALVAR ─────────────────────────────────────────────────────────────
 
 async function salvar(): Promise<void> {
@@ -394,19 +383,6 @@ async function salvar(): Promise<void> {
         <button type="button" class="sheet__fechar" aria-label="Fechar" @click="fechar">✕</button>
       </div>
 
-      <!-- ⚠️ Fora de escopo (`.preator/CONTEXT.md`) — desenhados, não implementados (recorte §2.2). -->
-      <div class="folha__pilulas">
-        <button type="button" class="folha__pilula" @click="avisarRecibo">
-          <i class="ti ti-camera"></i>
-          Foto do recibo
-        </button>
-        <button type="button" class="folha__pilula" @click="avisarImportar">
-          <i class="ti ti-file-import"></i>
-          Importar extrato
-        </button>
-      </div>
-      <p v-if="avisoForaDeEscopo" class="folha__aviso">{{ avisoForaDeEscopo }}</p>
-
       <!-- ── TIPO — 🟨 não é do desenho, ver comentário no <script> ────────── -->
       <div class="sheet__tipos folha__tipos">
         <button
@@ -421,15 +397,6 @@ async function salvar(): Promise<void> {
           <span>{{ t.rotulo }}</span>
         </button>
       </div>
-
-      <!-- ── DESCRIÇÃO — 🟨 não é do desenho, ver comentário no <script> ───── -->
-      <input
-        v-model="descricao"
-        type="text"
-        placeholder="O que foi?"
-        aria-label="Descrição do lançamento"
-        class="sheet__nome folha__descricao"
-      >
 
       <!-- ── LANÇAMENTO RÁPIDO (recorte §2.4) ─────────────────────────────────
            🟨 Sem fonte de dado: anatomia é do desenho, o CONTEÚDO não — ver
@@ -548,6 +515,15 @@ async function salvar(): Promise<void> {
           </button>
         </div>
       </template>
+
+      <!-- ── DESCRIÇÃO — 🟨 não é do desenho, ver comentário no <script> ───── -->
+      <input
+        v-model="descricao"
+        type="text"
+        placeholder="O que foi?"
+        aria-label="Descrição do lançamento"
+        class="sheet__nome folha__descricao"
+      >
 
       <!-- ── DATA · PARCELAS (recorte §2.7) ───────────────────────────────────── -->
       <div class="folha__linha-dupla">
