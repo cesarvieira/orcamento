@@ -40,6 +40,7 @@ export type Lancamento = components['schemas']['Lancamento'];
 export type LancamentosListados = components['schemas']['LancamentosListados'];
 export type LoginGoogle = components['schemas']['LoginGoogle'];
 export type MembroDaFamilia = components['schemas']['MembroDaFamilia'];
+export type ModoDeExclusao = components['schemas']['ModoDeExclusao'];
 export type NovaCategoria = components['schemas']['NovaCategoria'];
 export type NovaConta = components['schemas']['NovaConta'];
 export type NovoLancamento = components['schemas']['NovoLancamento'];

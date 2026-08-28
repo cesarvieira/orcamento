@@ -23,6 +23,20 @@ interface Resposta {
   esquema?: string;
 }
 
+/** O esquema de UM parâmetro de query — sempre string na URL; `enum` para os de valor fechado. */
+interface EsquemaDeParametro {
+  type: 'string';
+  enum?: readonly string[];
+}
+
+interface ParametroDeQuery {
+  nome: string;
+  /** @default false */
+  obrigatorio?: boolean;
+  descricao?: string;
+  esquema: EsquemaDeParametro;
+}
+
 interface Rota {
   metodo: Metodo;
   caminho: string;
@@ -30,6 +44,8 @@ interface Rota {
   etiquetas: string[];
   exigeSessao: boolean;
   corpo?: string;
+  /** Parâmetros de QUERY declarados — os de CAMINHO se derivam sozinhos de `:nome`. */
+  query?: ParametroDeQuery[];
   respostas: Resposta[];
 }
 
@@ -89,6 +105,16 @@ function parametrosDeCaminho(caminho: string) {
   }));
 }
 
+function parametrosDeQuery(query: ParametroDeQuery[]) {
+  return query.map(p => ({
+    name: p.nome,
+    in: 'query' as const,
+    required: p.obrigatorio ?? false,
+    ...(p.descricao ? { description: p.descricao } : {}),
+    schema: p.esquema,
+  }));
+}
+
 export function construirDocumento(): Record<string, unknown> {
   const componentes: Record<string, unknown> = {};
   for (const [nome, esquema] of esquemas) {
@@ -115,7 +141,7 @@ export function construirDocumento(): Record<string, unknown> {
       };
     }
 
-    const parametros = parametrosDeCaminho(rota.caminho);
+    const parametros = [...parametrosDeCaminho(rota.caminho), ...parametrosDeQuery(rota.query ?? [])];
 
     caminhos[caminho][rota.metodo] = {
       summary: rota.resumo,
