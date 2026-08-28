@@ -949,18 +949,28 @@ describe('tempo real — invalidação emitida no recurso lancamentos, com a com
 });
 
 // ---------------------------------------------------------------------------
-// UM POST, UMA LINHA — regressão do defeito relatado pelo humano em 2026-08-28
+// UM POST, UMA LINHA
 //
-// Sintoma: "o lançamento de receitas está duplicando; excluo um e o outro
-// continua na tela". No banco de DEV havia duas linhas RECEITA idênticas com
-// 267µs de diferença em `criado_em` — e como o default da coluna é `now()`,
-// que no Postgres é o timestamp da TRANSAÇÃO, valores diferentes provam duas
-// transações distintas, não um insert duplo dentro da mesma.
+// ⚠️ ESTE TESTE NASCEU DE UM FALSO DEFEITO, e fica porque o falso defeito custa
+// caro: em 2026-08-28 lançamentos de RECEITA apareciam duplicados na tela, e a
+// causa NÃO era do produto — era o navegador **Polypane**, que renderiza vários
+// viewports ao mesmo tempo e SINCRONIZA a interação. Um clique em "Salvar" era
+// repetido em cada painel, e cada painel mandava o seu próprio POST com o mesmo
+// cookie. Daí os 267µs–523µs entre as linhas: não eram dois cliques, era um
+// clique multiplicado.
 //
-// Este teste fecha o lado do SERVIDOR da pergunta: um POST HTTP grava uma
-// linha? Se ele passar, a duplicação nasce antes da API (dois requests), e não
-// dentro dela. Ele fica no lugar de uma investigação que teria de ser refeita
-// do zero na próxima vez.
+// O detalhe que quase mandou a investigação para o lugar errado: **só RECEITA
+// duplicava**. A explicação está na validação da própria folha — DESPESA exige
+// categoria, e nos painéis em que o dropdown não estava escolhido o `salvar`
+// parava antes do POST; RECEITA não tem campo equivalente e passava em todos.
+// Uma assimetria que parecia regra de negócio era, na verdade, o formulário
+// fazendo o seu trabalho.
+//
+// O que estes dois testes garantem, e por isso continuam valendo: um POST HTTP
+// grava UMA linha. Enquanto eles estiverem verdes, duplicação relatada na tela
+// é de fora da API — cliente que manda duas vezes, navegador que multiplica
+// interação, ou automação — e a investigação começa DAQUI PARA FORA, em vez de
+// refazer do zero o caminho `handler -> serviço -> insert`.
 // ---------------------------------------------------------------------------
 describe('um POST cria exatamente UMA linha', () => {
   it('RECEITA: um POST não grava duas linhas', async () => {
