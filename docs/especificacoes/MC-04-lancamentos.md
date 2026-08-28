@@ -7,11 +7,16 @@
 - **Conteúdo base:** Com conteúdo — toda tarefa mesclada nesta história fechou
   `PROVA_DE_COMPORTAMENTO=PASS` e revisão `APROVADO` (lista viva, na ordem real — não envelhece
   como uma contagem fixa neste texto: `git log --oneline --first-parent
-main..historia/18-ef-04-lancamentos`). Quatro **não estavam na decomposição original** (o DAG
-  avalizado pelo humano na abertura da #18 previa só #51, #52, #53, #54 e #55): nasceram de
-  defeitos achados durante a execução (#60 — contrato divergente; #62 — total da série ausente na
-  leitura; #64 — a DoD prometia dois clientes sem refresh e só havia prova de isolamento entre
-  famílias; #65 — esta MC ficou desatualizada logo depois da prova da #64). RN-15 a
+main..historia/18-ef-04-lancamentos`). **Tarefas de construção fora da decomposição original**
+  (o DAG avalizado pelo humano na abertura da #18, em 2026-08-27, listava exatamente #51, #52,
+  #53, #54 — construção — e #55 — documentação): nasceram de defeitos achados durante a
+  execução — #60
+  (contrato divergente), #62 (total da série ausente na leitura), #64 (a DoD prometia dois
+  clientes sem refresh e só havia prova de isolamento entre famílias). **Tarefas de documentação**
+  também nasceram fora do DAG original — #65, #66 e #67 —, cada uma corrigindo o que a tarefa de
+  documentação anterior deixou incompleto (a MC/MANUAL/EF ficando um merge atrás de si mesmas);
+  essa cadeia está contada tarefa a tarefa na seção "Prova rodada" do `MANUAL-04`, não repetida
+  aqui como lista à parte. RN-15 a
   RN-21 e RN-39 estão provadas por teste de integração real. **RN-22 fica `Parcial`** por depender
   de uma tabela que só a EF-08 cria (`fechamentos_mes`) — o guarda existe e está testado, mas o
   caso positivo (lançamento de fato recusado) não tem como ser provado hoje. **RN-19 fica
@@ -139,6 +144,7 @@ atribuída a uma tarefa nesta história. `EF04-MC-005` já fechou, pela tarefa #
       `git log --oneline --first-parent main..historia/18-ef-04-lancamentos` — já estava carimbada
       `provado`, com evidência comentada (conferido, não recarimbado por esta tarefa — fora do
       escopo de `docs`)
-- [ ] PR aberto — a devolver pelo condutor após o merge desta tarefa (#67, a última da história
-      #18: fecha a tríade EF/MC/MANUAL e a recursão da contagem que a fazia nascer velha a cada
-      correção anterior)
+- [ ] PR aberto — a devolver pelo condutor após o merge desta tarefa (#67: fecha a tríade
+      EF/MC/MANUAL e a recursão da contagem que a fazia nascer velha a cada correção anterior).
+      Qual foi a tarefa mais recente desta história é o que o `git log` responde, não este texto —
+      por isso este documento não afirma qual tarefa é "a última"
