@@ -459,7 +459,7 @@ async function salvar(): Promise<void> {
             v-for="c in categorias"
             :key="c.id"
             type="button"
-            class="linha folha__item"
+            class="linha linha--botao folha__item"
             @click="escolherCategoria(c)"
           >
             <span class="linha__icone" :style="{ background: c.cor }">
@@ -492,7 +492,7 @@ async function salvar(): Promise<void> {
           v-for="c in contasParaOrigem"
           :key="c.id"
           type="button"
-          class="linha folha__item"
+          class="linha linha--botao folha__item"
           @click="escolherConta(c)"
         >
           <span class="linha__icone" :style="{ background: c.cor }">
@@ -529,7 +529,7 @@ async function salvar(): Promise<void> {
             v-for="c in contasParaDestino"
             :key="c.id"
             type="button"
-            class="linha folha__item"
+            class="linha linha--botao folha__item"
             @click="escolherContaDestino(c)"
           >
             <span class="linha__icone" :style="{ background: c.cor }">

@@ -25,6 +25,41 @@
   }
 }
 
+// A MESMA LINHA, QUANDO ELA É UM `<button>`.
+//
+// `.linha` nasceu para `<li>` (`convidar`) e `<NuxtLink>` (`mais`), e por isso
+// nunca resetou nada de formulário. Quando o extrato e a folha de lançamento
+// passaram a usá-la em `<button>`, o elemento chegou com o desenho do agente do
+// usuário por cima: fundo cinza, borda nas TRÊS faces que `.linha` não redefine
+// (ela só declara `border-top`), fonte do sistema e texto centralizado.
+//
+// ⚠️ Isso passa no build, no typecheck e no gate de navegação — a rota abre, o
+// HTML está lá, nenhum erro no console. Só quem olha a tela vê.
+//
+// POR QUE AQUI, e não em cada tela: são CINCO usos em dois arquivos — as linhas
+// do extrato, os itens do filtro de conta, e os três dropdowns da folha
+// (categoria, conta, conta de destino). Com um consumidor só, o reset era da
+// tela; com dois, copiar é o que produz a terceira cópia divergente.
+//
+// ⚠️ Precisa vir DEPOIS de `.linha`: as duas têm a mesma especificidade, e é a
+// ordem no arquivo que decide qual `border` vale.
+.linha--botao {
+  width: 100%;
+  background: none;
+  border: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  font-family: inherit;
+  font-size: inherit;
+  text-align: left;
+  color: inherit;
+  appearance: none;
+  cursor: pointer;
+
+  &:first-child {
+    border-top: 0;
+  }
+}
+
 .linha__icone {
   width: 32px;
   height: 32px;

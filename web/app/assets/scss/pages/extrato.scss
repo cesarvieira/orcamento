@@ -7,38 +7,10 @@
 // tamanho que este `scoped` permite sobrescrever (28px em vez de 32px, o
 // desenho §5.5).
 
-// ── O RESET QUE `.linha` NÃO TRAZ, E POR QUE ELE MORA AQUI ───────────────
-//
-// `.linha` nasceu em `mais`/`convidar` para `<div>` e `<NuxtLink>`
-// (`base/_lista.scss`), e por isso nunca precisou resetar `<button>`. Esta
-// tela é a ÚNICA que a usa num `<button>` — nas linhas de lançamento e nos
-// itens do dropdown de conta.
-//
-// Sem o reset, o botão chega com o desenho do agente do usuário por cima:
-// fundo cinza, borda nas TRÊS faces que `.linha` não redefine (ela só declara
-// `border-top`), fonte do sistema em vez da do app, e texto centralizado.
-// O resultado passa no build e no gate de navegação — a rota abre, o HTML está
-// lá — e só quem olha a tela vê.
-//
-// Fica neste arquivo, e não em `_lista.scss`, porque o defeito é de QUEM USA:
-// mudar a base para acomodar um consumidor mexeria nas duas telas que já a
-// usam corretamente há mais tempo.
-%linha-em-botao {
-  width: 100%;
-  background: none;
-  border: 0;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
-  font-family: inherit;
-  font-size: inherit;
-  text-align: left;
-  color: inherit;
-  appearance: none;
-  cursor: pointer;
-
-  &:first-child {
-    border-top: 0;
-  }
-}
+// O reset de `<button>` NÃO está aqui: é `.linha--botao`, em
+// `base/_lista.scss`. Ele nasceu nesta tela, mas a folha de lançamento passou
+// a precisar dele nos três dropdowns dela — com o segundo consumidor, manter a
+// regra na tela seria a primeira das cópias divergentes.
 
 // O título "Extrato" já vem do shell (`topo__titulo`). Esta tela só
 // acrescenta a sublinha — mesmo padrão de `contas.scss`/`orcamento.scss`.
@@ -150,10 +122,6 @@
   box-shadow: 0 12px 30px rgba(10, 25, 50, 0.22);
 }
 
-.extrato__filtro-item {
-  @extend %linha-em-botao;
-}
-
 .extrato__check {
   flex: none;
   margin-left: auto;
@@ -180,9 +148,8 @@
 
 // ── linha de lançamento (recorte §5.5) — 28px, não os 32px de `.linha` ──
 
+// Só o tamanho do ícone: o reset de `<button>` vem de `.linha--botao`.
 .extrato__linha {
-  @extend %linha-em-botao;
-
   .linha__icone {
     width: 28px;
     height: 28px;
