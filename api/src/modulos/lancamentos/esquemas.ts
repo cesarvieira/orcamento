@@ -101,4 +101,7 @@ registrarEsquema(
 // Exclusão — fork 1/#52: o alcance pergunta.
 // ---------------------------------------------------------------------------
 
-export const EsquemaModoDeExclusao = z.enum(['esta', 'todas', 'a-partir-desta']);
+export const EsquemaModoDeExclusao = registrarEsquema(
+  'ModoDeExclusao',
+  z.enum(['esta', 'todas', 'a-partir-desta']),
+);

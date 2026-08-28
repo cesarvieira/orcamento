@@ -796,6 +796,8 @@ export interface components {
                 criadoEm: string;
             }[];
         };
+        /** @enum {string} */
+        ModoDeExclusao: "esta" | "todas" | "a-partir-desta";
     };
     responses: never;
     parameters: never;
@@ -1974,7 +1976,12 @@ export interface operations {
     };
     get_lancamentos: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Filtra o extrato pela competência, no formato AAAA-MM. */
+                competencia?: string;
+                /** @description Filtra o extrato pelos lançamentos desta conta. */
+                contaId?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2121,7 +2128,10 @@ export interface operations {
     };
     delete_lancamentos__id_: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Alcance da exclusão quando o lançamento é parcela de uma série: esta (default) · todas · a-partir-desta (fork 1/#52). */
+                modo?: "esta" | "todas" | "a-partir-desta";
+            };
             header?: never;
             path: {
                 id: string;
