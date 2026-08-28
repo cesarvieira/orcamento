@@ -28,7 +28,13 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { atualizadoEm, competencia as colunaCompetencia, criadoEm, dinheiroCentavos } from './tipos';
+import {
+  atualizadoEm,
+  competencia as colunaCompetencia,
+  criadoEm,
+  dataDoFato,
+  dinheiroCentavos,
+} from './tipos';
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -49,6 +55,20 @@ export const provedorIdentidade = pgEnum('provedor_identidade', [
  * e o gate de contrato reprova.
  */
 export const tipoConta = pgEnum('tipo_conta', ['DEBITO', 'CREDITO', 'RESERVA']);
+
+/**
+ * O tipo de um lançamento (EF-04 §1). STRING no banco e no contrato, mesmo
+ * motivo de `tipoConta` acima.
+ *
+ * TIPO EXPLÍCITO, NÃO SINAL: o protótipo representa receita como valor
+ * negativo com categoria nula — funciona para somar e falha para relatar,
+ * filtrar e validar, e torna `TRANSFERENCIA` inexprimível (EF-04 §1/§4).
+ */
+export const tipoLancamento = pgEnum('tipo_lancamento', [
+  'RECEITA',
+  'DESPESA',
+  'TRANSFERENCIA',
+]);
 
 // ---------------------------------------------------------------------------
 // Familia — o tenant. Raiz de todo isolamento.
@@ -436,6 +456,120 @@ export const competencias = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// SerieParcelas — agrupa as N parcelas de uma compra parcelada (EF-04 §1).
+// Guarda `totalCentavos`/`quantidade` da COMPRA ORIGINAL.
+// ---------------------------------------------------------------------------
+
+/**
+ * Suposição declarada pelo condutor (issue #52, fork 1): `totalCentavos` e
+ * `quantidade` são a compra ORIGINAL e NUNCA são reescritos por exclusão de
+ * parcela — mesmo motivo de `lancamentos.criadoPorMembroId` ser imutável
+ * (RN-16). RN-21 (soma == total) vale na GERAÇÃO da série
+ * (`modulos/lancamentos/dominio.ts`), não depois: excluir parcelas (`esta` ·
+ * `todas` · `a partir desta`) não é obrigado a manter essa igualdade, porque
+ * o total guardado é o da compra, não da série remanescente.
+ *
+ * `quantidade` mínima é 2: quantidade 1 não é parcelamento — é um
+ * `Lancamento` avulso, sem `SerieParcelas` (RN-20 fala em "até 48×", nunca em
+ * "1×").
+ */
+export const seriesParcelas = pgTable(
+  'series_parcelas',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** Todo dado do produto pende da família (R1). Vem sempre do token. */
+    familiaId: uuid('familia_id')
+      .notNull()
+      .references(() => familias.id, { onDelete: 'cascade' }),
+    totalCentavos: dinheiroCentavos('total_centavos').notNull(),
+    quantidade: integer('quantidade').notNull(),
+    criadoEm: criadoEm(),
+  },
+  t => [
+    index('series_parcelas_por_familia').on(t.familiaId),
+    check('series_parcelas_total_positivo', sql`${t.totalCentavos} > 0`),
+    // RN-20 — até 48×; mínimo 2 (ver comentário acima sobre por que 1 não é série).
+    check('series_parcelas_quantidade_intervalo', sql`${t.quantidade} between 2 and 48`),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Lancamento — um movimento (EF-04 §1). RECEITA · DESPESA · TRANSFERENCIA.
+// ---------------------------------------------------------------------------
+
+/**
+ * `data` (quando aconteceu) e `competencia` (que mês de orçamento consome)
+ * são colunas DISTINTAS de propósito (RN-15) — `competencia` é calculada na
+ * escrita a partir de `data` (`modulos/lancamentos/dominio.ts`), nunca
+ * derivada na leitura.
+ *
+ * Os CHECKs abaixo impõem no banco a mesma forma que o Zod
+ * (`modulos/lancamentos/esquemas.ts`) já impõe na borda: `categoriaId` só em
+ * `DESPESA`; `contaDestinoId` só em `TRANSFERENCIA`, e nunca igual a
+ * `contaId` (fork 3 da issue #52 trata isto TAMBÉM na entrada, com 400 — este
+ * CHECK é defesa em profundidade, mesmo padrão de
+ * `remanejamentos_origem_diferente_destino`).
+ *
+ * `criadoPorMembroId` é imutável (RN-16): nunca há UPDATE nesta tabela, só
+ * INSERT e DELETE — por isso não há `atualizadoEm`, mesmo padrão de
+ * `remanejamentos`.
+ */
+export const lancamentos = pgTable(
+  'lancamentos',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** Todo dado do produto pende da família (R1). Vem sempre do token. */
+    familiaId: uuid('familia_id')
+      .notNull()
+      .references(() => familias.id, { onDelete: 'cascade' }),
+    tipo: tipoLancamento('tipo').notNull(),
+    descricao: text('descricao').notNull(),
+    valorCentavos: dinheiroCentavos('valor_centavos').notNull(),
+    data: dataDoFato('data').notNull(),
+    /** `AAAA-MM` — calculada na escrita a partir de `data` (RN-15/RN-18). */
+    competencia: colunaCompetencia('competencia').notNull(),
+    /** Obrigatório em `DESPESA`; nulo em `RECEITA`/`TRANSFERENCIA` (EF-04 §1). */
+    categoriaId: uuid('categoria_id').references(() => categorias.id, { onDelete: 'cascade' }),
+    /** A conta afetada — origem, em `TRANSFERENCIA`. */
+    contaId: uuid('conta_id')
+      .notNull()
+      .references(() => contas.id, { onDelete: 'cascade' }),
+    /** Só em `TRANSFERENCIA` (EF-04 §1); nulo em `RECEITA`/`DESPESA`. */
+    contaDestinoId: uuid('conta_destino_id').references(() => contas.id, { onDelete: 'cascade' }),
+    /** RN-16 — imutável: nunca atualizado depois do INSERT. */
+    criadoPorMembroId: uuid('criado_por_membro_id')
+      .notNull()
+      .references(() => membros.id),
+    /** Nulo quando o lançamento não é parcela de nada (RN-20/RN-21). */
+    serieParcelaId: uuid('serie_parcela_id').references(() => seriesParcelas.id, {
+      onDelete: 'cascade',
+    }),
+    /** 1-baseado; nulo quando `serieParcelaId` é nulo. */
+    numeroParcela: integer('numero_parcela'),
+    criadoEm: criadoEm(),
+  },
+  t => [
+    index('lancamentos_por_familia_competencia').on(t.familiaId, t.competencia),
+    index('lancamentos_por_conta').on(t.contaId),
+    index('lancamentos_por_categoria_competencia').on(t.categoriaId, t.competencia),
+    index('lancamentos_por_serie').on(t.serieParcelaId),
+    check('lancamentos_valor_positivo', sql`${t.valorCentavos} > 0`),
+    check(
+      'lancamentos_categoria_somente_em_despesa',
+      sql`(${t.tipo} = 'DESPESA' and ${t.categoriaId} is not null) or (${t.tipo} <> 'DESPESA' and ${t.categoriaId} is null)`,
+    ),
+    check(
+      'lancamentos_conta_destino_somente_em_transferencia',
+      sql`(${t.tipo} = 'TRANSFERENCIA' and ${t.contaDestinoId} is not null) or (${t.tipo} <> 'TRANSFERENCIA' and ${t.contaDestinoId} is null)`,
+    ),
+    check(
+      'lancamentos_conta_destino_diferente_da_origem',
+      sql`${t.contaDestinoId} is null or ${t.contaDestinoId} <> ${t.contaId}`,
+    ),
+  ],
+);
+
+// ---------------------------------------------------------------------------
 // Relações
 // ---------------------------------------------------------------------------
 
@@ -498,6 +632,41 @@ export const contasRelacoes = relations(contas, ({ one }) => ({
   }),
 }));
 
+export const seriesParcelasRelacoes = relations(seriesParcelas, ({ one, many }) => ({
+  familia: one(familias, {
+    fields: [seriesParcelas.familiaId],
+    references: [familias.id],
+  }),
+  lancamentos: many(lancamentos),
+}));
+
+export const lancamentosRelacoes = relations(lancamentos, ({ one }) => ({
+  familia: one(familias, {
+    fields: [lancamentos.familiaId],
+    references: [familias.id],
+  }),
+  categoria: one(categorias, {
+    fields: [lancamentos.categoriaId],
+    references: [categorias.id],
+  }),
+  conta: one(contas, {
+    fields: [lancamentos.contaId],
+    references: [contas.id],
+  }),
+  contaDestino: one(contas, {
+    fields: [lancamentos.contaDestinoId],
+    references: [contas.id],
+  }),
+  autor: one(membros, {
+    fields: [lancamentos.criadoPorMembroId],
+    references: [membros.id],
+  }),
+  serieParcela: one(seriesParcelas, {
+    fields: [lancamentos.serieParcelaId],
+    references: [seriesParcelas.id],
+  }),
+}));
+
 export const membrosRelacoes = relations(membros, ({ one, many }) => ({
   familia: one(familias, {
     fields: [membros.familiaId],
@@ -543,3 +712,5 @@ export type Categoria = typeof categorias.$inferSelect;
 export type OrcamentoMes = typeof orcamentosMes.$inferSelect;
 export type Remanejamento = typeof remanejamentos.$inferSelect;
 export type CompetenciaDb = typeof competencias.$inferSelect;
+export type SerieParcelas = typeof seriesParcelas.$inferSelect;
+export type LancamentoDb = typeof lancamentos.$inferSelect;

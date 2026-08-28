@@ -33,8 +33,7 @@ export const dinheiroCentavos = (nome: string) => integer(nome);
  * É deliberadamente distinta da competência: uma compra do dia 31 pode
  * pertencer à competência do mês seguinte. Ver `competencia` abaixo.
  *
- * @fundacao ninguém usa ainda — a EF-00 não tem entidade de domínio. É pra
- * EF-02 em diante.
+ * Em uso desde a EF-04 (tarefa #52) — `lancamentos.data`.
  */
 export const dataDoFato = (nome: string) => date(nome);
 
@@ -46,8 +45,7 @@ export const dataDoFato = (nome: string) => date(nome);
  * naquele dia, e esse fechamento pode mudar depois. Recalcular na leitura
  * reescreveria o passado.
  *
- * @fundacao ninguém usa ainda — a EF-00 não tem entidade de domínio. É pra
- * EF-02 em diante.
+ * Em uso desde a EF-04 (tarefa #52) — `lancamentos.competencia`.
  */
 export const competencia = (nome: string) => char(nome, { length: 7 });
 

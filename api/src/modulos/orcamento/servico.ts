@@ -8,7 +8,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 
 import type { Db } from '../../db';
-import { categorias, competencias, orcamentosMes, remanejamentos } from '../../db/schema';
+import { categorias, competencias, lancamentos, orcamentosMes, remanejamentos } from '../../db/schema';
 import type { EsquemaNovaCategoria, EsquemaNovoRemanejamento } from './esquemas';
 
 export type EntradaDeCategoria = z.infer<typeof EsquemaNovaCategoria>;
@@ -148,22 +148,26 @@ export async function excluirCategoria(
 }
 
 // ---------------------------------------------------------------------------
-// gasto — RN-10. Soma dos lançamentos DESPESA da categoria na competência.
+// gasto — RN-10. Soma dos lançamentos DESPESA da categoria na competência
+// (EF-04, tarefa #52). Subquery CORRELACIONADA a `categorias.id`: só funciona
+// dentro do `.select()` de `lerCompetencia`, que tem `categorias` no FROM.
 // ---------------------------------------------------------------------------
 
 /**
- * Não existe tabela de lançamentos ainda — ela é da EF-04. O termo fica FIXO
- * em 0 até lá, mas já é a leitura CERTA (uma SOMA): quando a EF-04 criar
- * `lancamentos`, ela troca só este termo por
- * `coalesce((select sum(valor_centavos) from lancamentos
- *   where lancamentos.categoria_id = categorias.id
- *     and lancamentos.tipo = 'DESPESA'
- *     and lancamentos.competencia = <competencia>), 0)`
- * — RN-10 (`disponivel = teto - gasto`) não muda uma linha. Mesmo padrão de
- * `modulos/contas/servico.ts#expressaoSaldoDerivado`.
+ * `::integer` no fim é deliberado: `sum(integer)` no Postgres devolve
+ * `bigint`, e o driver `pg` serializa `bigint` como STRING (evita perda de
+ * precisão em valores que não cabem num `number` do JS). Sem o cast, todo
+ * `gastoCentavos` chegaria como `"800"` em vez de `800` — quebrando toda
+ * aritmética a jusante (RN-10) e o contrato (`z.number().int()`).
  */
-function gastoCentavosAindaNaoExiste(): number {
-  return 0; // @fundacao — EF-04 substitui isto (ver comentário acima).
+function expressaoGastoDerivado(competencia: string) {
+  return sql<number>`coalesce((
+    select sum(${lancamentos.valorCentavos})
+    from ${lancamentos}
+    where ${lancamentos.categoriaId} = ${categorias.id}
+      and ${lancamentos.tipo} = 'DESPESA'
+      and ${lancamentos.competencia} = ${competencia}
+  ), 0)::integer`;
 }
 
 // ---------------------------------------------------------------------------
@@ -171,17 +175,24 @@ function gastoCentavosAindaNaoExiste(): number {
 // lançamentos RECEITA da competência inteira (não por categoria).
 // ---------------------------------------------------------------------------
 
-/**
- * Mesma dependência de `gastoCentavosAindaNaoExiste`, na escala da
- * competência: quando a EF-04 existir, troca por
- * `coalesce((select sum(valor_centavos) from lancamentos
- *   where lancamentos.familia_id = <familiaId>
- *     and lancamentos.tipo = 'RECEITA'
- *     and lancamentos.competencia = <competencia>), 0)`
- * — RN-11 (`nao_alocado = recebido - planejado`) não muda uma linha.
- */
-function recebidoCentavosAindaNaoExiste(): number {
-  return 0; // @fundacao — EF-04 substitui isto (ver comentário acima).
+async function recebidoDaCompetencia(
+  db: Db,
+  familiaId: string,
+  competencia: string,
+): Promise<number> {
+  const [linha] = await db
+    // `::integer` — mesmo motivo do cast em `expressaoGastoDerivado` acima:
+    // `sum(integer)` é `bigint`, e o `pg` devolveria string sem o cast.
+    .select({ recebidoCentavos: sql<number>`coalesce(sum(${lancamentos.valorCentavos}), 0)::integer` })
+    .from(lancamentos)
+    .where(
+      and(
+        eq(lancamentos.familiaId, familiaId),
+        eq(lancamentos.tipo, 'RECEITA'),
+        eq(lancamentos.competencia, competencia),
+      ),
+    );
+  return linha?.recebidoCentavos ?? 0;
 }
 
 // ---------------------------------------------------------------------------
@@ -283,7 +294,9 @@ export async function lerCompetencia(
   competencia: string,
 ): Promise<CompetenciaLida> {
   // LEFT JOIN + coalesce: categoria sem OrcamentoMes nesta competência
-  // aparece com teto 0 (RN-40), em vez de sumir da lista.
+  // aparece com teto 0 (RN-40), em vez de sumir da lista. `gastoCentavos`
+  // (RN-10) é a subquery correlacionada a `categorias.id` — só funciona
+  // porque `categorias` está no FROM desta mesma consulta.
   const linhas = await db
     .select({
       id: categorias.id,
@@ -291,6 +304,7 @@ export async function lerCompetencia(
       icone: categorias.icone,
       cor: categorias.cor,
       tetoCentavos: sql<number>`coalesce(${orcamentosMes.tetoCentavos}, 0)`,
+      gastoCentavos: expressaoGastoDerivado(competencia),
     })
     .from(categorias)
     .leftJoin(
@@ -300,20 +314,16 @@ export async function lerCompetencia(
     .where(eq(categorias.familiaId, familiaId))
     .orderBy(categorias.criadoEm);
 
-  const categoriasLidas: CategoriaNaCompetenciaLida[] = linhas.map((linha) => {
-    const gastoCentavos = gastoCentavosAindaNaoExiste();
-    return {
-      ...linha,
-      gastoCentavos,
-      // RN-10 — disponível = teto − gasto. Negativo significa que estourou.
-      disponivelCentavos: linha.tetoCentavos - gastoCentavos,
-    };
-  });
+  const categoriasLidas: CategoriaNaCompetenciaLida[] = linhas.map(linha => ({
+    ...linha,
+    // RN-10 — disponível = teto − gasto. Negativo significa que estourou.
+    disponivelCentavos: linha.tetoCentavos - linha.gastoCentavos,
+  }));
 
   // RN-11 — planejado = Σ tetos. Somado das MESMAS linhas já lidas acima
   // (RN-40 incluído: teto 0 de categoria sem OrcamentoMes soma 0).
   const planejadoCentavos = categoriasLidas.reduce((soma, c) => soma + c.tetoCentavos, 0);
-  const recebidoCentavos = recebidoCentavosAindaNaoExiste();
+  const recebidoCentavos = await recebidoDaCompetencia(db, familiaId, competencia);
   const rendaPrevistaCentavos = await rendaPrevistaDaCompetencia(db, familiaId, competencia);
 
   return {

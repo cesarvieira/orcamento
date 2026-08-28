@@ -26,6 +26,7 @@ import {
 import { rotasDeSaude } from './http/rotas/saude';
 import { rotasDeContas } from './modulos/contas/rotas';
 import { rotasDeFamilia } from './modulos/familia/rotas';
+import { rotasDeLancamentos } from './modulos/lancamentos/rotas';
 import { rotasDeOrcamento } from './modulos/orcamento/rotas';
 import { construirDocumento } from './openapi/registro';
 import './openapi/esquemas';
@@ -66,6 +67,7 @@ export function criarApp(): Express {
   app.use(rotasDeFamilia);
   app.use(rotasDeContas);
   app.use(rotasDeOrcamento);
+  app.use(rotasDeLancamentos);
 
   app.use(tratarNaoEncontrado);
   app.use(tratarErro);
