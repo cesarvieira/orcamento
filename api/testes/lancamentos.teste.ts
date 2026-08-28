@@ -209,8 +209,8 @@ describe('RN-17 — transferência não é despesa: nunca tem categoria, nunca a
   });
 });
 
-describe('RN-18 — compra no crédito consome a categoria mas NÃO move o saldo da conta', () => {
-  it('DESPESA numa conta CREDITO mantém o saldo derivado em zero', async () => {
+describe('RN-18 — compra no crédito consome a categoria mas NÃO move o CAIXA REAL de uma conta de débito/reserva', () => {
+  it('EF-05/RN-25 — DESPESA numa conta CREDITO move o saldo derivado dela para NEGATIVO (dívida)', async () => {
     const cartao = await criarConta(cookieA, 'CREDITO', { nome: 'RN-18 cartão' });
     const categoria = await criarCategoria(cookieA, 'RN-18 categoria');
 
@@ -230,9 +230,16 @@ describe('RN-18 — compra no crédito consome a categoria mas NÃO move o saldo
 
     const depois = await request(app).get('/contas').set('Cookie', cookieA);
     const saldoDepois = depois.body.contas.find((c: { id: string }) => c.id === cartao.id).saldoCentavos;
-    // RN-18/RN-19 — quem move o saldo é a fatura paga (EF-05); até lá, uma
-    // conta CREDITO fica travada em 0 (ver `modulos/contas/servico.ts`).
-    expect(saldoDepois).toBe(0);
+    // RN-18/RN-19 — quem move o CAIXA REAL de uma conta de débito/reserva é a
+    // fatura paga (RN-24), nunca a compra em si. Até a EF-05 (tarefa #70) este
+    // teste esperava saldoCentavos === 0 — CREDITO ficava travada em 0 de
+    // propósito, com um comentário apontando para esta EF (ver
+    // `modulos/contas/servico.ts#expressaoSaldoDerivado`). A EF-05 chegou:
+    // ela ESTENDE esse ponto, e agora saldoCentavos de um cartão é a dívida
+    // real (RN-25/D1 — "o saldo exibido do cartão é a soma das faturas em
+    // aberto"), negativa por convenção. Ajuste autorizado pelo condutor —
+    // costura sem dono resolvida na issue #70.
+    expect(saldoDepois).toBe(-15000);
   });
 
   it('a MESMA despesa consome o teto da categoria, na data da compra', async () => {
