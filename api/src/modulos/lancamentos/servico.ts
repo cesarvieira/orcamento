@@ -16,7 +16,7 @@ import { categorias, contas, lancamentos, seriesParcelas } from '../../db/schema
 import { competenciaDaData, gerarParcelas } from './dominio';
 import type { EsquemaModoDeExclusao, EsquemaNovoLancamento } from './esquemas';
 
-export type EntradaDeLancamento = z.infer<typeof EsquemaNovoLancamento>;
+type EntradaDeLancamento = z.infer<typeof EsquemaNovoLancamento>;
 export type ModoDeExclusao = z.infer<typeof EsquemaModoDeExclusao>;
 
 export interface LancamentoLido {

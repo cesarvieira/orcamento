@@ -59,7 +59,7 @@ function ultimoDiaDoMes(ano: number, mesUmBaseado: number): number {
  * Soma `meses` (pode ser 0) a `data` (`AAAA-MM-DD`), cravando o dia no
  * último dia do mês de destino quando necessário.
  */
-export function adicionarMeses(data: string, meses: number): string {
+function adicionarMeses(data: string, meses: number): string {
   const [anoStr, mesStr, diaStr] = data.split('-');
   const ano = Number(anoStr);
   const mes = Number(mesStr);

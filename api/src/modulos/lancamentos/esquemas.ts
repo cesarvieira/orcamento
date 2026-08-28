@@ -73,7 +73,7 @@ export const EsquemaNovoLancamento = registrarEsquema(
 // A leitura — a MESMA forma para criação, listagem e detalhe.
 // ---------------------------------------------------------------------------
 
-export const EsquemaLancamento = registrarEsquema(
+const EsquemaLancamento = registrarEsquema(
   'Lancamento',
   z.object({
     id: z.string(),

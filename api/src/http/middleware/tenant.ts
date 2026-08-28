@@ -161,7 +161,8 @@ export function familiaDaRequisicao(req: Request): string {
 
 /**
  * O membro autenticado — autor imutável de tudo que a requisição criar.
- * @fundacao ninguém usa ainda — é pra EF-04 (lançamentos) registrar quem criou.
+ * Em uso desde a EF-04 (tarefa #52) — `modulos/lancamentos/rotas.ts` o usa
+ * para gravar `criadoPorMembroId` (RN-16).
  */
 export function membroDaRequisicao(req: Request): string {
   const membroId = req.contexto?.membroId;
