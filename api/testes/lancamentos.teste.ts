@@ -947,3 +947,68 @@ describe('tempo real — invalidação emitida no recurso lancamentos, com a com
     expect(evento.competencia).toBe('2026-08');
   });
 });
+
+// ---------------------------------------------------------------------------
+// UM POST, UMA LINHA
+//
+// ⚠️ ESTE TESTE NASCEU DE UM FALSO DEFEITO, e fica porque o falso defeito custa
+// caro: em 2026-08-28 lançamentos de RECEITA apareciam duplicados na tela, e a
+// causa NÃO era do produto — era o navegador **Polypane**, que renderiza vários
+// viewports ao mesmo tempo e SINCRONIZA a interação. Um clique em "Salvar" era
+// repetido em cada painel, e cada painel mandava o seu próprio POST com o mesmo
+// cookie. Daí os 267µs–523µs entre as linhas: não eram dois cliques, era um
+// clique multiplicado.
+//
+// O detalhe que quase mandou a investigação para o lugar errado: **só RECEITA
+// duplicava**. A explicação está na validação da própria folha — DESPESA exige
+// categoria, e nos painéis em que o dropdown não estava escolhido o `salvar`
+// parava antes do POST; RECEITA não tem campo equivalente e passava em todos.
+// Uma assimetria que parecia regra de negócio era, na verdade, o formulário
+// fazendo o seu trabalho.
+//
+// O que estes dois testes garantem, e por isso continuam valendo: um POST HTTP
+// grava UMA linha. Enquanto eles estiverem verdes, duplicação relatada na tela
+// é de fora da API — cliente que manda duas vezes, navegador que multiplica
+// interação, ou automação — e a investigação começa DAQUI PARA FORA, em vez de
+// refazer do zero o caminho `handler -> serviço -> insert`.
+// ---------------------------------------------------------------------------
+describe('um POST cria exatamente UMA linha', () => {
+  it('RECEITA: um POST não grava duas linhas', async () => {
+    const conta = await criarConta(cookieA);
+    const resposta = await postLancamento(cookieA, {
+      tipo: 'RECEITA',
+      descricao: 'regressao-duplicacao-receita',
+      valorCentavos: 25000,
+      data: '2026-08-28',
+      contaId: conta.id,
+    });
+    expect(resposta.status).toBe(201);
+    expect((resposta.body.lancamentos as LancamentoLido[]).length).toBe(1);
+
+    const linhas = await db
+      .select({ id: lancamentos.id })
+      .from(lancamentos)
+      .where(eq(lancamentos.descricao, 'regressao-duplicacao-receita'));
+    expect(linhas).toHaveLength(1);
+  });
+
+  it('DESPESA avulsa: um POST não grava duas linhas', async () => {
+    const conta = await criarConta(cookieA);
+    const categoria = await criarCategoria(cookieA, 'Regressão duplicação');
+    const resposta = await postLancamento(cookieA, {
+      tipo: 'DESPESA',
+      descricao: 'regressao-duplicacao-despesa',
+      valorCentavos: 5000,
+      data: '2026-08-28',
+      contaId: conta.id,
+      categoriaId: categoria.id,
+    });
+    expect(resposta.status).toBe(201);
+
+    const linhas = await db
+      .select({ id: lancamentos.id })
+      .from(lancamentos)
+      .where(eq(lancamentos.descricao, 'regressao-duplicacao-despesa'));
+    expect(linhas).toHaveLength(1);
+  });
+});

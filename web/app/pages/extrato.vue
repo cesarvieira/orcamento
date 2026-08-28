@@ -261,7 +261,7 @@ function valorComSinal(l: Lancamento): number {
       <template v-if="filtroAberto">
         <div class="extrato__filtro-backdrop" @click="fecharFiltro"></div>
         <div class="extrato__filtro-painel">
-          <button type="button" class="linha extrato__filtro-item" @click="escolherConta(null)">
+          <button type="button" class="linha linha--botao" @click="escolherConta(null)">
             <span class="linha__icone"><i class="ti ti-list-details"></i></span>
             <span class="linha__texto">
               <span class="linha__titulo">Todas as contas</span>
@@ -272,7 +272,7 @@ function valorComSinal(l: Lancamento): number {
             v-for="c in contas"
             :key="c.id"
             type="button"
-            class="linha extrato__filtro-item"
+            class="linha linha--botao"
             @click="escolherConta(c.id)"
           >
             <span class="linha__icone" :style="{ background: c.cor }">
@@ -300,7 +300,7 @@ function valorComSinal(l: Lancamento): number {
             v-for="l in grupo.itens"
             :key="l.id"
             type="button"
-            class="linha extrato__linha"
+            class="linha linha--botao extrato__linha"
             @click="abrirDetalhe(l)"
           >
             <span class="linha__icone" :style="{ background: corDoLancamento(l) }">

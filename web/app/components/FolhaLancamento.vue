@@ -68,11 +68,35 @@ const abertoCategoria = ref(false);
 const abertoConta = ref(false);
 const abertoContaDestino = ref(false);
 
-const avisoForaDeEscopo = ref<string | null>(null);
 const salvando = ref(false);
 const erro = ref<string | null>(null);
 
 const valorCentavos = computed(() => textoParaCentavos(valorTexto.value || '0'));
+
+/**
+ * O CAMPO DE VALOR — cru enquanto se digita, formatado quando se sai.
+ *
+ * `valorTexto` continua sendo a única fonte: o teclado da folha e o teclado
+ * físico escrevem nele do MESMO jeito, porque `textoParaCentavos` já aceita as
+ * duas formas (`1234`, `12,34`, `1.234,56`, `R$ 10`). Não há segundo caminho.
+ *
+ * ⚠️ POR QUE NÃO FORMATAR ENQUANTO DIGITA: reescrever o texto a cada tecla
+ * move o cursor para o fim e impede apagar o meio do número — o defeito
+ * clássico de campo de dinheiro. Enquanto o campo tem foco ele mostra o que a
+ * pessoa escreveu; ao sair, mostra o valor formatado que o resto da tela usa.
+ */
+const valorFocado = ref(false);
+const valorExibido = computed({
+  get: () => {
+    if (valorFocado.value) return valorTexto.value;
+    // Vazio continua vazio: formatar o zero mostraria "R$ 0,00" num campo em
+    // que ninguém tocou, e o placeholder nunca apareceria.
+    return valorTexto.value ? formatarCentavos(valorCentavos.value) : '';
+  },
+  set: (novo: string) => {
+    valorTexto.value = novo;
+  },
+});
 
 /** `AAAA-MM-DD` de hoje, no fuso local — só o valor inicial da folha ao abrir. */
 function dataDeHoje(): string {
@@ -124,7 +148,6 @@ watch(aberta, novo => {
   abertoCategoria.value = false;
   abertoConta.value = false;
   abertoContaDestino.value = false;
-  avisoForaDeEscopo.value = null;
   erro.value = null;
 
   void carregarContas();
@@ -272,15 +295,6 @@ const labelSalvar = computed(() => {
   return 'Lançar despesa';
 });
 
-// ── FORA DE ESCOPO — recibo, importar, atalhos (recorte §2.2 e `.preator/CONTEXT.md`) ──
-
-function avisarRecibo(): void {
-  avisoForaDeEscopo.value = 'Fotografar o recibo ainda não está disponível.';
-}
-function avisarImportar(): void {
-  avisoForaDeEscopo.value = 'Importar extrato ainda não está disponível.';
-}
-
 // ── SALVAR ─────────────────────────────────────────────────────────────
 
 async function salvar(): Promise<void> {
@@ -343,9 +357,14 @@ async function salvar(): Promise<void> {
 
   salvando.value = true;
   try {
-    // Regra inviolável #4: nenhuma leitura para refazer AQUI — quem mostra
-    // lista (visão do mês/extrato, tarefa #54) reage à invalidação do
-    // recurso `lancamentos` que o servidor emite depois deste POST.
+    // Regra inviolável #4: nenhuma leitura para refazer AQUI, e nenhum número
+    // recalculado — quem mostra lista (visão do mês/extrato, tarefa #54) relê
+    // pela API.
+    //
+    // ⚠️ Quem avisa essas telas é `criarLancamento`, via
+    // `notificarInvalidacaoLocal`. NÃO é o eco do socket: esta aba o descarta
+    // por R5, e por isso o lançamento aparecia em todas as outras abas menos
+    // nesta (defeito medido em 2026-08-28).
     await criarLancamento(corpo);
     fechar();
   } catch (e) {
@@ -364,19 +383,6 @@ async function salvar(): Promise<void> {
         <button type="button" class="sheet__fechar" aria-label="Fechar" @click="fechar">✕</button>
       </div>
 
-      <!-- ⚠️ Fora de escopo (`.preator/CONTEXT.md`) — desenhados, não implementados (recorte §2.2). -->
-      <div class="folha__pilulas">
-        <button type="button" class="folha__pilula" @click="avisarRecibo">
-          <i class="ti ti-camera"></i>
-          Foto do recibo
-        </button>
-        <button type="button" class="folha__pilula" @click="avisarImportar">
-          <i class="ti ti-file-import"></i>
-          Importar extrato
-        </button>
-      </div>
-      <p v-if="avisoForaDeEscopo" class="folha__aviso">{{ avisoForaDeEscopo }}</p>
-
       <!-- ── TIPO — 🟨 não é do desenho, ver comentário no <script> ────────── -->
       <div class="sheet__tipos folha__tipos">
         <button
@@ -390,22 +396,6 @@ async function salvar(): Promise<void> {
           <i class="ti" :class="t.icone"></i>
           <span>{{ t.rotulo }}</span>
         </button>
-      </div>
-
-      <!-- ── DESCRIÇÃO — 🟨 não é do desenho, ver comentário no <script> ───── -->
-      <input
-        v-model="descricao"
-        type="text"
-        placeholder="O que foi?"
-        aria-label="Descrição do lançamento"
-        class="sheet__nome folha__descricao"
-      >
-
-      <!-- ── VALOR (recorte §2.3) ───────────────────────────────────────────── -->
-      <div class="folha__valor-cartao">
-        <div class="folha__valor-rotulo">VALOR</div>
-        <div class="folha__valor-numero" :style="{ color: corValor }">{{ formatarCentavos(valorCentavos) }}</div>
-        <div class="folha__valor-resumo">{{ resumoLanc }}</div>
       </div>
 
       <!-- ── LANÇAMENTO RÁPIDO (recorte §2.4) ─────────────────────────────────
@@ -441,7 +431,7 @@ async function salvar(): Promise<void> {
             v-for="c in categorias"
             :key="c.id"
             type="button"
-            class="linha folha__item"
+            class="linha linha--botao folha__item"
             @click="escolherCategoria(c)"
           >
             <span class="linha__icone" :style="{ background: c.cor }">
@@ -474,7 +464,7 @@ async function salvar(): Promise<void> {
           v-for="c in contasParaOrigem"
           :key="c.id"
           type="button"
-          class="linha folha__item"
+          class="linha linha--botao folha__item"
           @click="escolherConta(c)"
         >
           <span class="linha__icone" :style="{ background: c.cor }">
@@ -511,7 +501,7 @@ async function salvar(): Promise<void> {
             v-for="c in contasParaDestino"
             :key="c.id"
             type="button"
-            class="linha folha__item"
+            class="linha linha--botao folha__item"
             @click="escolherContaDestino(c)"
           >
             <span class="linha__icone" :style="{ background: c.cor }">
@@ -525,6 +515,15 @@ async function salvar(): Promise<void> {
           </button>
         </div>
       </template>
+
+      <!-- ── DESCRIÇÃO — 🟨 não é do desenho, ver comentário no <script> ───── -->
+      <input
+        v-model="descricao"
+        type="text"
+        placeholder="O que foi?"
+        aria-label="Descrição do lançamento"
+        class="sheet__nome folha__descricao"
+      >
 
       <!-- ── DATA · PARCELAS (recorte §2.7) ───────────────────────────────────── -->
       <div class="folha__linha-dupla">
@@ -563,7 +562,39 @@ async function salvar(): Promise<void> {
       <!-- recorte §2.8 — texto e cor saem da regra, não do mockup (§6 ponto 3) -->
       <p v-if="dataHint" class="folha__hint" :style="{ color: corDataHint }">{{ dataHint }}</p>
 
-      <!-- ── TECLADO NUMÉRICO (recorte §2.9) ──────────────────────────────────── -->
+      <!-- ── VALOR (recorte §2.3) ─────────────────────────────────────────────
+           🟨 POSIÇÃO e CAMPO divergem do desenho, por decisão do humano:
+
+           · No mockup o valor fica no TOPO da folha. Aqui ele desceu para
+             ficar exatamente ACIMA do teclado — os dois formam uma peça só, e
+             separá-los obrigava o olho a subir a folha inteira a cada tecla.
+           · No mockup o valor é só EXIBIÇÃO, alimentada pelo teclado. Aqui é
+             um campo digitável, porque no desktop o teclado numérico não faz
+             sentido e some (ver `folha-lancamento.scss`).
+
+           `inputmode="none"` é o que faz os dois mundos coexistirem: no celular
+           o campo é focável mas o teclado DO SISTEMA não sobe — quem digita é o
+           teclado da folha, que ficaria escondido atrás dele. No desktop o
+           atributo é inerte e o teclado físico escreve normalmente. -->
+      <div class="folha__valor-cartao">
+        <label class="folha__valor-rotulo" for="folha-valor">VALOR</label>
+        <input
+          id="folha-valor"
+          v-model="valorExibido"
+          type="text"
+          inputmode="none"
+          placeholder="R$ 0,00"
+          class="folha__valor-numero"
+          :style="{ color: corValor }"
+          @focus="valorFocado = true"
+          @blur="valorFocado = false"
+        >
+        <div class="folha__valor-resumo">{{ resumoLanc }}</div>
+      </div>
+
+      <!-- ── TECLADO NUMÉRICO (recorte §2.9) ────────────────────────────────────
+           Só no celular: no desktop `folha-lancamento.scss` o esconde, e o
+           valor se digita no campo acima. -->
       <div class="folha__teclado">
         <button
           v-for="t in TECLAS"

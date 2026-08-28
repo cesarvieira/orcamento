@@ -190,27 +190,57 @@
 
 // ── VALOR (recorte §2.3) ──────────────────────────────────────────────────
 
+// ── VALOR ────────────────────────────────────────────────────────────────
+// 🟨 Fica ACIMA DO TECLADO por decisão do humano — no mockup ele está no topo
+// da folha. Os dois formam uma peça só: com o valor lá em cima, o olho subia a
+// folha inteira a cada tecla. `margin-top: auto` não serve aqui (a folha não é
+// flex de altura fixa); o par valor+teclado é mantido junto pela ORDEM no
+// template e por esta margem, que é a única entre eles.
 .folha__valor-cartao {
   background: var(--superficie);
   border: 1px solid var(--borda);
   border-radius: var(--raio-grande);
   padding: 16px;
-  margin-top: 10px;
+  margin-top: 14px;
   text-align: center;
 }
 
 .folha__valor-rotulo {
+  display: block;
   font-size: 10.5px;
   font-weight: 700;
   letter-spacing: 0.06em;
   color: var(--texto-fraco);
 }
 
+// É um `<input>`, não mais um `<div>`: precisa dos resets que o campo traz do
+// agente do usuário (borda, fundo, fonte) para continuar parecendo o número
+// grande do desenho em vez de uma caixa de texto.
 .folha__valor-numero {
+  width: 100%;
+  border: 0;
+  background: none;
+  outline: none;
+  padding: 0;
+  margin-top: 4px;
+  font-family: inherit;
   font-size: 36px;
   font-weight: 800;
   letter-spacing: -0.02em;
-  margin-top: 4px;
+  text-align: center;
+  appearance: none;
+
+  &::placeholder {
+    color: var(--texto-apagado);
+  }
+
+  // O contorno só no foco por teclado — o campo é grande e o anel padrão
+  // desenharia um retângulo em volta do número inteiro a cada clique.
+  &:focus-visible {
+    outline: 2px solid var(--tinta);
+    outline-offset: 4px;
+    border-radius: var(--raio-pequeno);
+  }
 }
 
 .folha__valor-resumo {
@@ -410,11 +440,24 @@
 
 // ── TECLADO NUMÉRICO (recorte §2.9) ───────────────────────────────────────
 
+// ── TECLADO NUMÉRICO — só no celular ─────────────────────────────────────
+// 🟨 Decisão do humano, não do desenho (o mockup é só mobile e sempre o mostra).
+// No desktop existe teclado físico: um teclado de tela ali seria um caminho a
+// mais para a mesma coisa, e o mais lento dos dois.
+//
+// ⚠️ Ele some por CSS, e o campo de valor continua digitável nos dois tamanhos
+// — é isso que impede a tela de ficar sem entrada nenhuma se o breakpoint
+// mudar. O `inputmode="none"` do campo (ver `FolhaLancamento.vue`) é o outro
+// lado: no celular ele impede o teclado do sistema de subir por cima deste.
 .folha__teclado {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
   margin-top: 14px;
+
+  @media (min-width: 768px) {
+    display: none;
+  }
 }
 
 .folha__tecla {

@@ -22,6 +22,19 @@
  *      recomputado na resposta HTTP; refazer a leitura por causa do próprio
  *      evento é trabalho dobrado e pisca a tela.
  *
+ *      ⚠️ E R5 TEM UM OUTRO LADO, que faltava e custou um defeito visível:
+ *      a premissa "quem agiu já tem o estado" só vale quando quem AGE é quem
+ *      MOSTRA. Em `contas.vue` vale — a mesma tela posta e relê. Na folha de
+ *      lançamento NÃO vale: ela posta, descarta a resposta e fecha; quem
+ *      mostra a lista é outro componente (`pages/index.vue`, `extrato.vue`),
+ *      que nunca fica sabendo. Resultado medido: o lançamento aparecia nas
+ *      OUTRAS abas e não na que o criou — porque só ela descartava o eco.
+ *
+ *      Por isso existe `notificarInvalidacaoLocal` abaixo. Ela é o eco que a
+ *      própria aba emite para si mesma quando o ator não é o exibidor. Não
+ *      afrouxa R5: o eco do socket continua descartado, e a leitura acontece
+ *      UMA vez.
+ *
  * E o socket conecta SÓ NO CLIENTE, depois da hidratação: SSR não abre socket.
  */
 import { io, type Socket } from 'socket.io-client';
@@ -33,6 +46,32 @@ const EVENTO_INVALIDACAO = 'recurso.alterado';
 
 /** O que o assinante recebe. É o evento do contrato, sem enfeite. */
 export type OuvinteDeInvalidacao = (evento: Invalidacao) => void | Promise<void>;
+
+/**
+ * OS ASSINANTES DESTA ABA — o outro lado do R5 (ver o cabeçalho).
+ *
+ * Registro de módulo, não `useState`: isto não é estado que hidrata nem que
+ * viaja no payload do SSR, são callbacks vivos de componentes montados. Cada
+ * `useRealtime` entra aqui ao montar e sai ao desmontar.
+ */
+const assinantesLocais = new Set<(evento: Invalidacao) => void>();
+
+/**
+ * Avisa as telas DESTA ABA que um recurso mudou — sem passar pelo socket.
+ *
+ * Use quando quem MUTA não é quem MOSTRA. Quem muta e mostra (o padrão de
+ * `contas.vue`/`orcamento.vue`) continua fazendo o mais simples: chama a
+ * própria releitura depois do POST, e não precisa disto.
+ *
+ * ⚠️ Passe `competencia: null` a menos que você tenha certeza de UMA
+ * competência afetada: o filtro de mês trata `null` como "interessa a quem
+ * estiver olhando", que é o comportamento seguro. Errar para o lado de uma
+ * leitura a mais é barato; errar para o lado de não avisar é o defeito que
+ * esta função existe para fechar.
+ */
+export function notificarInvalidacaoLocal(evento: Invalidacao): void {
+  for (const assinante of assinantesLocais) assinante(evento);
+}
 
 export interface OpcoesDeRealtime {
   /**
@@ -87,6 +126,28 @@ export function useRealtime(opcoes: OpcoesDeRealtime) {
     return opcoes.recursos.includes(evento.recurso);
   }
 
+  /**
+   * O filtro e a releitura, num lugar só — usado pelo evento do socket E pela
+   * notificação local. Duas cópias deste trecho divergiriam na primeira vez
+   * que alguém ajustasse o filtro de competência de um lado só.
+   *
+   * ⚠️ O descarte do próprio eco (R5) NÃO está aqui de propósito: ele é do
+   * caminho do socket. A notificação local é, por definição, do próprio
+   * cliente — passá-la pelo descarte a anularia, que é exatamente o defeito
+   * que ela conserta.
+   */
+  function tratarInvalidacao(evento: Invalidacao): void {
+    if (!interessa(evento)) return;
+
+    // A competência do evento pode ser de outro mês: quem está olhando
+    // agosto não relê por causa de um lançamento de julho.
+    const ativa = competencia();
+    if (evento.competencia && ativa && evento.competencia !== ativa) return;
+
+    // R3 — nada do evento vira estado. O que se faz com ele é RELER.
+    void opcoes.aoInvalidar(evento);
+  }
+
   onMounted(() => {
     // SSR não abre socket. `onMounted` só roda no cliente, e é o ponto exato
     // depois da hidratação.
@@ -118,22 +179,18 @@ export function useRealtime(opcoes: OpcoesDeRealtime) {
     });
 
     s.on(EVENTO_INVALIDACAO, (evento: Invalidacao) => {
-      // R5 — descarta o próprio eco.
+      // R5 — descarta o próprio eco. Quem agiu já se avisou localmente
+      // (`notificarInvalidacaoLocal`) ou já releu por conta própria.
       if (evento.origemClienteId && evento.origemClienteId === origemClienteId) return;
 
-      if (!interessa(evento)) return;
-
-      // A competência do evento pode ser de outro mês: quem está olhando
-      // agosto não relê por causa de um lançamento de julho.
-      const ativa = competencia();
-      if (evento.competencia && ativa && evento.competencia !== ativa) return;
-
-      // R3 — nada do evento vira estado. O que se faz com ele é RELER.
-      void opcoes.aoInvalidar(evento);
+      tratarInvalidacao(evento);
     });
+
+    assinantesLocais.add(tratarInvalidacao);
   });
 
   onBeforeUnmount(() => {
+    assinantesLocais.delete(tratarInvalidacao);
     socket.value?.close();
     socket.value = null;
     conectado.value = false;

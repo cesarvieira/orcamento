@@ -7,6 +7,11 @@
 // tamanho que este `scoped` permite sobrescrever (28px em vez de 32px, o
 // desenho §5.5).
 
+// O reset de `<button>` NÃO está aqui: é `.linha--botao`, em
+// `base/_lista.scss`. Ele nasceu nesta tela, mas a folha de lançamento passou
+// a precisar dele nos três dropdowns dela — com o segundo consumidor, manter a
+// regra na tela seria a primeira das cópias divergentes.
+
 // O título "Extrato" já vem do shell (`topo__titulo`). Esta tela só
 // acrescenta a sublinha — mesmo padrão de `contas.scss`/`orcamento.scss`.
 .extrato__subtitulo {
@@ -117,11 +122,6 @@
   box-shadow: 0 12px 30px rgba(10, 25, 50, 0.22);
 }
 
-.extrato__filtro-item {
-  width: 100%;
-  cursor: pointer;
-}
-
 .extrato__check {
   flex: none;
   margin-left: auto;
@@ -148,10 +148,8 @@
 
 // ── linha de lançamento (recorte §5.5) — 28px, não os 32px de `.linha` ──
 
+// Só o tamanho do ícone: o reset de `<button>` vem de `.linha--botao`.
 .extrato__linha {
-  width: 100%;
-  cursor: pointer;
-
   .linha__icone {
     width: 28px;
     height: 28px;
