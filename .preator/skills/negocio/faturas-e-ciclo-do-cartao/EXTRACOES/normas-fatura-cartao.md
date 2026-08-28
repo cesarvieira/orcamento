@@ -24,7 +24,7 @@ exato do parágrafo se algum dia isto for auditado contra o texto consolidado no
   compra "entra" numa fatura em vez de outra. É a única norma citável encontrada que toca o tema
   de faturas de cartão neste ponto específico (multiplicidade de datas de vencimento) — e é
   **tangencial** a RN-23, não sua fonte. Serve apenas para confirmar que `diaVencimento` ser um
-  campo configurável por cartão ([EF-02](../../../../docs/especificacoes/EF-02-contas.md), RN-08)
+  campo configurável por cartão ([EF-02](../../../../../docs/especificacoes/EF-02-contas.md), RN-08)
   está alinhado com uma prática que o próprio regulador já reconhece como direito do cliente
   (escolher entre datas), embora a norma regule o mínimo de opções oferecidas, não o campo único
   que este produto guarda por cartão.
@@ -73,7 +73,7 @@ de como bancos e fintechs, cada um por decisão própria, operam o produto "cart
   consistente. Registrado assim no `SKILL.md`, sem apresentar como norma o que não é.
 - **RN-24 (pagar é transferência, lançamento mantém a conta de origem)** não é prática de mercado
   nem norma — é decisão de modelagem contábil **deste produto**, com fonte própria em
-  [EF-05 §2/§4](../../../../docs/especificacoes/EF-05-faturas.md). Não pesquisado como norma
+  [EF-05 §2/§4](../../../../../docs/especificacoes/EF-05-faturas.md). Não pesquisado como norma
   porque a EF já é fonte primária suficiente e o motivo (não corromper o extrato por cartão) é
   descrito pela própria EF, não por regulação externa.
 - **RN-25/RN-26 ("fatura em aberto")** — nenhuma das fontes de mercado consultadas usa a expressão
