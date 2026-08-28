@@ -80,6 +80,19 @@ export function registrarRota(rota: Rota): void {
     );
   }
 
+  // R1 também cobre QUERY, não só caminho. #60 abriu esta superfície ao dar
+  // à rota um jeito de declarar parâmetro de query — o middleware de tenant
+  // já descarta `familiaId`/`familia_id` de `req.query` em runtime (defesa em
+  // profundidade), mas a guarda do CONTRATO só olhava o caminho, e um
+  // contrato que anuncia `familiaId` como query é imprecisão que convida ao
+  // mesmo erro amanhã, independente de o middleware barrar hoje.
+  const paramDeFamiliaNaQuery = (rota.query ?? []).find(p => /^familia_?[Ii]d$/.test(p.nome));
+  if (paramDeFamiliaNaQuery) {
+    throw new Error(
+      `rota com familiaId na query: ${chave} — o familiaId vem do token, nunca do request (R1 · D-05)`,
+    );
+  }
+
   rotas.push(rota);
 }
 

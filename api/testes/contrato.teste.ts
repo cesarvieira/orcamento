@@ -61,6 +61,37 @@ function percorrer(
 // ANTES dele no arquivo (o handler em que ele está — o padrão deste código é
 // um handler por bloco, sequencial), e confere no `/openapi.json` servido se
 // aquele `<metodo> <caminho>` declara um parâmetro de query com aquele nome.
+//
+// ⚠️ GERAL É SOBRE A COBERTURA (toda rota, não só as três desta issue), NÃO
+// SOBRE A TÉCNICA. É um gate HEURÍSTICO com limite declarado — não prova
+// completa. Ele é regex sobre texto-fonte, não parser de AST, e assume a
+// convenção deste código ("um registro, um handler, sequencial, um por
+// bloco"). Isto é LIDO do texto, nunca TIPADO — nada impede alguém de
+// escrever fora do padrão amanhã. Hoje (checado na revisão desta tarefa) os 5
+// arquivos de rota reais — `contas`, `familia`, `lancamentos`, `orcamento`,
+// `http/rotas/saude.ts` — seguem 100% esse padrão, então o gate segura. Mas
+// nada o impede de escapar em silêncio (`if (!rota) continue` no passo
+// seguinte não falha o teste, só não registra o uso — um handler fora do
+// padrão simplesmente não é visto):
+//
+//   · `req.query['x']` (colchete), desestruturação (`const { x } = req.query`)
+//     ou spread do objeto `req.query` inteiro — só casa `req.query.<nome>`
+//     literal, com ponto.
+//   · leitura indireta: um helper que RECEBA `req.query` (ou `req`) como
+//     parâmetro e leia `X` dentro dele — o regex só olha o corpo textual do
+//     próprio arquivo de rota, não segue chamada de função.
+//   · encadeamento `router.route('/x').get(h1).post(h2)` — a associação
+//     "registro → handler" assume UM handler por chamada de método; um
+//     segundo verbo encadeado na mesma `.route()` não gera um novo `REGISTRO_
+//     DE_ROTA` antes dele, então `h2` herda (ou perde) o contexto errado.
+//
+// O que este teste GARANTE de fato, hoje: nenhum dos 5 arquivos de rota reais
+// lê `req.query.<nome>` (na forma direta, ponto) sem que `<nome>` apareça
+// como parâmetro de query no OpenAPI servido para aquele método+caminho. Se
+// algum dos escapes acima passar a valer (colchete, desestruturação, helper
+// indireto, `.route()` encadeado), feche a fuga aqui — não amplie o regex às
+// cegas; declare o novo limite do mesmo jeito que este comentário declara os
+// de hoje.
 // ---------------------------------------------------------------------------
 
 interface UsoDeQuery {
