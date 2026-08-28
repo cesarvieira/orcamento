@@ -5,17 +5,29 @@
 > [MC-04](../especificacoes/MC-04-lancamentos.md) (o que falta).
 
 - **Identificação:** Lançamentos · EF-04 · história [#18](https://github.com/cesarvieira/orcamento/issues/18)
-  · tarefas [#51](https://github.com/cesarvieira/orcamento/issues/51) (skill de negócio),
+  · tarefas que **construíram o módulo** — o que este manual documenta:
+  [#51](https://github.com/cesarvieira/orcamento/issues/51) (skill de negócio),
   [#52](https://github.com/cesarvieira/orcamento/issues/52) (módulo de lançamentos, dados,
   parcelamento, 5 selos `@fundacao`),
   [#60](https://github.com/cesarvieira/orcamento/issues/60) (contrato divergente — **não
   planejada**), [#62](https://github.com/cesarvieira/orcamento/issues/62) (total da série na
   leitura — **não planejada**), [#53](https://github.com/cesarvieira/orcamento/issues/53) (folha e
-  modal), [#54](https://github.com/cesarvieira/orcamento/issues/54) (Visão do mês e Extrato)
+  modal), [#54](https://github.com/cesarvieira/orcamento/issues/54) (Visão do mês e Extrato),
+  [#64](https://github.com/cesarvieira/orcamento/issues/64) (prova de propagação em tempo real
+  entre dois clientes da mesma família — **não planejada**)
+- **Tarefas de documentação** que mantiveram este manual, a `MC-04` e a `EF-04` §5 fiéis ao
+  código — não constroem produto, por isso ficam fora da lista acima:
+  [#55](https://github.com/cesarvieira/orcamento/issues/55),
+  [#65](https://github.com/cesarvieira/orcamento/issues/65),
+  [#66](https://github.com/cesarvieira/orcamento/issues/66),
+  [#67](https://github.com/cesarvieira/orcamento/issues/67) (esta tarefa).
+  **Lista viva de toda tarefa mesclada nesta história, na ordem real — a fonte que não envelhece:**
+  `git log --oneline --first-parent main..historia/18-ef-04-lancamentos`
 - **Construído por:** agente `docs` (#51); agente `backend`, esforço alto (#52, #60, #62); agente
-  `frontend`, esforço alto (#53, #54) — todos `claude-sonnet-5`
-- **Data:** 2026-08-27 (#51, #52) e 2026-08-28 (#60, #62, #53, #54)
-- **Commits e merges (na ordem do DAG real):**
+  `frontend`, esforço alto (#53, #54); agente `qa` (#64) — todos `claude-sonnet-5`
+- **Data:** 2026-08-27 (#51, #52) e 2026-08-28 (#60, #62, #53, #54, #64)
+- **Commits e merges (na ordem do DAG real — só as tarefas de construção listadas acima; a lista
+  completa de merges, incluindo as de documentação, é o comando `git log` acima):**
   - #51 — `045154e` mesclado em `708b068`
   - #52 — `56dc794` (módulo) + `eb53184` (RN-06, 4º selo) + `46593ba` (limpeza de knip) mesclados
     em `c771b1b`
@@ -25,6 +37,7 @@
   - #53 — `31e8669` (folha + modal) + `46edf89` (importa o contrato tipado da #60) + `6cc8d16`
     (usa `quantidadeParcelas` da #62) mesclados em `fdb9f6f`
   - #54 — `7f4e44f` mesclado em `e647bfa`
+  - #64 — `6bc1238` mesclado em `ddd0239`
 - **Confiança:** Alta (arquivos de teste e código lido linha a linha pelo agente `docs`, mais os
   laudos de revisão de diff de cada tarefa — incluindo duas rodadas em #52 e duas em #60 —, mais o
   gate re-executado pelo condutor a cada merge).
@@ -205,8 +218,11 @@ sempre viu a home e o extrato sem lançamento nenhum — ver `MC-04`, `EF04-MC-0
 
 `api/testes/lancamentos.teste.ts`, **40 casos** — um bloco por RN, mais CHECKs de banco, validação
 de corpo, 404, isolamento e tempo real. Soma aos testes de `contrato.teste.ts` (6, incluindo o gate
-geral de #60) e aos 2 novos de `tenant.teste.ts` (guarda de R1 na query) para os **180 testes** do
-gate na última rodada mesclada.
+geral de #60), aos 2 novos de `tenant.teste.ts` (guarda de R1 na query) e a 1 novo em
+`realtime.teste.ts` (dois clientes da mesma família, tarefa #64 — arquivo que já pertencia à base
+pré-EF-04, por isso não entra nos "40 novos") para os **181 testes** que a suíte roda hoje. Número
+literal, conferido de novo por esta tarefa (`node scripts/contar-testes.mjs`) — muda só se um
+módulo ganhar ou perder teste, não com o passar de tarefas de documentação.
 
 ## Frontend — folha, modal, Visão do mês, Extrato (#53, #54)
 
@@ -300,8 +316,11 @@ tabela `fechamentos_mes` que dá corpo ao caso positivo de RN-22 é da
 
 ## Prova rodada (evidência)
 
-Re-executada pelo condutor, independente do relato dos agentes, por tarefa — todas
-`PROVA_DE_COMPORTAMENTO=PASS`, 8/8 gates, `fails=0`, `skips_bloqueantes=0`:
+Re-executada pelo condutor, independente do relato dos agentes, nas tarefas #51 a #55 — todas
+`PROVA_DE_COMPORTAMENTO=PASS`, 8/8 gates, `fails=0`, `skips_bloqueantes=0`. Das #64 em diante, o
+diff é só texto/teste isolado e o revisor aceitou o carimbo já em disco em vez de reexecutar
+`gate-motor.sh`, para não colidir com outro gate em curso nas mesmas portas 3010/3011 — declarado
+em cada item abaixo:
 
 1. **#51** (skill): `708b068`. 3 rodadas de revisão de diff (2 reprovadas por citação sem fonte
    sustentando — ver histórico da issue), 3ª aprovada.
@@ -315,10 +334,33 @@ Re-executada pelo condutor, independente do relato dos agentes, por tarefa — t
    propósito: citação de skill ausente num ponto de uso correto).
 6. **#54** (Visão do mês + Extrato): `e647bfa`. 1 rodada, aprovada sem 🔴. 10 rotas navegadas, 0
    quebradas.
+7. **#55** (docs — cria MC-04/MANUAL-04, ajusta DoD/forks da EF-04): `7e8f9c6`. 1 rodada, aprovada
+   (revisor abriu 13 das 21 linhas da matriz, todas as citações bateram); 1 🔵 ainda não corrigido
+   (contagem de linhas dos dois componentes errada por um — este manual e a MC-04 dizem 597/239,
+   o real é 596/238 — fora do escopo desta tarefa, que é só a contagem de tarefas/testes). Achou a
+   lacuna que abriu a #64.
+8. **#64** (qa — prova de propagação em tempo real entre dois clientes da mesma família, não
+   planejada): `ddd0239`. Carimbo herdado (revisor não reexecutou o gate). 1 rodada, aprovada sem
+   🔴 (1 🔵 endereçado à issue #63: os testes do arquivo chamam `emitirInvalidacao()` direto, não
+   por mutação HTTP amarrada a um socket). Vermelho→verde provado sabotando o teste (trocada a
+   família da segunda sessão, a asserção falhou). 181 testes.
+9. **#65** (docs — atualiza MC-04/DoD após a prova da #64): `51dd0ce`. Carimbo herdado (mesmo
+   motivo). 1 rodada, aprovada sem achado; o revisor varreu os dois documentos inteiros com grep
+   amplo e confirmou zero negação velha remanescente nos seis lugares corrigidos, com RN-19/RN-22
+   byte-idênticas (`word-diff`).
+10. **#66** (docs — corrige a contagem de tarefas/testes na EF-04/MC-04): `f866dc0`. Carimbo
+    herdado (mesmo motivo — diff só texto, nada que os gates medem muda). 1 rodada, aprovada; o
+    revisor recontou os números de forma independente (`git log`, `contar-testes.mjs`) e achou um
+    erro a mais no relato original ("duas" tarefas fora da decomposição — eram quatro: #60, #62,
+    #64, #65).
+11. **#67** (docs — fecha a tríade e a recursão da contagem, esta tarefa): commit ainda sem hash
+    no momento em que este texto foi escrito — nenhuma tarefa consegue citar o hash do próprio
+    merge antes de ele existir. Confira com `git log --oneline --first-parent
+main..historia/18-ef-04-lancamentos`.
 
 ```
 build        PASS  (bloqueante)
-test(N>0)    PASS  (bloqueante) — 180 testes executados na última rodada, 0 falhando
+test(N>0)    PASS  (bloqueante) — 181 testes executados, 0 falhando
 front        PASS  (bloqueante)
 typecheck    PASS
 lint         PASS
@@ -327,6 +369,11 @@ contrato     PASS  (bloqueante)
 navegacao    PASS  (bloqueante) — 10 rotas abertas, 0 quebradas
 PROVA_DE_COMPORTAMENTO=PASS
 ```
+
+Bloco acima re-executado pelo revisor da costura sobre a árvore integrada em `51dd0ce` (9 merges
+de tarefa até esse ponto) — não uma soma dos carimbos individuais. As tarefas de documentação
+seguintes (#66 e #67, esta) não tocam código nem teste, então nenhum destes oito números muda por
+causa delas; a contagem de testes acima já reflete o teste que a #64 acrescentou (181, não 180).
 
 **O que o `PASS` NÃO cobriu, medido — não afirmado:** a família semeada não tem lançamentos
 (`api/src/db/semear.ts:60`), então o gate de navegação exercitou o extrato no vazio 🟨 "sem
