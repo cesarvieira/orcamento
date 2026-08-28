@@ -769,6 +769,8 @@ export interface components {
             serieParcelaId: string | null;
             /** @description 1-baseado; nulo fora de parcelamento. */
             numeroParcela: number | null;
+            /** @description O total de parcelas da série (series_parcelas.quantidade) — a CONTAGEM da compra original (RN-20/RN-21), imutável à exclusão de parcela (#52), igual a criadoPorMembroId (RN-16). Nulo fora de parcelamento, igual a numeroParcela/serieParcelaId. */
+            quantidadeParcelas: number | null;
             /** @description ISO 8601. */
             criadoEm: string;
         };
@@ -792,6 +794,8 @@ export interface components {
                 serieParcelaId: string | null;
                 /** @description 1-baseado; nulo fora de parcelamento. */
                 numeroParcela: number | null;
+                /** @description O total de parcelas da série (series_parcelas.quantidade) — a CONTAGEM da compra original (RN-20/RN-21), imutável à exclusão de parcela (#52), igual a criadoPorMembroId (RN-16). Nulo fora de parcelamento, igual a numeroParcela/serieParcelaId. */
+                quantidadeParcelas: number | null;
                 /** @description ISO 8601. */
                 criadoEm: string;
             }[];
