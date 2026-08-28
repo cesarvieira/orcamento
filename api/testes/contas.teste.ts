@@ -271,7 +271,13 @@ describe('saldo derivado — soma real de lançamentos (EF-04, tarefa #52)', () 
     expect(linhaDestino.saldoCentavos).toBe(0 + 12000);
   });
 
-  it('RN-18 — DESPESA numa conta CREDITO NÃO move o saldo derivado dela (fica 0)', async () => {
+  it('EF-05/RN-25 — DESPESA numa conta CREDITO move o saldo derivado dela PARA NEGATIVO (dívida)', async () => {
+    // Até a EF-05 este teste esperava `saldoCentavos === 0` — CREDITO ficava
+    // travado em 0 de propósito, com um comentário apontando esta EF (ver
+    // `modulos/contas/servico.ts#expressaoSaldoDerivado`). A EF-05 ESTENDE
+    // esse ponto: agora uma DESPESA no cartão move `saldoCentavos` para
+    // NEGATIVO — é exatamente RN-25/D1, "o saldo exibido do cartão é a soma
+    // das faturas em aberto" (`.preator/skills/negocio/faturas-e-ciclo-do-cartao/SKILL.md`).
     const familia = await criarFamiliaComMembro('Família saldo derivado C');
     const cookie = await cookieDeSessao(familia.membroId);
     const cartao = await request(app).post('/contas').set('Cookie', cookie).send(contaCredito);
@@ -291,8 +297,80 @@ describe('saldo derivado — soma real de lançamentos (EF-04, tarefa #52)', () 
 
     const leitura = await request(app).get('/contas').set('Cookie', cookie);
     const linha = leitura.body.contas.find((c: { id: string }) => c.id === cartao.body.id);
-    // RN-19: quem move o saldo é a fatura paga (EF-05, ainda não construída).
-    expect(linha.saldoCentavos).toBe(0);
+    expect(linha.saldoCentavos).toBe(-15000);
+  });
+
+  it('EF-05/RN-24 — pagar (TRANSFERENCIA para o cartão) devolve o saldo da CREDITO para 0', async () => {
+    const familia = await criarFamiliaComMembro('Família saldo derivado D');
+    const cookie = await cookieDeSessao(familia.membroId);
+    const cartao = await request(app).post('/contas').set('Cookie', cookie).send(contaCredito);
+    const corrente = await request(app)
+      .post('/contas')
+      .set('Cookie', cookie)
+      .send({ ...contaDebito, nome: 'Corrente do pagamento', saldoInicialCentavos: 100000 });
+    const categoria = await request(app)
+      .post('/categorias')
+      .set('Cookie', cookie)
+      .send({ nome: 'Categoria pagamento', icone: 'x', cor: '#000' });
+
+    await request(app).post('/lancamentos').set('Cookie', cookie).send({
+      tipo: 'DESPESA',
+      descricao: 'Compra a pagar',
+      valorCentavos: 15000,
+      data: '2026-08-04',
+      contaId: cartao.body.id,
+      categoriaId: categoria.body.id,
+    });
+    // O pagamento em si é só uma TRANSFERENCIA comum — RN-24 não é mecânica
+    // nova de conta, é a MESMA transferência que já move as duas pontas.
+    await request(app).post('/lancamentos').set('Cookie', cookie).send({
+      tipo: 'TRANSFERENCIA',
+      descricao: 'Pagamento de fatura',
+      valorCentavos: 15000,
+      data: '2026-08-10',
+      contaId: corrente.body.id,
+      contaDestinoId: cartao.body.id,
+    });
+
+    const leitura = await request(app).get('/contas').set('Cookie', cookie);
+    const linhaCartao = leitura.body.contas.find((c: { id: string }) => c.id === cartao.body.id);
+    const linhaCorrente = leitura.body.contas.find((c: { id: string }) => c.id === corrente.body.id);
+    expect(linhaCartao.saldoCentavos).toBe(0);
+    expect(linhaCorrente.saldoCentavos).toBe(100000 - 15000);
+  });
+});
+
+describe('RN-07 (revisitada, EF-05) — o total "em conta hoje" continua ignorando a dívida do cartão', () => {
+  it('uma CREDITO com dívida (saldoCentavos negativo) NÃO reduz totalEmContaHojeCentavos', async () => {
+    // Guarda de regressão: `expressaoSaldoDerivado` mudou nesta EF (CREDITO
+    // deixou de estar travado em 0), mas RN-07 (EF-02, já mesclada) não é
+    // desta tarefa para alterar — o total precisa continuar igual ao que
+    // seria SEM a dívida do cartão (ver o comentário em
+    // `modulos/contas/servico.ts#totalEmContaHoje`).
+    const familia = await criarFamiliaComMembro('Família RN-07 revisitada');
+    const cookie = await cookieDeSessao(familia.membroId);
+    await request(app)
+      .post('/contas')
+      .set('Cookie', cookie)
+      .send({ ...contaDebito, saldoInicialCentavos: 10000 });
+    const cartao = await request(app).post('/contas').set('Cookie', cookie).send(contaCredito);
+    const categoria = await request(app)
+      .post('/categorias')
+      .set('Cookie', cookie)
+      .send({ nome: 'RN-07 revisitada categoria', icone: 'x', cor: '#000' });
+
+    await request(app).post('/lancamentos').set('Cookie', cookie).send({
+      tipo: 'DESPESA',
+      descricao: 'Compra grande no crédito',
+      valorCentavos: 999999,
+      data: '2026-08-04',
+      contaId: cartao.body.id,
+      categoriaId: categoria.body.id,
+    });
+
+    const resposta = await request(app).get('/contas').set('Cookie', cookie);
+    // Só a DEBITO (10000) — a dívida do cartão (−999999) NÃO entra aqui.
+    expect(resposta.body.totalEmContaHojeCentavos).toBe(10000);
   });
 });
 

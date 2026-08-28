@@ -70,6 +70,18 @@ export const tipoLancamento = pgEnum('tipo_lancamento', [
   'TRANSFERENCIA',
 ]);
 
+/**
+ * O estado do ciclo de uma fatura (EF-05 §1). STRING no banco e no contrato,
+ * mesmo motivo de `tipoConta` acima.
+ *
+ * ⚠️ CUIDADO DE NOMENCLATURA (D1, `.preator/skills/negocio/faturas-e-ciclo-do-cartao/SKILL.md`):
+ * este enum NÃO é sinônimo do termo de negócio "fatura em aberto". Uma fatura
+ * `FECHADA` (aguardando pagamento) TAMBÉM está "em aberto" no sentido do
+ * produto — só `PAGA` sai da soma de RN-25/RN-26. Ver
+ * `modulos/faturas/dominio.ts#statusDoCiclo` e `modulos/faturas/servico.ts`.
+ */
+export const statusFatura = pgEnum('status_fatura', ['ABERTA', 'FECHADA', 'PAGA']);
+
 // ---------------------------------------------------------------------------
 // Familia — o tenant. Raiz de todo isolamento.
 // ---------------------------------------------------------------------------
@@ -570,6 +582,75 @@ export const lancamentos = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Fatura — cartão × ciclo (EF-05 §1). RN-23 (ciclo de fechamento) · RN-24
+// (pagar é transferência) · RN-25/RN-26 (fatura em aberto, D1).
+// ---------------------------------------------------------------------------
+
+/**
+ * NÃO guarda total: o total de uma fatura é sempre a soma, na leitura, dos
+ * lançamentos `DESPESA` da conta cujo ciclo (RN-23) cai em
+ * `[abreEm, fechaEm]` (`modulos/faturas/servico.ts`) — materializar o total
+ * criaria uma segunda verdade que diverge se um lançamento daquele ciclo for
+ * excluído depois de a fatura fechar. `abreEm`/`fechaEm`/`venceEm` SÃO
+ * persistidos porque são a identidade do ciclo em si (a mecânica de RN-23),
+ * não um valor derivável de outra coluna sem prática de mercado, e servem de
+ * limite para a soma acima.
+ *
+ * Uma linha só existe quando o ciclo foi de fato materializado — na leitura,
+ * por `modulos/faturas/servico.ts#garantirFaturaDoCiclo` (find-or-create de
+ * UM ciclo). `listarFaturasDoCartao` chama essa função uma vez para o ciclo
+ * CORRENTE (sempre) e uma vez para cada ciclo JÁ FECHADO que tem despesa e
+ * ainda não tem linha (encontrados varrendo `lancamentos` da conta). Não
+ * existe uma linha por ciclo desde a criação do cartão — seria trabalho
+ * antecipado sem uso, e o índice único (contaId, fechaEm) mais o
+ * find-or-create tornam a criação tardia segura.
+ *
+ * O CHECK abaixo é a mesma forma de `contas_campos_de_credito_apenas_em_credito`:
+ * os três campos de pagamento (status/pagaEm/pagaComContaId) só coexistem
+ * quando `status = 'PAGA'` — RN-24 nunca deixa a fatura "meio paga".
+ */
+export const faturas = pgTable(
+  'faturas',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** Todo dado do produto pende da família (R1). Vem sempre do token. */
+    familiaId: uuid('familia_id')
+      .notNull()
+      .references(() => familias.id, { onDelete: 'cascade' }),
+    /** O cartão (uma `Conta` do tipo `CREDITO`) dono deste ciclo. */
+    contaId: uuid('conta_id')
+      .notNull()
+      .references(() => contas.id, { onDelete: 'cascade' }),
+    /** Primeiro dia do ciclo — dia seguinte ao `fechaEm` do ciclo anterior do mesmo cartão. */
+    abreEm: dataDoFato('abre_em').notNull(),
+    /** RN-23 — dia em que o ciclo encerra; a IDENTIDADE do ciclo (com `contaId`). */
+    fechaEm: dataDoFato('fecha_em').notNull(),
+    /** Primeira ocorrência de `diaVencimento` estritamente depois de `fechaEm`. */
+    venceEm: dataDoFato('vence_em').notNull(),
+    /** ⚠️ NÃO confundir com o termo de negócio "fatura em aberto" (D1) — ver o enum acima. */
+    status: statusFatura('status').notNull().default('ABERTA'),
+    /** RN-24 — só preenchido quando `status = 'PAGA'`. */
+    pagaEm: timestamp('paga_em', { withTimezone: true }),
+    /** RN-24/D3 — a conta ESCOLHIDA PELO USUÁRIO no pedido de pagamento; nunca a primeira de débito. */
+    pagaComContaId: uuid('paga_com_conta_id').references(() => contas.id),
+    criadoEm: criadoEm(),
+    atualizadoEm: atualizadoEm(),
+  },
+  t => [
+    // A identidade de um ciclo é (cartão, fechaEm) — encontra-la-ou-cria-la
+    // (`servico.ts`) depende deste índice para ser seguro sob concorrência.
+    uniqueIndex('faturas_conta_fecha_em_unico').on(t.contaId, t.fechaEm),
+    index('faturas_por_familia').on(t.familiaId),
+    index('faturas_por_conta').on(t.contaId),
+    check(
+      'faturas_pagamento_completo_ou_ausente',
+      sql`(${t.status} = 'PAGA' and ${t.pagaEm} is not null and ${t.pagaComContaId} is not null)
+          or (${t.status} <> 'PAGA' and ${t.pagaEm} is null and ${t.pagaComContaId} is null)`,
+    ),
+  ],
+);
+
+// ---------------------------------------------------------------------------
 // Relações
 // ---------------------------------------------------------------------------
 
@@ -667,6 +748,21 @@ export const lancamentosRelacoes = relations(lancamentos, ({ one }) => ({
   }),
 }));
 
+export const faturasRelacoes = relations(faturas, ({ one }) => ({
+  familia: one(familias, {
+    fields: [faturas.familiaId],
+    references: [familias.id],
+  }),
+  conta: one(contas, {
+    fields: [faturas.contaId],
+    references: [contas.id],
+  }),
+  pagaComConta: one(contas, {
+    fields: [faturas.pagaComContaId],
+    references: [contas.id],
+  }),
+}));
+
 export const membrosRelacoes = relations(membros, ({ one, many }) => ({
   familia: one(familias, {
     fields: [membros.familiaId],
@@ -714,3 +810,4 @@ export type Remanejamento = typeof remanejamentos.$inferSelect;
 export type CompetenciaDb = typeof competencias.$inferSelect;
 export type SerieParcelas = typeof seriesParcelas.$inferSelect;
 export type LancamentoDb = typeof lancamentos.$inferSelect;
+export type FaturaDb = typeof faturas.$inferSelect;
