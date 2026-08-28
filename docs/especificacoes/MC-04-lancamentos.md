@@ -9,9 +9,8 @@
   como uma contagem fixa neste texto: `git log --oneline --first-parent
 main..historia/18-ef-04-lancamentos`). **Tarefas de construção fora da decomposição original**
   (o DAG avalizado pelo humano na abertura da #18, em 2026-08-27, listava exatamente #51, #52,
-  #53, #54 — construção — e #55 — documentação): nasceram de defeitos achados durante a
-  execução — #60
-  (contrato divergente), #62 (total da série ausente na leitura), #64 (a DoD prometia dois
+  #53, #54 — construção — e #55 — documentação): nasceram de defeitos achados durante a execução
+  — #60 (contrato divergente), #62 (total da série ausente na leitura), #64 (a DoD prometia dois
   clientes sem refresh e só havia prova de isolamento entre famílias). **Tarefas de documentação**
   também nasceram fora do DAG original — #65, #66 e #67 —, cada uma corrigindo o que a tarefa de
   documentação anterior deixou incompleto (a MC/MANUAL/EF ficando um merge atrás de si mesmas);
