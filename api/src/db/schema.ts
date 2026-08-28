@@ -597,12 +597,13 @@ export const lancamentos = pgTable(
  * limite para a soma acima.
  *
  * Uma linha só existe quando o ciclo foi de fato materializado — na leitura,
- * por `modulos/faturas/servico.ts#garantirFaturaDoCiclo` (o ciclo corrente,
- * sempre) e `#garantirFaturasFechadasPendentes` (ciclos já fechados que ainda
- * não têm linha, encontrados varrendo `lancamentos` da conta). Não existe uma
- * linha por ciclo desde a criação do cartão — seria trabalho antecipado sem
- * uso, e o índice único (contaId, fechaEm) mais o find-or-create tornam a
- * criação tardia segura.
+ * por `modulos/faturas/servico.ts#garantirFaturaDoCiclo` (find-or-create de
+ * UM ciclo). `listarFaturasDoCartao` chama essa função uma vez para o ciclo
+ * CORRENTE (sempre) e uma vez para cada ciclo JÁ FECHADO que tem despesa e
+ * ainda não tem linha (encontrados varrendo `lancamentos` da conta). Não
+ * existe uma linha por ciclo desde a criação do cartão — seria trabalho
+ * antecipado sem uso, e o índice único (contaId, fechaEm) mais o
+ * find-or-create tornam a criação tardia segura.
  *
  * O CHECK abaixo é a mesma forma de `contas_campos_de_credito_apenas_em_credito`:
  * os três campos de pagamento (status/pagaEm/pagaComContaId) só coexistem

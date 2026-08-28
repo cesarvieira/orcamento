@@ -155,15 +155,32 @@ function paraItem(despesa: DespesaBruta): ItemDeFaturaLido {
 // Find-or-create de UMA fatura (um ciclo) — a identidade é (contaId, fechaEm).
 // ---------------------------------------------------------------------------
 
+/**
+ * Defesa em profundidade — mesmo espírito dos CHECKs de `db/schema.ts`
+ * (que duplicam de propósito o que o Zod já impõe na borda, ver os
+ * comentários lá): `familiaId` entra no WHERE mesmo os dois chamadores já
+ * validando o cartão antes (`listarFaturasDoCartao` via
+ * `buscarContaDaFamilia`). Sem isto, um caminho novo amanhã que chame
+ * `garantirFaturaDoCiclo`/`encontrarFatura` sem validar o cartão primeiro
+ * vazaria fatura de uma família para outra em silêncio — a invariante não
+ * pode depender só de disciplina do chamador.
+ */
 async function encontrarFatura(
   db: DbOuTx,
+  familiaId: string,
   contaId: string,
   fechaEm: string,
 ): Promise<FaturaDb | undefined> {
   const [linha] = await db
     .select()
     .from(faturas)
-    .where(and(eq(faturas.contaId, contaId), eq(faturas.fechaEm, fechaEm)))
+    .where(
+      and(
+        eq(faturas.familiaId, familiaId),
+        eq(faturas.contaId, contaId),
+        eq(faturas.fechaEm, fechaEm),
+      ),
+    )
     .limit(1);
   return linha;
 }
@@ -182,7 +199,7 @@ async function garantirFaturaDoCiclo(
   hoje: string,
 ): Promise<FaturaDb> {
   const { familiaId, contaId, diaFechamento, diaVencimento } = cartao;
-  const existente = await encontrarFatura(db, contaId, fechaEm);
+  const existente = await encontrarFatura(db, familiaId, contaId, fechaEm);
   if (existente) return existente;
 
   const abreEm = abreEmDoCiclo(fechaEm);
@@ -199,7 +216,7 @@ async function garantirFaturaDoCiclo(
   if (inserida) return inserida;
 
   // Corrida — outra requisição criou o MESMO ciclo entre o SELECT e o INSERT.
-  const linha = await encontrarFatura(db, contaId, fechaEm);
+  const linha = await encontrarFatura(db, familiaId, contaId, fechaEm);
   if (!linha) throw new Error('faturas: não consegui encontrar nem criar a fatura do ciclo');
   return linha;
 }
@@ -268,11 +285,21 @@ export async function listarFaturasDoCartao(
   }
 
   // D1 — TODA fatura não paga (ABERTA + FECHADA), nunca só `status = 'ABERTA'`
-  // (essa seria a leitura estreita que D1 rejeitou).
+  // (essa seria a leitura estreita que D1 rejeitou). `familiaId` no WHERE é
+  // defesa em profundidade (mesmo espírito do comentário em
+  // `encontrarFatura`) — `contaId` já foi validado como desta família pelo
+  // `buscarContaDaFamilia` no topo desta função, mas a query não deveria
+  // PRECISAR confiar nisso para estar correta.
   const linhas = await db
     .select()
     .from(faturas)
-    .where(and(eq(faturas.contaId, contaId), ne(faturas.status, 'PAGA')))
+    .where(
+      and(
+        eq(faturas.familiaId, familiaId),
+        eq(faturas.contaId, contaId),
+        ne(faturas.status, 'PAGA'),
+      ),
+    )
     .orderBy(asc(faturas.fechaEm));
 
   const faturasLidas: FaturaLida[] = [];
