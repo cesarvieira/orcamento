@@ -29,7 +29,7 @@ verdade que diverge no primeiro lançamento retroativo.
 
 ```
 caixaReal      = Σ max(0, saldo) das contas de DÉBITO        ← reserva fica de fora
-limiteLivre    = Σ (limite − fatura em aberto) dos CARTÕES
+limiteLivre    = Σ (limite − fatura em aberto) dos CARTÕES    ← "fatura em aberto" = D1, ver EF-05 §2
 lastro         = caixaReal + limiteLivre
 
 restanteTotal  = Σ max(0, teto − gasto) das categorias
@@ -39,6 +39,13 @@ por categoria:
   bloqueado    = disponível × déficit / restanteTotal        ← pró-rata
   liberado     = disponível − bloqueado
 ```
+
+> **`fatura em aberto`, nesta fórmula, é a definição de D1** — [EF-05 §2](EF-05-faturas.md): toda
+> fatura com `status` ≠ `PAGA` (a fechada aguardando pagamento **mais** a do ciclo corrente), nunca
+> só o ciclo corrente isolado. Esta linha usava a mesma expressão sem qualificar escopo enquanto a
+> RN-25 da EF-05 falava em "ciclo corrente" — duas fontes, mesma expressão, dois escopos possíveis;
+> **D1** (decisão humana, 2026-08-28) fechou a ambiguidade a favor deste escopo amplo, o que a
+> RN-26 da EF-05 já cita como fonte. Ver EF-05 §2 para o texto completo da decisão.
 
 | # | Regra | Fonte |
 |---|---|---|
