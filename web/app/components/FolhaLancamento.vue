@@ -368,9 +368,14 @@ async function salvar(): Promise<void> {
 
   salvando.value = true;
   try {
-    // Regra inviolável #4: nenhuma leitura para refazer AQUI — quem mostra
-    // lista (visão do mês/extrato, tarefa #54) reage à invalidação do
-    // recurso `lancamentos` que o servidor emite depois deste POST.
+    // Regra inviolável #4: nenhuma leitura para refazer AQUI, e nenhum número
+    // recalculado — quem mostra lista (visão do mês/extrato, tarefa #54) relê
+    // pela API.
+    //
+    // ⚠️ Quem avisa essas telas é `criarLancamento`, via
+    // `notificarInvalidacaoLocal`. NÃO é o eco do socket: esta aba o descarta
+    // por R5, e por isso o lançamento aparecia em todas as outras abas menos
+    // nesta (defeito medido em 2026-08-28).
     await criarLancamento(corpo);
     fechar();
   } catch (e) {

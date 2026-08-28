@@ -120,6 +120,29 @@ export function useLancamentos(opcoes: {
     });
   }
 
+  /**
+   * AVISA AS TELAS DESTA ABA que os lançamentos mudaram.
+   *
+   * ⚠️ Existe porque quem MUTA lançamento não é quem MOSTRA: a folha
+   * (`FolhaLancamento.vue`) e o modal de detalhe são componentes GLOBAIS que
+   * postam e fecham; a lista está em `pages/index.vue` e `pages/extrato.vue`.
+   *
+   * Sem isto, o único aviso seria o eco do socket — que a própria aba descarta
+   * por R5. Defeito medido em 2026-08-28: o lançamento aparecia em todas as
+   * OUTRAS abas e não na que o criou.
+   *
+   * Não afrouxa R5. O eco do socket continua descartado, e a releitura desta
+   * aba acontece UMA vez, por este caminho.
+   *
+   * `competencia: null` de propósito: uma DESPESA parcelada atinge várias
+   * competências (RN-20), e a exclusão não devolve quais foram. `null` é
+   * tratado como "interessa a quem estiver olhando" — errar para o lado de uma
+   * leitura a mais é barato; não avisar é o defeito que isto conserta.
+   */
+  function avisarAsTelasDestaAba(): void {
+    notificarInvalidacaoLocal({ recurso: 'lancamentos', competencia: null, origemClienteId });
+  }
+
   /** O extrato: lançamentos da família da sessão, com filtro opcional de competência e conta (EF-04 §3). */
   async function listarLancamentos(filtro: FiltroDeLancamentos = {}): Promise<LancamentosListados> {
     return api<LancamentosListados>('/lancamentos', { query: filtro });
@@ -137,11 +160,13 @@ export function useLancamentos(opcoes: {
    * a intenção (regra inviolável #4).
    */
   async function criarLancamento(dados: NovoLancamento): Promise<LancamentosListados> {
-    return api<LancamentosListados>('/lancamentos', {
+    const resposta = await api<LancamentosListados>('/lancamentos', {
       method: 'POST',
       body: dados,
       headers: cabecalhoDeOrigem,
     });
+    avisarAsTelasDestaAba();
+    return resposta;
   }
 
   /** Fork 1/#52 — `modo` escolhe o alcance quando o lançamento é parcela de uma série. */
@@ -151,6 +176,7 @@ export function useLancamentos(opcoes: {
       query: { modo },
       headers: cabecalhoDeOrigem,
     });
+    avisarAsTelasDestaAba();
   }
 
   /**
