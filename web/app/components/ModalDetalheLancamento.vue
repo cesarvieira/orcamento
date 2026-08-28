@@ -30,11 +30,10 @@
  * (RN-20/RN-21 continuam só no servidor); é contar linhas que o servidor já
  * devolveu prontas. Ver o relato desta tarefa.
  */
-import type { Categoria, Conta, MembroDaFamilia } from '@orcamento/contrato';
+import type { Categoria, Conta, MembroDaFamilia, ModoDeExclusao } from '@orcamento/contrato';
 import { classeDoIcone, useContas } from '~/composables/useContas';
 import { classeDoIconeCategoria } from '~/composables/useOrcamento';
 import { corDoTipo, useDetalheLancamento, useLancamentos } from '~/composables/useLancamentos';
-import type { ModoDeExclusao } from '~/composables/useLancamentos';
 import { formatarCentavos } from '~/utils/dinheiro';
 
 const { lancamento, fechar } = useDetalheLancamento();

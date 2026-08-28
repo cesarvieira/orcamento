@@ -60,8 +60,19 @@ import type {
   Invalidacao,
   Lancamento,
   LancamentosListados,
+  ModoDeExclusao,
   NovoLancamento,
+  operations,
 } from '@orcamento/contrato';
+
+/**
+ * O filtro de `GET /lancamentos` — a MESMA forma que o OpenAPI declara
+ * (issue #60: `api/src/modulos/lancamentos/rotas.ts` registra `competencia`
+ * e `contaId` como parâmetros de query). Derivado de `operations`, não
+ * redeclarado à mão — antes da #60 o contrato gerado dizia `query?: never`
+ * para esta rota, e não havia como fazer diferente.
+ */
+type FiltroDeLancamentos = NonNullable<operations['get_lancamentos']['parameters']['query']>;
 
 /**
  * Mesmo cabeçalho que `useContas.ts`/`useOrcamento.ts` usam — vai em toda
@@ -70,9 +81,6 @@ import type {
  * literal de `api/src/realtime/emissor.ts#CABECALHO_ORIGEM_CLIENTE`.
  */
 const CABECALHO_ORIGEM_CLIENTE = 'x-origem-cliente';
-
-/** O alcance de uma exclusão de parcela — fork 1/#52, fechado pelo humano (ver `ModalDetalheLancamento.vue`). */
-export type ModoDeExclusao = 'esta' | 'todas' | 'a-partir-desta';
 
 /**
  * TIPO É CAMPO EXPLÍCITO (EF-04 §1/§4) — o mockup não tem esse seletor (ele
@@ -113,9 +121,7 @@ export function useLancamentos(opcoes: {
   }
 
   /** O extrato: lançamentos da família da sessão, com filtro opcional de competência e conta (EF-04 §3). */
-  async function listarLancamentos(
-    filtro: { competencia?: string; contaId?: string } = {},
-  ): Promise<LancamentosListados> {
+  async function listarLancamentos(filtro: FiltroDeLancamentos = {}): Promise<LancamentosListados> {
     return api<LancamentosListados>('/lancamentos', { query: filtro });
   }
 
