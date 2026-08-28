@@ -8,7 +8,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 
 import type { Db } from '../../db';
-import { contas } from '../../db/schema';
+import { contas, lancamentos } from '../../db/schema';
 import type { EsquemaNovaConta } from './esquemas';
 
 export type EntradaDeConta = z.infer<typeof EsquemaNovaConta>;
@@ -32,16 +32,46 @@ export interface ContaLida {
 // ---------------------------------------------------------------------------
 
 /**
- * Não existe tabela de lançamentos ainda — ela é da EF-04. O termo da soma
- * fica FIXO em 0 até lá, mas a expressão já está montada como uma ADIÇÃO
- * (`saldoInicial + termoDosLancamentos`) de propósito: quando a EF-04 criar
- * `lancamentos`, ela troca só este termo por
- * `coalesce((select sum(valor_centavos) from lancamentos
- *   where lancamentos.conta_id = contas.id), 0)` — a leitura inteira não muda.
+ * EF-04, tarefa #52. ⚠️ RN-18/RN-19: compra no crédito consome a categoria
+ * na data da compra, mas NÃO move o saldo da conta — quem move é a fatura
+ * paga, e a fatura é da EF-05 (ainda não construída). Por isso uma conta
+ * `CREDITO` fica com o termo dos lançamentos travado em 0 aqui: só `DEBITO` e
+ * `RESERVA` entram na soma.
+ *
+ * Para as contas que entram, o termo é um SOMATÓRIO COM SINAL — RN-17:
+ * transferência não é despesa, então ela move as DUAS pontas (origem perde,
+ * destino ganha), nunca decrementa "gasto":
+ *   RECEITA                       → + valorCentavos
+ *   DESPESA                       → − valorCentavos
+ *   TRANSFERENCIA, esta é origem  → − valorCentavos
+ *   TRANSFERENCIA, esta é destino → + valorCentavos
+ *
+ * `::integer` no fim do `coalesce` é deliberado: `sum(integer)` no Postgres
+ * devolve `bigint`, e o driver `pg` serializa `bigint` como STRING (evita
+ * perda de precisão fora do range de um `number` do JS). Sem o cast,
+ * `saldoCentavos` chegaria como `"31240"` em vez de `31240`.
  */
 function expressaoSaldoDerivado() {
-  const termoDosLancamentosAindaNaoExiste = sql`0`; // @fundacao — EF-04 substitui isto (ver comentário acima).
-  return sql<number>`(coalesce(${contas.saldoInicialCentavos}, 0) + (${termoDosLancamentosAindaNaoExiste}))`;
+  const termoDosLancamentos = sql<number>`coalesce((
+    select sum(
+      case
+        when ${lancamentos.tipo} = 'RECEITA' then ${lancamentos.valorCentavos}
+        when ${lancamentos.tipo} = 'DESPESA' then -${lancamentos.valorCentavos}
+        when ${lancamentos.tipo} = 'TRANSFERENCIA' and ${lancamentos.contaId} = ${contas.id}
+          then -${lancamentos.valorCentavos}
+        when ${lancamentos.tipo} = 'TRANSFERENCIA' and ${lancamentos.contaDestinoId} = ${contas.id}
+          then ${lancamentos.valorCentavos}
+        else 0
+      end
+    )
+    from ${lancamentos}
+    where ${lancamentos.contaId} = ${contas.id} or ${lancamentos.contaDestinoId} = ${contas.id}
+  ), 0)::integer`;
+
+  return sql<number>`(
+    coalesce(${contas.saldoInicialCentavos}, 0) +
+    case when ${contas.tipo} = 'CREDITO' then 0 else (${termoDosLancamentos}) end
+  )`;
 }
 
 const colunasDeLeitura = {

@@ -1267,6 +1267,319 @@
           "criadoEm"
         ],
         "additionalProperties": false
+      },
+      "NovoLancamento": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "tipo": {
+                "type": "string",
+                "enum": [
+                  "RECEITA"
+                ]
+              },
+              "descricao": {
+                "type": "string",
+                "minLength": 1,
+                "description": "O que foi lançado, em texto livre."
+              },
+              "valorCentavos": {
+                "type": "integer",
+                "minimum": 0,
+                "exclusiveMinimum": true,
+                "maximum": 9007199254740991,
+                "description": "Inteiro em centavos (D-06). Em DESPESA parcelada, é o TOTAL da compra — o motor de parcelamento divide (RN-20/RN-21)."
+              },
+              "data": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "AAAA-MM-DD — quando aconteceu (distinta da competência, RN-15)."
+              },
+              "contaId": {
+                "type": "string",
+                "description": "A conta afetada (origem, em TRANSFERENCIA)."
+              }
+            },
+            "required": [
+              "tipo",
+              "descricao",
+              "valorCentavos",
+              "data",
+              "contaId"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "tipo": {
+                "type": "string",
+                "enum": [
+                  "DESPESA"
+                ]
+              },
+              "descricao": {
+                "type": "string",
+                "minLength": 1,
+                "description": "O que foi lançado, em texto livre."
+              },
+              "valorCentavos": {
+                "type": "integer",
+                "minimum": 0,
+                "exclusiveMinimum": true,
+                "maximum": 9007199254740991,
+                "description": "Inteiro em centavos (D-06). Em DESPESA parcelada, é o TOTAL da compra — o motor de parcelamento divide (RN-20/RN-21)."
+              },
+              "data": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "AAAA-MM-DD — quando aconteceu (distinta da competência, RN-15)."
+              },
+              "contaId": {
+                "type": "string",
+                "description": "A conta afetada (origem, em TRANSFERENCIA)."
+              },
+              "categoriaId": {
+                "type": "string",
+                "description": "Obrigatório em DESPESA (EF-04 §1)."
+              },
+              "quantidadeParcelas": {
+                "description": "RN-20 — até 48×. Ausente (ou 1, que esta forma nem aceita) é despesa avulsa, sem SerieParcelas.",
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 48
+              }
+            },
+            "required": [
+              "tipo",
+              "descricao",
+              "valorCentavos",
+              "data",
+              "contaId",
+              "categoriaId"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "tipo": {
+                "type": "string",
+                "enum": [
+                  "TRANSFERENCIA"
+                ]
+              },
+              "descricao": {
+                "type": "string",
+                "minLength": 1,
+                "description": "O que foi lançado, em texto livre."
+              },
+              "valorCentavos": {
+                "type": "integer",
+                "minimum": 0,
+                "exclusiveMinimum": true,
+                "maximum": 9007199254740991,
+                "description": "Inteiro em centavos (D-06). Em DESPESA parcelada, é o TOTAL da compra — o motor de parcelamento divide (RN-20/RN-21)."
+              },
+              "data": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "AAAA-MM-DD — quando aconteceu (distinta da competência, RN-15)."
+              },
+              "contaId": {
+                "type": "string",
+                "description": "A conta afetada (origem, em TRANSFERENCIA)."
+              },
+              "contaDestinoId": {
+                "type": "string",
+                "description": "Para onde o dinheiro vai. Não pode ser igual a contaId (fork 3/#52 — 400, validação de entrada)."
+              }
+            },
+            "required": [
+              "tipo",
+              "descricao",
+              "valorCentavos",
+              "data",
+              "contaId",
+              "contaDestinoId"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "Lancamento": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "RECEITA",
+              "DESPESA",
+              "TRANSFERENCIA"
+            ]
+          },
+          "descricao": {
+            "type": "string"
+          },
+          "valorCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "data": {
+            "type": "string",
+            "description": "AAAA-MM-DD."
+          },
+          "competencia": {
+            "type": "string",
+            "description": "AAAA-MM — calculada na escrita (RN-15)."
+          },
+          "categoriaId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "contaId": {
+            "type": "string"
+          },
+          "contaDestinoId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "criadoPorMembroId": {
+            "type": "string",
+            "description": "RN-16 — imutável."
+          },
+          "serieParcelaId": {
+            "nullable": true,
+            "description": "RN-20/RN-21 — nulo fora de parcelamento.",
+            "type": "string"
+          },
+          "numeroParcela": {
+            "nullable": true,
+            "description": "1-baseado; nulo fora de parcelamento.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "criadoEm": {
+            "type": "string",
+            "description": "ISO 8601."
+          }
+        },
+        "required": [
+          "id",
+          "tipo",
+          "descricao",
+          "valorCentavos",
+          "data",
+          "competencia",
+          "categoriaId",
+          "contaId",
+          "contaDestinoId",
+          "criadoPorMembroId",
+          "serieParcelaId",
+          "numeroParcela",
+          "criadoEm"
+        ],
+        "additionalProperties": false
+      },
+      "LancamentosListados": {
+        "type": "object",
+        "properties": {
+          "lancamentos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "tipo": {
+                  "type": "string",
+                  "enum": [
+                    "RECEITA",
+                    "DESPESA",
+                    "TRANSFERENCIA"
+                  ]
+                },
+                "descricao": {
+                  "type": "string"
+                },
+                "valorCentavos": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "data": {
+                  "type": "string",
+                  "description": "AAAA-MM-DD."
+                },
+                "competencia": {
+                  "type": "string",
+                  "description": "AAAA-MM — calculada na escrita (RN-15)."
+                },
+                "categoriaId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "contaId": {
+                  "type": "string"
+                },
+                "contaDestinoId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "criadoPorMembroId": {
+                  "type": "string",
+                  "description": "RN-16 — imutável."
+                },
+                "serieParcelaId": {
+                  "nullable": true,
+                  "description": "RN-20/RN-21 — nulo fora de parcelamento.",
+                  "type": "string"
+                },
+                "numeroParcela": {
+                  "nullable": true,
+                  "description": "1-baseado; nulo fora de parcelamento.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "criadoEm": {
+                  "type": "string",
+                  "description": "ISO 8601."
+                }
+              },
+              "required": [
+                "id",
+                "tipo",
+                "descricao",
+                "valorCentavos",
+                "data",
+                "competencia",
+                "categoriaId",
+                "contaId",
+                "contaDestinoId",
+                "criadoPorMembroId",
+                "serieParcelaId",
+                "numeroParcela",
+                "criadoEm"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "lancamentos"
+        ],
+        "additionalProperties": false
       }
     },
     "securitySchemes": {
@@ -2749,6 +3062,249 @@
           },
           "422": {
             "description": "Corpo ou competência inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lancamentos": {
+      "post": {
+        "summary": "Registra um lançamento (RECEITA, DESPESA ou TRANSFERENCIA) na família da sessão. DESPESA com quantidadeParcelas > 1 gera uma SerieParcelas e N lançamentos (RN-20/RN-21).",
+        "tags": [
+          "lancamentos"
+        ],
+        "operationId": "post_lancamentos",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoLancamento"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Lançamento(s) criado(s)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LancamentosListados"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "contaId igual a contaDestinoId (fork 3/#52)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conta ou categoria inexistente nesta família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Competência selada (RN-22, EF-08)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Lista os lançamentos da família da sessão (extrato), com filtro opcional de competência e conta",
+        "tags": [
+          "lancamentos"
+        ],
+        "operationId": "get_lancamentos",
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Os lançamentos da família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LancamentosListados"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Competência fora do formato AAAA-MM",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lancamentos/{id}": {
+      "get": {
+        "summary": "O detalhe de um lançamento da família da sessão",
+        "tags": [
+          "lancamentos"
+        ],
+        "operationId": "get_lancamentos__id_",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O lançamento",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Lancamento"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lançamento inexistente nesta família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Apaga um lançamento da família da sessão. ?modo escolhe o alcance quando ele é parcela de uma série: esta (default) · todas · a-partir-desta (fork 1/#52)",
+        "tags": [
+          "lancamentos"
+        ],
+        "operationId": "delete_lancamentos__id_",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Lançamento(s) apagado(s)"
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lançamento inexistente nesta família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "modo inválido",
             "content": {
               "application/json": {
                 "schema": {

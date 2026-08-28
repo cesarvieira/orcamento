@@ -8,10 +8,15 @@
  * §1/§2 e a issue #44 (comentário do humano, 2026-08-27) como fonte primária.
  * Nenhuma regra testada aqui foi inventada.
  *
- * ⚠️ `gastoCentavos` (RN-10) e `recebidoCentavos` (RN-11/RN-39) dependem dos
- * lançamentos da EF-04, que ainda não existe: os testes abaixo provam a
- * FÓRMULA (a soma nasce certa), sobre um conjunto hoje sempre vazio — ver o
- * comentário em `src/modulos/orcamento/servico.ts`.
+ * `gastoCentavos` (RN-10) e `recebidoCentavos` (RN-11/RN-39) somam
+ * `lancamentos` de verdade desde a EF-04 (tarefa #52) —
+ * `src/modulos/orcamento/servico.ts#expressaoGastoDerivado`/`recebidoDaCompetencia`.
+ * Os testes de RN-09/RN-12/RN-13/RN-14/RN-40 abaixo continuam sem criar
+ * lançamento nenhum: como o conjunto correlacionado é sempre vazio para eles,
+ * a soma nasce 0 pela própria SQL (`coalesce(sum(...), 0)`), não por um
+ * placeholder fixo — mesmo resultado de antes, agora por leitura real. As
+ * seções "RN-10 — com lançamentos reais" e "RN-39" abaixo é que provam a soma
+ * com dado de verdade.
  */
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -169,7 +174,7 @@ describe('RN-09 — o teto pertence ao par categoria × competência, nunca à c
 });
 
 describe('RN-10 — disponível = teto − gasto do mês; negativo é estourou', () => {
-  it('sem gasto (EF-04 ainda não existe), disponível == teto', async () => {
+  it('sem nenhum lançamento DESPESA nesta categoria/competência, disponível == teto', async () => {
     const categoria = await criarCategoria(cookieA, 'RN-10 Farmácia');
     await definirTeto(cookieA, '2026-05', categoria.id, 8000);
 
@@ -198,8 +203,53 @@ describe('RN-10 — disponível = teto − gasto do mês; negativo é estourou',
   });
 });
 
+describe('RN-10 — com lançamentos reais da EF-04 (tarefa #52)', () => {
+  it('gastoCentavos soma as DESPESA da categoria nesta competência, e só delas', async () => {
+    const familia = await criarFamiliaComMembro('Família RN-10 real');
+    const cookie = await cookieDeSessao(familia.membroId);
+    const conta = await request(app)
+      .post('/contas')
+      .set('Cookie', cookie)
+      .send({ tipo: 'DEBITO', nome: 'Conta RN-10', icone: 'banco', cor: '#000', saldoInicialCentavos: 0 });
+    const categoria = await criarCategoria(cookie, 'RN-10 real');
+    const outraCategoria = await criarCategoria(cookie, 'RN-10 real — outra');
+    await definirTeto(cookie, '2026-06', categoria.id, 10000);
+
+    await request(app).post('/lancamentos').set('Cookie', cookie).send({
+      tipo: 'DESPESA',
+      descricao: 'Gasto 1',
+      valorCentavos: 3000,
+      data: '2026-06-05',
+      contaId: conta.body.id,
+      categoriaId: categoria.id,
+    });
+    await request(app).post('/lancamentos').set('Cookie', cookie).send({
+      tipo: 'DESPESA',
+      descricao: 'Gasto 2',
+      valorCentavos: 1500,
+      data: '2026-06-20',
+      contaId: conta.body.id,
+      categoriaId: categoria.id,
+    });
+    // Gasto em OUTRA categoria não pode contaminar `categoria`.
+    await request(app).post('/lancamentos').set('Cookie', cookie).send({
+      tipo: 'DESPESA',
+      descricao: 'Gasto em outra categoria',
+      valorCentavos: 99999,
+      data: '2026-06-10',
+      contaId: conta.body.id,
+      categoriaId: outraCategoria.id,
+    });
+
+    const leitura = await lerCompetencia(cookie, '2026-06');
+    const linha = leitura.body.categorias.find((c: { id: string }) => c.id === categoria.id);
+    expect(linha.gastoCentavos).toBe(3000 + 1500);
+    expect(linha.disponivelCentavos).toBe(10000 - (3000 + 1500));
+  });
+});
+
 describe('RN-11 — planejado = Σ tetos; não alocado = recebido − planejado', () => {
-  it('planejado soma os tetos das categorias; não alocado usa recebido (hoje 0, EF-04)', async () => {
+  it('planejado soma os tetos das categorias; sem lançamento RECEITA, recebido é 0', async () => {
     // Competência isolada, para o total ser previsível mesmo com o resto da suíte.
     const familia = await criarFamiliaComMembro('Família RN-11');
     const cookie = await cookieDeSessao(familia.membroId);
@@ -212,9 +262,33 @@ describe('RN-11 — planejado = Σ tetos; não alocado = recebido − planejado'
     const leitura = await lerCompetencia(cookie, '2026-06');
     expect(leitura.body.planejadoCentavos).toBe(15000);
     // RN-39 (EF-04 §2): recebido é soma dos lançamentos RECEITA da
-    // competência. Sem EF-04, o conjunto é vazio: recebido = 0 hoje.
+    // competência. Nenhum lançamento foi criado nesta família/competência, e
+    // a SQL soma um conjunto vazio como 0 (`coalesce(sum(...), 0)`).
     expect(leitura.body.recebidoCentavos).toBe(0);
     expect(leitura.body.naoAlocadoCentavos).toBe(0 - 15000);
+  });
+
+  it('não alocado usa recebido REAL (RN-39) — soma dos lançamentos RECEITA da competência', async () => {
+    const familia = await criarFamiliaComMembro('Família RN-11 real');
+    const cookie = await cookieDeSessao(familia.membroId);
+    const conta = await request(app)
+      .post('/contas')
+      .set('Cookie', cookie)
+      .send({ tipo: 'DEBITO', nome: 'Conta RN-11', icone: 'banco', cor: '#000', saldoInicialCentavos: 0 });
+    const categoria = await criarCategoria(cookie, 'RN-11 real');
+    await definirTeto(cookie, '2026-06', categoria.id, 4000);
+
+    await request(app).post('/lancamentos').set('Cookie', cookie).send({
+      tipo: 'RECEITA',
+      descricao: 'Salário',
+      valorCentavos: 20000,
+      data: '2026-06-05',
+      contaId: conta.body.id,
+    });
+
+    const leitura = await lerCompetencia(cookie, '2026-06');
+    expect(leitura.body.recebidoCentavos).toBe(20000);
+    expect(leitura.body.naoAlocadoCentavos).toBe(20000 - 4000);
   });
 });
 

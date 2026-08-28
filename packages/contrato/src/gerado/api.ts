@@ -355,6 +355,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/lancamentos": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lista os lançamentos da família da sessão (extrato), com filtro opcional de competência e conta */
+        get: operations["get_lancamentos"];
+        put?: never;
+        /** Registra um lançamento (RECEITA, DESPESA ou TRANSFERENCIA) na família da sessão. DESPESA com quantidadeParcelas > 1 gera uma SerieParcelas e N lançamentos (RN-20/RN-21). */
+        post: operations["post_lancamentos"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/lancamentos/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** O detalhe de um lançamento da família da sessão */
+        get: operations["get_lancamentos__id_"];
+        put?: never;
+        post?: never;
+        /** Apaga um lançamento da família da sessão. ?modo escolhe o alcance quando ele é parcela de uma série: esta (default) · todas · a-partir-desta (fork 1/#52) */
+        delete: operations["delete_lancamentos__id_"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -664,6 +700,101 @@ export interface components {
             autorMembroId: string;
             /** @description ISO 8601. */
             criadoEm: string;
+        };
+        NovoLancamento: {
+            /** @enum {string} */
+            tipo: "RECEITA";
+            /** @description O que foi lançado, em texto livre. */
+            descricao: string;
+            /** @description Inteiro em centavos (D-06). Em DESPESA parcelada, é o TOTAL da compra — o motor de parcelamento divide (RN-20/RN-21). */
+            valorCentavos: number;
+            /**
+             * Format: date
+             * @description AAAA-MM-DD — quando aconteceu (distinta da competência, RN-15).
+             */
+            data: string;
+            /** @description A conta afetada (origem, em TRANSFERENCIA). */
+            contaId: string;
+        } | {
+            /** @enum {string} */
+            tipo: "DESPESA";
+            /** @description O que foi lançado, em texto livre. */
+            descricao: string;
+            /** @description Inteiro em centavos (D-06). Em DESPESA parcelada, é o TOTAL da compra — o motor de parcelamento divide (RN-20/RN-21). */
+            valorCentavos: number;
+            /**
+             * Format: date
+             * @description AAAA-MM-DD — quando aconteceu (distinta da competência, RN-15).
+             */
+            data: string;
+            /** @description A conta afetada (origem, em TRANSFERENCIA). */
+            contaId: string;
+            /** @description Obrigatório em DESPESA (EF-04 §1). */
+            categoriaId: string;
+            /** @description RN-20 — até 48×. Ausente (ou 1, que esta forma nem aceita) é despesa avulsa, sem SerieParcelas. */
+            quantidadeParcelas?: number;
+        } | {
+            /** @enum {string} */
+            tipo: "TRANSFERENCIA";
+            /** @description O que foi lançado, em texto livre. */
+            descricao: string;
+            /** @description Inteiro em centavos (D-06). Em DESPESA parcelada, é o TOTAL da compra — o motor de parcelamento divide (RN-20/RN-21). */
+            valorCentavos: number;
+            /**
+             * Format: date
+             * @description AAAA-MM-DD — quando aconteceu (distinta da competência, RN-15).
+             */
+            data: string;
+            /** @description A conta afetada (origem, em TRANSFERENCIA). */
+            contaId: string;
+            /** @description Para onde o dinheiro vai. Não pode ser igual a contaId (fork 3/#52 — 400, validação de entrada). */
+            contaDestinoId: string;
+        };
+        Lancamento: {
+            id: string;
+            /** @enum {string} */
+            tipo: "RECEITA" | "DESPESA" | "TRANSFERENCIA";
+            descricao: string;
+            valorCentavos: number;
+            /** @description AAAA-MM-DD. */
+            data: string;
+            /** @description AAAA-MM — calculada na escrita (RN-15). */
+            competencia: string;
+            categoriaId: string | null;
+            contaId: string;
+            contaDestinoId: string | null;
+            /** @description RN-16 — imutável. */
+            criadoPorMembroId: string;
+            /** @description RN-20/RN-21 — nulo fora de parcelamento. */
+            serieParcelaId: string | null;
+            /** @description 1-baseado; nulo fora de parcelamento. */
+            numeroParcela: number | null;
+            /** @description ISO 8601. */
+            criadoEm: string;
+        };
+        LancamentosListados: {
+            lancamentos: {
+                id: string;
+                /** @enum {string} */
+                tipo: "RECEITA" | "DESPESA" | "TRANSFERENCIA";
+                descricao: string;
+                valorCentavos: number;
+                /** @description AAAA-MM-DD. */
+                data: string;
+                /** @description AAAA-MM — calculada na escrita (RN-15). */
+                competencia: string;
+                categoriaId: string | null;
+                contaId: string;
+                contaDestinoId: string | null;
+                /** @description RN-16 — imutável. */
+                criadoPorMembroId: string;
+                /** @description RN-20/RN-21 — nulo fora de parcelamento. */
+                serieParcelaId: string | null;
+                /** @description 1-baseado; nulo fora de parcelamento. */
+                numeroParcela: number | null;
+                /** @description ISO 8601. */
+                criadoEm: string;
+            }[];
         };
     };
     responses: never;
@@ -1831,6 +1962,200 @@ export interface operations {
                 };
             };
             /** @description Corpo ou competência inválidos */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    get_lancamentos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Os lançamentos da família */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LancamentosListados"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Competência fora do formato AAAA-MM */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    post_lancamentos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NovoLancamento"];
+            };
+        };
+        responses: {
+            /** @description Lançamento(s) criado(s) */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LancamentosListados"];
+                };
+            };
+            /** @description contaId igual a contaDestinoId (fork 3/#52) */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Conta ou categoria inexistente nesta família */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Competência selada (RN-22, EF-08) */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Corpo inválido */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    get_lancamentos__id_: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description O lançamento */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Lancamento"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Lançamento inexistente nesta família */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    delete_lancamentos__id_: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Lançamento(s) apagado(s) */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Lançamento inexistente nesta família */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description modo inválido */
             422: {
                 headers: {
                     [name: string]: unknown;
