@@ -28,12 +28,12 @@ conta pagadora e o cartão.
 
 ## §2 — Regras
 
-| #     | Regra                                                                                           | Onde é imposta            | Fonte                    |
-| ----- | ----------------------------------------------------------------------------------------------- | ------------------------- | ------------------------ |
-| RN-23 | A compra entra na fatura cujo **ciclo de fechamento** contém a data — não o mês civil           | serviço de fatura         | [EF-02](EF-02-contas.md) |
-| RN-24 | Pagar é **transferência**; os lançamentos originais **mantêm** sua conta de origem              | `POST /faturas/:id/pagar` | esta EF                  |
-| RN-25 | O saldo exibido do cartão é a **fatura em aberto** — **D1**: toda fatura não paga (a fechada aguardando pagamento **mais** a do ciclo corrente) | leitura                   | mockup + decisão humana (D1, 2026-08-28) |
-| RN-26 | O `limite livre` do cartão é `limite − fatura em aberto` (mesma definição de D1, ver EF-06 §2)   | leitura                   | [EF-06](EF-06-lastro.md) + decisão humana (D1) |
+| #     | Regra                                                                                                                                           | Onde é imposta            | Fonte                                          |
+| ----- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- | ---------------------------------------------- |
+| RN-23 | A compra entra na fatura cujo **ciclo de fechamento** contém a data — não o mês civil                                                           | serviço de fatura         | [EF-02](EF-02-contas.md)                       |
+| RN-24 | Pagar é **transferência**; os lançamentos originais **mantêm** sua conta de origem                                                              | `POST /faturas/:id/pagar` | esta EF                                        |
+| RN-25 | O saldo exibido do cartão é a **fatura em aberto** — **D1**: toda fatura não paga (a fechada aguardando pagamento **mais** a do ciclo corrente) | leitura                   | mockup + decisão humana (D1, 2026-08-28)       |
+| RN-26 | O `limite livre` do cartão é `limite − fatura em aberto` (mesma definição de D1, ver EF-06 §2)                                                  | leitura                   | [EF-06](EF-06-lastro.md) + decisão humana (D1) |
 
 **RN-26 é a ponte para o lastro.** O limite livre alimenta o cálculo do produto — então **errar o
 ciclo erra o lastro**. É por isso que esta EF vem antes da EF-06.
@@ -43,14 +43,14 @@ ciclo erra o lastro**. É por isso que esta EF vem antes da EF-06.
 > **"Fatura em aberto" = TODA fatura não paga** — a fechada aguardando pagamento **mais** a do
 > ciclo corrente. O limite livre só se recompõe **no pagamento** (RN-24), nunca no fechamento.
 
-Esta RN-25 dizia originalmente *"a fatura em aberto do **ciclo corrente**"* — leitura estreita, só
+Esta RN-25 dizia originalmente _"a fatura em aberto do **ciclo corrente**"_ — leitura estreita, só
 o que está acumulando agora. A [EF-06 §2](EF-06-lastro.md), na fórmula `limiteLivre = Σ (limite −
 fatura em aberto)`, usa a mesma expressão sem qualificar "do ciclo corrente". Duas fontes, mesma
 expressão, dois escopos possíveis — e a EF-06 seria construída contra a leitura errada enquanto o
 texto ficasse assim.
 
 **D1 resolve a favor do escopo amplo.** Consequência: o **saldo exibido do cartão** (esta RN-25)
-passa a ser *tudo que não foi pago* — a fatura fechada aguardando pagamento **mais** o total
+passa a ser _tudo que não foi pago_ — a fatura fechada aguardando pagamento **mais** o total
 acumulado até agora no ciclo corrente —, não apenas o ciclo corrente isolado. Uma fatura `FECHADA`
 (aguardando pagamento) ainda consome limite do cartão até ser quitada; contá-la só enquanto durava
 o ciclo corrente devolveria limite prematuramente no **fechamento**, em vez de no **pagamento**
@@ -107,4 +107,6 @@ item (`api/testes/faturas-ciclo.teste.ts`, tarefa #72) — não contra o relato 
 - [x] Isolamento entre famílias · dois clientes veem o pagamento sem refresh — `faturas-ciclo.teste.ts:546-651` (Caso 6)
 - [x] `PROVA_DE_COMPORTAMENTO=PASS` — carimbado pelo condutor em cada merge desta história:
       `cf2268f` (#69), `1a102bf` (#70), `24be46e` (#71), `fa741e2` (#72) — ver MANUAL-05 "Prova
-      rodada" para o detalhe por tarefa
+      rodada" para o detalhe por tarefa. Estas citações são per-tarefa; o carimbo de
+      NÍVEL-HISTÓRIA (o que fecha o DoD da #19 de fato) é aplicado por `carimbar-issue.sh 19`,
+      depois da revisão de costura — não executado ainda no momento em que este texto foi escrito

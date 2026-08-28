@@ -28,7 +28,7 @@
   - #72 — `a8fab42` (os seis casos do DoD, fixture derivada do relógio) mesclado em `fa741e2`
   - #73 — esta tarefa (docs — MC-05/MANUAL-05, correção de EF-05 §2/§5 e EF-06 §2): commit ainda
     sem hash no momento em que este texto foi escrito — confira com `git log --oneline
-    --first-parent main..historia/19-ef-05-faturas`
+--first-parent main..historia/19-ef-05-faturas`
 - **Confiança:** Alta (arquivos de teste e código lido linha a linha pelo agente `docs`, mais o
   carimbo `Gate PASS + revisão APROVADA` citado no próprio commit de merge de cada tarefa).
 
@@ -74,7 +74,7 @@ fechada ou paga (ver MC-05, `EF05-MC-006`).
 
 Esta é a decisão mais delicada desta história, e ela foi tomada **antes de qualquer código** —
 não é co-evolução de regra e implementação. O problema de texto que ela resolve: a EF-05 §2, na
-RN-25, dizia *"a fatura em aberto do **ciclo corrente**"* — leitura estreita. A EF-06 §2, na
+RN-25, dizia _"a fatura em aberto do **ciclo corrente**"_ — leitura estreita. A EF-06 §2, na
 fórmula `limiteLivre = Σ(limite − fatura em aberto)`, usava a mesma expressão sem qualificar
 escopo. **A mesma expressão, dois escopos possíveis** — e enquanto o texto ficasse assim, a EF-06
 seria construída contra a leitura errada, e errar o ciclo erra o lastro (o risco máximo que a
@@ -90,11 +90,11 @@ enum `status = 'ABERTA'` **não é sinônimo** do termo de negócio "fatura em a
 módulo já tinha D1 disponível como decisão fechada, não precisou adivinhar:
 
 - `api/src/modulos/faturas/servico.ts:293-303` — a query de leitura usa `ne(faturas.status,
-  'PAGA')`, nunca `eq(faturas.status, 'ABERTA')`.
+'PAGA')`, nunca `eq(faturas.status, 'ABERTA')`.
 - `api/src/modulos/contas/servico.ts#expressaoSaldoDerivado` — o somatório com sinal que forma
   `saldoCentavos` é aplicado **sem exceção** a `CREDITO` (antes da EF-05, um `case when tipo =
-  'CREDITO' then 0` travava o saldo em zero); o resultado é `saldoCentavos = −Σ(fatura em aberto,
-  D1)` — negativo, a dívida real.
+'CREDITO' then 0` travava o saldo em zero); o resultado é `saldoCentavos = −Σ(fatura em aberto,
+D1)` — negativo, a dívida real.
 
 ## Backend — `api/src/modulos/faturas/` (#70)
 
@@ -175,8 +175,8 @@ não recebe nada (`api/testes/faturas-ciclo.teste.ts:576-650`).
 
 ### Isolamento entre famílias
 
-Família B não lê a fatura de A pelo cartão de A (404, `faturas.teste.ts:498-504`) nem paga (404,
-mesmo sabendo o id da fatura, `:505-533`; confirmado de novo, isolado, em
+Família B não lê a fatura de A pelo cartão de A (404, `faturas.teste.ts:498-503`) nem paga (404,
+mesmo sabendo o id da fatura, `:505-528`; confirmado de novo, isolado, em
 `faturas-ciclo.teste.ts:547-574`).
 
 ### Costura com `contas`/`lancamentos` (não é pasta desta tarefa, reportada)
@@ -211,7 +211,7 @@ próprias e deliberadamente disjuntas das de #70:
 5. **Limite livre = D1** (`:473-537`) — antes de pagar, desconta FECHADA + ABERTA (explicitamente
    comparado e diferente da leitura estreita que D1 rejeitou); depois de pagar a FECHADA, o limite
    livre sobe exatamente pelo valor pago, e a ABERTA continua intacta.
-6. **Isolamento + tempo real** (`:546-650`) — B nunca lê nem paga fatura de A (404); um único POST
+6. **Isolamento + tempo real** (`:546-651`) — B nunca lê nem paga fatura de A (404); um único POST
    real de pagamento invalida os DOIS clientes de A sem refresh, e B não recebe nada.
 
 A fixture deriva `diaFechamento` do relógio real por um deslocamento de 14 no grupo cíclico Z/28
@@ -318,9 +318,9 @@ As duas armadilhas que a EF-05 §4 nomeia explicitamente, confirmadas linha a li
 (`.motor/recorte-desenho-19.md` §5, não versionado):
 
 1. **Pagar reatribuía os lançamentos** (`lancs: s.lancs.map(l => l.conta === id ? {...l, conta:
-   contaPagadora} : l)`) — não portado; RN-24 garante que nenhum `UPDATE` toca `lancamentos.contaId`.
+contaPagadora} : l)`) — não portado; RN-24 garante que nenhum `UPDATE` toca `lancamentos.contaId`.
 2. **O ciclo era ignorado** (`faturaDe = id => s.lancs.filter(l => l.conta === id && l.v > 0 &&
-   !l.mesRel)` — soma pelo mês civil, `fechamento` nunca entra na conta) — não portado; RN-23
+!l.mesRel)` — soma pelo mês civil, `fechamento` nunca entra na conta) — não portado; RN-23
    agrupa por `fechaEmDoCiclo`, nunca pelo mês da compra.
 
 Também não portado: `contaPagadora` fixa como "a primeira conta de débito que aparecer" (vira D3,
@@ -361,7 +361,10 @@ PROVA_DE_COMPORTAMENTO=PASS
 
 Bloco acima citado a partir do carimbo de cada merge (#69 a #72) — esta tarefa (#73), de
 documentação, não toca `api/`/`web/`/`.preator/skills/` e portanto não altera nenhum destes oito
-números.
+números — estas oito linhas são evidência POR TAREFA. O carimbo de NÍVEL-HISTÓRIA que fecha
+o DoD da #19 de fato é aplicado por `carimbar-issue.sh 19` (`preator/esteira/motor/issues/carimbar-issue.sh`),
+na branch da história, depois da revisão de costura sobre a árvore integrada inteira — não
+executado ainda no momento em que este texto foi escrito.
 
 **O que o `PASS` NÃO cobriu, medido — não afirmado:** o botão de pagar, os dois dropdowns (D3/D4)
 e o layout dos blocos (D2) ficam atrás de interação de tela que o crawler do gate de navegação não
