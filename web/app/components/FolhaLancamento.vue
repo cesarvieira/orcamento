@@ -74,6 +74,31 @@ const erro = ref<string | null>(null);
 
 const valorCentavos = computed(() => textoParaCentavos(valorTexto.value || '0'));
 
+/**
+ * O CAMPO DE VALOR — cru enquanto se digita, formatado quando se sai.
+ *
+ * `valorTexto` continua sendo a única fonte: o teclado da folha e o teclado
+ * físico escrevem nele do MESMO jeito, porque `textoParaCentavos` já aceita as
+ * duas formas (`1234`, `12,34`, `1.234,56`, `R$ 10`). Não há segundo caminho.
+ *
+ * ⚠️ POR QUE NÃO FORMATAR ENQUANTO DIGITA: reescrever o texto a cada tecla
+ * move o cursor para o fim e impede apagar o meio do número — o defeito
+ * clássico de campo de dinheiro. Enquanto o campo tem foco ele mostra o que a
+ * pessoa escreveu; ao sair, mostra o valor formatado que o resto da tela usa.
+ */
+const valorFocado = ref(false);
+const valorExibido = computed({
+  get: () => {
+    if (valorFocado.value) return valorTexto.value;
+    // Vazio continua vazio: formatar o zero mostraria "R$ 0,00" num campo em
+    // que ninguém tocou, e o placeholder nunca apareceria.
+    return valorTexto.value ? formatarCentavos(valorCentavos.value) : '';
+  },
+  set: (novo: string) => {
+    valorTexto.value = novo;
+  },
+});
+
 /** `AAAA-MM-DD` de hoje, no fuso local — só o valor inicial da folha ao abrir. */
 function dataDeHoje(): string {
   const agora = new Date();
@@ -401,13 +426,6 @@ async function salvar(): Promise<void> {
         class="sheet__nome folha__descricao"
       >
 
-      <!-- ── VALOR (recorte §2.3) ───────────────────────────────────────────── -->
-      <div class="folha__valor-cartao">
-        <div class="folha__valor-rotulo">VALOR</div>
-        <div class="folha__valor-numero" :style="{ color: corValor }">{{ formatarCentavos(valorCentavos) }}</div>
-        <div class="folha__valor-resumo">{{ resumoLanc }}</div>
-      </div>
-
       <!-- ── LANÇAMENTO RÁPIDO (recorte §2.4) ─────────────────────────────────
            🟨 Sem fonte de dado: anatomia é do desenho, o CONTEÚDO não — ver
            comentário no topo do arquivo. -->
@@ -563,7 +581,39 @@ async function salvar(): Promise<void> {
       <!-- recorte §2.8 — texto e cor saem da regra, não do mockup (§6 ponto 3) -->
       <p v-if="dataHint" class="folha__hint" :style="{ color: corDataHint }">{{ dataHint }}</p>
 
-      <!-- ── TECLADO NUMÉRICO (recorte §2.9) ──────────────────────────────────── -->
+      <!-- ── VALOR (recorte §2.3) ─────────────────────────────────────────────
+           🟨 POSIÇÃO e CAMPO divergem do desenho, por decisão do humano:
+
+           · No mockup o valor fica no TOPO da folha. Aqui ele desceu para
+             ficar exatamente ACIMA do teclado — os dois formam uma peça só, e
+             separá-los obrigava o olho a subir a folha inteira a cada tecla.
+           · No mockup o valor é só EXIBIÇÃO, alimentada pelo teclado. Aqui é
+             um campo digitável, porque no desktop o teclado numérico não faz
+             sentido e some (ver `folha-lancamento.scss`).
+
+           `inputmode="none"` é o que faz os dois mundos coexistirem: no celular
+           o campo é focável mas o teclado DO SISTEMA não sobe — quem digita é o
+           teclado da folha, que ficaria escondido atrás dele. No desktop o
+           atributo é inerte e o teclado físico escreve normalmente. -->
+      <div class="folha__valor-cartao">
+        <label class="folha__valor-rotulo" for="folha-valor">VALOR</label>
+        <input
+          id="folha-valor"
+          v-model="valorExibido"
+          type="text"
+          inputmode="none"
+          placeholder="R$ 0,00"
+          class="folha__valor-numero"
+          :style="{ color: corValor }"
+          @focus="valorFocado = true"
+          @blur="valorFocado = false"
+        >
+        <div class="folha__valor-resumo">{{ resumoLanc }}</div>
+      </div>
+
+      <!-- ── TECLADO NUMÉRICO (recorte §2.9) ────────────────────────────────────
+           Só no celular: no desktop `folha-lancamento.scss` o esconde, e o
+           valor se digita no campo acima. -->
       <div class="folha__teclado">
         <button
           v-for="t in TECLAS"
