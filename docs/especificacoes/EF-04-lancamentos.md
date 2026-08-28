@@ -108,9 +108,11 @@ tela `extrato` · modal de detalhe.
       MESMA família contra `lancamentos` (`api/testes/realtime.teste.ts:111-149`). A lacuna existiu
       (só havia prova de isolamento entre famílias) e foi fechada pela tarefa #64. Ver `MC-04`,
       `EF04-MC-005`
-- [x] `PROVA_DE_COMPORTAMENTO=PASS` — nas nove tarefas mescladas (`708b068`, `c771b1b`, `fb1c131`,
-      `675bfe5`, `fdb9f6f`, `e647bfa`, `7e8f9c6`, `ddd0239`, `51dd0ce`), última rodada com 181
-      testes
+- [x] `PROVA_DE_COMPORTAMENTO=PASS` em toda tarefa mesclada desta história — lista viva, na ordem
+      real (não envelhece como uma contagem fixa neste texto): `git log --oneline --first-parent
+    main..historia/18-ef-04-lancamentos`. A suíte roda **181 testes**, 0 falhando — contagem
+      literal, conferida de novo por esta tarefa (`node scripts/contar-testes.mjs`); muda só se um
+      módulo ganhar ou perder teste, não com o passar de tarefas de documentação
 
 ## §6 — Forks
 
