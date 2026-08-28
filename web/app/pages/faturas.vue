@@ -62,14 +62,26 @@
  * desktop), em vez de um botão do cabeçalho ambíguo sobre qual fatura ele
  * pagaria. Ver `faturaParaBotaoNoCabecalho`/`mostrarBotaoDesktopNoBloco`.
  *
- * V5 (recorte §6, "não há estado vazio desenhado"): resolvido sem inventar
- * tela — o único vazio real do desenho é o toast de "Não há fatura em
- * aberto nesse cartão" ao tentar pagar uma fatura sem valor (409
- * `fatura_sem_valor`), e a API já devolve essa MESMA frase; `erroPagamento`
- * só exibe o que o backend mandou (mesmo padrão de `mensagemDoErro`, nunca
- * texto inventado). O único vazio de fato novo — nenhum cartão cadastrado
- * — usa uma frase própria, marcada como tal, no mesmo espírito do vazio de
- * "família nova" que `extrato.vue` já registra como divergência.
+ * DUAS STRINGS DE VAZIO SÃO INVENÇÃO DESTE ARQUIVO, nenhuma do desenho —
+ * citadas aqui porque é isso que este cabeçalho existe pra declarar:
+ *
+ * 1. "Nenhum cartão de crédito cadastrado ainda." (`<template>`, ramo
+ *    `semCartoes`) — família sem NENHUMA conta CREDITO. NÃO é o V5 nem
+ *    nenhum outro V-número do recorte §6: aquela seção só discute "zero
+ *    cartão" dentro de V4 ("tela de faturas no plural"), e só pra dizer
+ *    que a porta 1 resolve e as portas 2/3 caem no fallback — nunca fala
+ *    do caso em que não há cartão NENHUM pra abrir. É lacuna não
+ *    numerada, mesmo tipo do vazio "família nova" que `extrato.vue` já
+ *    registra como divergência própria.
+ *
+ * 2. "Nenhum lançamento neste ciclo ainda." (dentro de cada bloco, quando
+ *    `bloco.fatura.itens.length === 0`) — esta SIM é o V5 do recorte §6:
+ *    "Como fica a tela `fatura` de um cartão sem compras no ciclo: sem
+ *    desenho." O único vazio que O DESENHO de fato tem é outro — o toast
+ *    da porta 4, "Não há fatura em aberto nesse cartão", que dispara ao
+ *    tentar pagar uma fatura sem valor (409 `fatura_sem_valor`) e chega
+ *    aqui inalterado via `erroPagamento`/`mensagemDoErro`, nunca texto
+ *    inventado.
  */
 import type { Categoria, Conta, Fatura, FaturasDoCartao, ItemDeFatura } from '@orcamento/contrato';
 import { classeDoIcone, useContas } from '~/composables/useContas';
