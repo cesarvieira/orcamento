@@ -15,7 +15,7 @@
     "teste": "vitest run --reporter=default --reporter=json --outputFile.json=./relatorio-testes.json"
   },
   "dependencies": {
-    "cookie": "^1.0.2",
+    "cookie": "^2.0.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
