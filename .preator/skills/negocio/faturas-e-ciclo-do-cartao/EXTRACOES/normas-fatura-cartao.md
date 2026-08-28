@@ -9,9 +9,7 @@
 > educação financeira consultadas, mas nenhuma fonte normativa (BCB/CMN) a impõe. Isto é dito às
 > claras no SKILL, como manda a tarefa: "se não houver fonte citável, diga isso em vez de inventar".
 
-## Fonte 1 — Resolução BCB nº 96, de 19/05/2021, art. 6º-A (incluído pela Resolução BCB nº 365,
-
-## de 21/12/2023) — [NORMA]
+## Fonte 1 — Resolução BCB nº 96/2021, art. 6º-A (incluído pela Resolução BCB nº 365/2023) — [NORMA]
 
 Texto localizado via busca (conteúdo destilado de resumos de escritórios de advocacia e imprensa
 oficial — Agência Gov, Mattos Filho —, não o PDF do artigo isolado; **[REQUER VALIDAÇÃO]** o número
