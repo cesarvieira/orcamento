@@ -108,8 +108,9 @@ tela `extrato` · modal de detalhe.
       MESMA família contra `lancamentos` (`api/testes/realtime.teste.ts:111-149`). A lacuna existiu
       (só havia prova de isolamento entre famílias) e foi fechada pela tarefa #64. Ver `MC-04`,
       `EF04-MC-005`
-- [x] `PROVA_DE_COMPORTAMENTO=PASS` — nas seis tarefas mescladas (`708b068`, `c771b1b`, `fb1c131`,
-      `675bfe5`, `fdb9f6f`, `e647bfa`), última rodada com 180 testes
+- [x] `PROVA_DE_COMPORTAMENTO=PASS` — nas nove tarefas mescladas (`708b068`, `c771b1b`, `fb1c131`,
+      `675bfe5`, `fdb9f6f`, `e647bfa`, `7e8f9c6`, `ddd0239`, `51dd0ce`), última rodada com 181
+      testes
 
 ## §6 — Forks
 
