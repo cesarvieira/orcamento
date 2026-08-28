@@ -20,15 +20,18 @@
  * destrutiva). Para um lançamento AVULSO (sem série), o clique em "Excluir"
  * continua batendo com o desenho: apaga direto, sem perguntar.
  *
- * ⚠️ `Lancamento` (contrato) NÃO expõe o TOTAL de parcelas da série — só
- * `numeroParcela` (1-baseado) e `serieParcelaId`. Não localizei endpoint que
- * devolva `SerieParcelas.quantidade` (não é exposta em nenhum schema
- * gerado). Para mostrar "Parcela N de M" sem inventar M, este arquivo CONTA
- * quantos lançamentos existem hoje com o mesmo `serieParcelaId`
- * (`GET /lancamentos` sem filtro, que já devolve o total real calculado
- * pelo servidor por linha) — isso não é recalcular NENHUM valor financeiro
- * (RN-20/RN-21 continuam só no servidor); é contar linhas que o servidor já
- * devolveu prontas. Ver o relato desta tarefa.
+ * `Lancamento.quantidadeParcelas` (issue #62) é o TOTAL de parcelas da
+ * COMPRA ORIGINAL (`series_parcelas.quantidade`) — imutável à exclusão de
+ * parcela, igual a `criadoPorMembroId` (RN-16). "Parcela N de M" usa esse
+ * campo direto, sem chamada extra.
+ *
+ * ⚠️ A versão anterior deste arquivo CONTAVA lançamentos vivos com o mesmo
+ * `serieParcelaId` (`GET /lancamentos` sem filtro) para achar M — e dava
+ * número ERRADO: `excluirLancamento(id, 'esta')` apaga a linha sem
+ * renumerar as irmãs (`api/src/modulos/lancamentos/servico.ts`). Numa
+ * compra em 3×, excluir a parcela 2 deixa vivas as parcelas 1 e 3 — a
+ * contagem dava 2, e a tela diria "Parcela 3 de 2". `quantidadeParcelas`
+ * veio para resolver exatamente isto (issue #62).
  */
 import type { Categoria, Conta, MembroDaFamilia, ModoDeExclusao } from '@orcamento/contrato';
 import { classeDoIcone, useContas } from '~/composables/useContas';
@@ -37,13 +40,12 @@ import { corDoTipo, useDetalheLancamento, useLancamentos } from '~/composables/u
 import { formatarCentavos } from '~/utils/dinheiro';
 
 const { lancamento, fechar } = useDetalheLancamento();
-const { listarLancamentos, listarCategorias, listarMembrosDaFamilia, excluirLancamento } = useLancamentos();
+const { listarCategorias, listarMembrosDaFamilia, excluirLancamento } = useLancamentos();
 const { listarContas } = useContas();
 
 const categorias = ref<Categoria[]>([]);
 const contas = ref<Conta[]>([]);
 const membros = ref<MembroDaFamilia[]>([]);
-const parcelaTotal = ref<number | null>(null);
 
 /** `'padrao'` mostra o detalhe; `'escolher'` mostra a caixa de alcance (🟨, ver comentário acima). */
 const modo = ref<'padrao' | 'escolher'>('padrao');
@@ -55,17 +57,11 @@ watch(
   async novo => {
     modo.value = 'padrao';
     erro.value = null;
-    parcelaTotal.value = null;
     if (!novo) return;
 
     if (categorias.value.length === 0) categorias.value = await listarCategorias();
     if (contas.value.length === 0) contas.value = (await listarContas()).contas;
     if (membros.value.length === 0) membros.value = await listarMembrosDaFamilia();
-
-    if (novo.serieParcelaId) {
-      const resposta = await listarLancamentos();
-      parcelaTotal.value = resposta.lancamentos.filter(l => l.serieParcelaId === novo.serieParcelaId).length;
-    }
   },
   { immediate: true },
 );
@@ -96,14 +92,14 @@ function formatarData(dataIso: string): string {
 }
 
 /**
- * `parcelaStr` do recorte (§3) — texto sai da regra, não do mockup (ver
- * comentário no topo do arquivo sobre o total ausente do contrato).
+ * `parcelaStr` do recorte (§3) — texto sai da regra, não do mockup.
+ * `quantidadeParcelas` é a compra original (ver comentário no topo do arquivo).
  */
 const parcelaStr = computed(() => {
   const numero = lancamento.value?.numeroParcela;
+  const total = lancamento.value?.quantidadeParcelas;
   if (!numero) return '';
-  const total = parcelaTotal.value;
-  return total !== null ? `Parcela ${numero} de ${total}` : `Parcela ${numero}`;
+  return total ? `Parcela ${numero} de ${total}` : `Parcela ${numero}`;
 });
 
 // ── EXCLUIR — 🟨 fork fechado pelo humano, ver comentário no topo do arquivo ──
