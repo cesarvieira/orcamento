@@ -150,6 +150,20 @@ registrarRota({
   resumo: 'Lista os lançamentos da família da sessão (extrato), com filtro opcional de competência e conta',
   etiquetas: ['lancamentos'],
   exigeSessao: true,
+  query: [
+    {
+      nome: 'competencia',
+      obrigatorio: false,
+      descricao: 'Filtra o extrato pela competência, no formato AAAA-MM.',
+      esquema: { type: 'string' },
+    },
+    {
+      nome: 'contaId',
+      obrigatorio: false,
+      descricao: 'Filtra o extrato pelos lançamentos desta conta.',
+      esquema: { type: 'string' },
+    },
+  ],
   respostas: [
     { status: 200, descricao: 'Os lançamentos da família', esquema: 'LancamentosListados' },
     { status: 401, descricao: 'Sem sessão', esquema: 'Erro' },
@@ -220,6 +234,16 @@ registrarRota({
     'uma série: esta (default) · todas · a-partir-desta (fork 1/#52)',
   etiquetas: ['lancamentos'],
   exigeSessao: true,
+  query: [
+    {
+      nome: 'modo',
+      obrigatorio: false,
+      descricao:
+        'Alcance da exclusão quando o lançamento é parcela de uma série: esta (default) · ' +
+        'todas · a-partir-desta (fork 1/#52).',
+      esquema: { type: 'string', enum: EsquemaModoDeExclusao.options },
+    },
+  ],
   respostas: [
     { status: 204, descricao: 'Lançamento(s) apagado(s)' },
     { status: 401, descricao: 'Sem sessão', esquema: 'Erro' },

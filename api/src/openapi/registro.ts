@@ -23,6 +23,20 @@ interface Resposta {
   esquema?: string;
 }
 
+/** O esquema de UM parâmetro de query — sempre string na URL; `enum` para os de valor fechado. */
+interface EsquemaDeParametro {
+  type: 'string';
+  enum?: readonly string[];
+}
+
+interface ParametroDeQuery {
+  nome: string;
+  /** @default false */
+  obrigatorio?: boolean;
+  descricao?: string;
+  esquema: EsquemaDeParametro;
+}
+
 interface Rota {
   metodo: Metodo;
   caminho: string;
@@ -30,6 +44,8 @@ interface Rota {
   etiquetas: string[];
   exigeSessao: boolean;
   corpo?: string;
+  /** Parâmetros de QUERY declarados — os de CAMINHO se derivam sozinhos de `:nome`. */
+  query?: ParametroDeQuery[];
   respostas: Resposta[];
 }
 
@@ -64,6 +80,19 @@ export function registrarRota(rota: Rota): void {
     );
   }
 
+  // R1 também cobre QUERY, não só caminho. #60 abriu esta superfície ao dar
+  // à rota um jeito de declarar parâmetro de query — o middleware de tenant
+  // já descarta `familiaId`/`familia_id` de `req.query` em runtime (defesa em
+  // profundidade), mas a guarda do CONTRATO só olhava o caminho, e um
+  // contrato que anuncia `familiaId` como query é imprecisão que convida ao
+  // mesmo erro amanhã, independente de o middleware barrar hoje.
+  const paramDeFamiliaNaQuery = (rota.query ?? []).find(p => /^familia_?[Ii]d$/.test(p.nome));
+  if (paramDeFamiliaNaQuery) {
+    throw new Error(
+      `rota com familiaId na query: ${chave} — o familiaId vem do token, nunca do request (R1 · D-05)`,
+    );
+  }
+
   rotas.push(rota);
 }
 
@@ -86,6 +115,16 @@ function parametrosDeCaminho(caminho: string) {
     in: 'path' as const,
     required: true,
     schema: { type: 'string' as const },
+  }));
+}
+
+function parametrosDeQuery(query: ParametroDeQuery[]) {
+  return query.map(p => ({
+    name: p.nome,
+    in: 'query' as const,
+    required: p.obrigatorio ?? false,
+    ...(p.descricao ? { description: p.descricao } : {}),
+    schema: p.esquema,
   }));
 }
 
@@ -115,7 +154,7 @@ export function construirDocumento(): Record<string, unknown> {
       };
     }
 
-    const parametros = parametrosDeCaminho(rota.caminho);
+    const parametros = [...parametrosDeCaminho(rota.caminho), ...parametrosDeQuery(rota.query ?? [])];
 
     caminhos[caminho][rota.metodo] = {
       summary: rota.resumo,

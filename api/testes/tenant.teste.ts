@@ -136,6 +136,40 @@ describe('middleware de tenant', () => {
     ).toThrow(/familiaId vem do token/);
   });
 
+  it('o registro RECUSA rota com familiaId declarado como parâmetro de query', () => {
+    // #60 deu à rota um jeito novo de declarar parâmetro de query. O
+    // middleware já descarta familiaId/familia_id de req.query em runtime
+    // (defesa em profundidade, provada no teste acima), mas a guarda do
+    // CONTRATO só olhava o caminho — e um contrato que ANUNCIA familiaId como
+    // query é imprecisão que convida ao mesmo erro amanhã, independente de o
+    // middleware barrar hoje. Fecha as duas portas no mesmo lugar.
+    expect(() =>
+      registrarRota({
+        metodo: 'get',
+        caminho: '/rota-de-teste-query-familia-id',
+        resumo: 'rota que não pode existir',
+        etiquetas: ['teste'],
+        exigeSessao: true,
+        query: [{ nome: 'familiaId', esquema: { type: 'string' } }],
+        respostas: [{ status: 200, descricao: 'nunca' }],
+      }),
+    ).toThrow(/familiaId vem do token/);
+  });
+
+  it('o registro RECUSA rota com familia_id (snake_case) declarado como parâmetro de query', () => {
+    expect(() =>
+      registrarRota({
+        metodo: 'get',
+        caminho: '/rota-de-teste-query-familia-id-snake',
+        resumo: 'rota que não pode existir',
+        etiquetas: ['teste'],
+        exigeSessao: true,
+        query: [{ nome: 'familia_id', esquema: { type: 'string' } }],
+        respostas: [{ status: 200, descricao: 'nunca' }],
+      }),
+    ).toThrow(/familiaId vem do token/);
+  });
+
   it('a família A não enxerga membro da família B', async () => {
     const resposta = await request(app).get('/familia').set('Cookie', cookieA);
 

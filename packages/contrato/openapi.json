@@ -1580,6 +1580,14 @@
           "lancamentos"
         ],
         "additionalProperties": false
+      },
+      "ModoDeExclusao": {
+        "type": "string",
+        "enum": [
+          "esta",
+          "todas",
+          "a-partir-desta"
+        ]
       }
     },
     "securitySchemes": {
@@ -3164,6 +3172,26 @@
           "lancamentos"
         ],
         "operationId": "get_lancamentos",
+        "parameters": [
+          {
+            "name": "competencia",
+            "in": "query",
+            "required": false,
+            "description": "Filtra o extrato pela competência, no formato AAAA-MM.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contaId",
+            "in": "query",
+            "required": false,
+            "description": "Filtra o extrato pelos lançamentos desta conta.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "security": [
           {
             "cookieDeSessao": []
@@ -3271,6 +3299,20 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "modo",
+            "in": "query",
+            "required": false,
+            "description": "Alcance da exclusão quando o lançamento é parcela de uma série: esta (default) · todas · a-partir-desta (fork 1/#52).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "esta",
+                "todas",
+                "a-partir-desta"
+              ]
             }
           }
         ],
