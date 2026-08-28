@@ -32,6 +32,15 @@ export interface LancamentoLido {
   criadoPorMembroId: string;
   serieParcelaId: string | null;
   numeroParcela: number | null;
+  /**
+   * O total de parcelas da série — `series_parcelas.quantidade`, a CONTAGEM
+   * da compra original (RN-20/RN-21). Vem de JOIN com `seriesParcelas`
+   * (`colunasDeLeitura` não alcança essa tabela); no caminho de INSERT
+   * (`inserirLinha`) é passado explicitamente pelo chamador, que já o
+   * conhece pelo contexto, em vez de um segundo round-trip ao banco. Nulo
+   * fora de parcelamento, igual a `numeroParcela`/`serieParcelaId`.
+   */
+  quantidadeParcelas: number | null;
   criadoEm: string;
 }
 
@@ -67,8 +76,22 @@ const colunasDeLeitura = {
   criadoEm: lancamentos.criadoEm,
 };
 
-function paraLeitura(linha: LinhaBruta): LancamentoLido {
-  return { ...linha, criadoEm: linha.criadoEm.toISOString() };
+/**
+ * `colunasDeLeitura` MAIS `quantidadeParcelas` — o total da série
+ * (`series_parcelas.quantidade`, tarefa #62), que só chega via LEFT JOIN em
+ * `seriesParcelas` (`lancamentos.serieParcelaId` pode ser nulo, daí LEFT e
+ * não INNER: lançamento avulso precisa sobreviver ao join com `null`).
+ * Usada pelos dois caminhos de LEITURA (`listarLancamentos`,
+ * `buscarLancamento`) — nunca no `.returning()` do INSERT, que não pode
+ * fazer JOIN; lá `quantidadeParcelas` chega por parâmetro (ver `inserirLinha`).
+ */
+const colunasDeLeituraComSerie = {
+  ...colunasDeLeitura,
+  quantidadeParcelas: seriesParcelas.quantidade,
+};
+
+function paraLeitura(linha: LinhaBruta, quantidadeParcelas: number | null): LancamentoLido {
+  return { ...linha, quantidadeParcelas, criadoEm: linha.criadoEm.toISOString() };
 }
 
 /**
@@ -153,10 +176,11 @@ export interface DadosDeCriacao {
 async function inserirLinha(
   db: DbOuTx,
   valores: typeof lancamentos.$inferInsert,
+  quantidadeParcelas: number | null,
 ): Promise<LancamentoLido> {
   const [linha] = await db.insert(lancamentos).values(valores).returning(colunasDeLeitura);
   if (!linha) throw new Error('lancamentos: não consegui criar o lançamento');
-  return paraLeitura(linha);
+  return paraLeitura(linha, quantidadeParcelas);
 }
 
 export async function criarLancamento(
@@ -222,7 +246,7 @@ export async function criarLancamento(
             criadoPorMembroId: autorMembroId,
             serieParcelaId: serie.id,
             numeroParcela: parcela.numero,
-          }),
+          }, quantidadeParcelas),
         );
       }
       return { tipo: 'ok' as const, lancamentos: criados };
@@ -249,7 +273,7 @@ export async function criarLancamento(
     criadoPorMembroId: autorMembroId,
     serieParcelaId: null,
     numeroParcela: null,
-  });
+  }, /* quantidadeParcelas */ null);
 
   return { tipo: 'ok', lancamentos: [criado] };
 }
@@ -273,12 +297,13 @@ export async function listarLancamentos(
   if (filtros.contaId) condicoes.push(eq(lancamentos.contaId, filtros.contaId));
 
   const linhas = await db
-    .select(colunasDeLeitura)
+    .select(colunasDeLeituraComSerie)
     .from(lancamentos)
+    .leftJoin(seriesParcelas, eq(lancamentos.serieParcelaId, seriesParcelas.id))
     .where(and(...condicoes))
     .orderBy(lancamentos.data, lancamentos.criadoEm);
 
-  return linhas.map(paraLeitura);
+  return linhas.map(linha => paraLeitura(linha, linha.quantidadeParcelas));
 }
 
 export async function buscarLancamento(
@@ -287,11 +312,12 @@ export async function buscarLancamento(
   id: string,
 ): Promise<LancamentoLido | undefined> {
   const [linha] = await db
-    .select(colunasDeLeitura)
+    .select(colunasDeLeituraComSerie)
     .from(lancamentos)
+    .leftJoin(seriesParcelas, eq(lancamentos.serieParcelaId, seriesParcelas.id))
     .where(and(eq(lancamentos.id, id), eq(lancamentos.familiaId, familiaId)))
     .limit(1);
-  return linha ? paraLeitura(linha) : undefined;
+  return linha ? paraLeitura(linha, linha.quantidadeParcelas) : undefined;
 }
 
 // ---------------------------------------------------------------------------
