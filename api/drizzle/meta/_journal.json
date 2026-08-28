@@ -43,6 +43,13 @@
       "when": 1787860527365,
       "tag": "0005_legal_ken_ellis",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787876395943,
+      "tag": "0006_massive_eternals",
+      "breakpoints": true
     }
   ]
 }

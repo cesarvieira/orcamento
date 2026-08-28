@@ -22,6 +22,7 @@ import {
   destinoDaRota,
 } from '../config/navegacao';
 import type { Destino } from '../config/navegacao';
+import { useFolhaLancamento } from '~/composables/useLancamentos';
 import { MESES_DO_ANO, competenciaAtual, competenciaDe } from '~/utils/competencia';
 
 const rota = useRoute();
@@ -43,11 +44,14 @@ const maisEstaAtivo = computed(
 );
 
 /**
- * O botão central da tab bar e o "Novo lançamento" da sidebar abrem a folha de
- * lançamento — que é da EF-04. Enquanto ela não existe, o shell leva para o
- * extrato: é a moldura fazendo o que sabe, sem simular o que não tem.
+ * O botão central da tab bar e o "Novo lançamento" da sidebar abrem a folha
+ * de lançamento (`sheetLanc`, EF-04/tarefa #53) — não navegam mais para o
+ * extrato. `<FolhaLancamento />` está montada uma vez, no fim deste template;
+ * abrir é só chamar `abrir()`, sem categoria pré-selecionada (a pré-seleção
+ * é a porta do cartão de categoria da home, tarefa #54 — ver
+ * `composables/useLancamentos.ts`).
  */
-const rotaDeLancamento = '/extrato';
+const { abrir: abrirNovoLancamento } = useFolhaLancamento();
 
 /**
  * O ícone de um destino, respeitando o estado. `iconeAtivo` é opcional de
@@ -138,10 +142,10 @@ const mesesDoAnoNaFolha = computed(() =>
         </NuxtLink>
       </nav>
 
-      <NuxtLink :to="rotaDeLancamento" class="sidebar__acao">
+      <button type="button" class="sidebar__acao" @click="abrirNovoLancamento()">
         <i class="ti ti-plus"></i>
         Novo lançamento
-      </NuxtLink>
+      </button>
 
       <div class="sidebar__rodape">
         <slot name="resumo-lateral">
@@ -218,9 +222,9 @@ const mesesDoAnoNaFolha = computed(() =>
       </NuxtLink>
 
       <div class="tabbar__centro">
-        <NuxtLink :to="rotaDeLancamento" class="tabbar__fab" aria-label="Novo lançamento">
+        <button type="button" class="tabbar__fab" aria-label="Novo lançamento" @click="abrirNovoLancamento()">
           <i class="ti ti-plus"></i>
-        </NuxtLink>
+        </button>
       </div>
 
       <NuxtLink
@@ -299,6 +303,18 @@ const mesesDoAnoNaFolha = computed(() =>
         </button>
       </div>
     </div>
+
+    <!--
+      ── LANÇAMENTOS (EF-04/tarefa #53) — componentes GLOBAIS ─────────────
+      Montados uma vez aqui, abertos de qualquer tela via
+      `useFolhaLancamento()`/`useDetalheLancamento()`
+      (`composables/useLancamentos.ts`). O FAB e o "Novo lançamento" acima já
+      chamam `abrirNovoLancamento()`; a tarefa #54 abre a folha com categoria
+      pré-selecionada pelo cartão de categoria da home, e o modal de detalhe
+      pelo extrato — sem montar estes componentes de novo.
+    -->
+    <FolhaLancamento />
+    <ModalDetalheLancamento />
   </div>
 </template>
 
