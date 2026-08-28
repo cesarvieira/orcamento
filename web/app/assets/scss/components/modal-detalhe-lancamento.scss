@@ -1,0 +1,178 @@
+// O MODAL DE DETALHE — issue #53, história #18 (EF-04).
+//
+// FONTE: `.motor/recorte-desenho-18.md` §3. Modal CENTRADO (não é bottom
+// sheet, ao contrário de `folha-lancamento.scss`): "overlay igual, caixa
+// branca border-radius:18px, padding:20px" — os números vêm do recorte.
+//
+// A caixa de alcance de exclusão (`.detalhe__pergunta`/`.detalhe__escolhas`)
+// é 🟨 decisão do humano, sem fonte no desenho — ver o comentário no
+// `<script>` do componente. Construída no vocabulário de pílula que o resto
+// do app já usa (`sheet__salvar`/`sheet__excluir` em `pages/*.scss`), não
+// copiada de nenhum elemento do mockup.
+
+.detalhe-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(12, 22, 40, 0.42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.detalhe {
+  width: 100%;
+  max-width: 380px;
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--superficie);
+  border-radius: 18px;
+  padding: 20px;
+}
+
+.detalhe__selo {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--texto-fraco);
+}
+
+.detalhe__desc {
+  margin: 4px 0 0;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.detalhe__valor {
+  margin: 6px 0 0;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.detalhe__linhas {
+  margin-top: 14px;
+}
+
+.detalhe__linha {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 0;
+  border-top: 1px solid var(--borda);
+
+  &:first-child {
+    border-top: none;
+  }
+}
+
+.detalhe__rotulo {
+  font-size: 12.5px;
+  color: var(--texto-medio);
+}
+
+.detalhe__valor-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--texto);
+  text-align: right;
+}
+
+.detalhe__icone {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  border-radius: 6px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+.detalhe__erro {
+  margin: 12px 0 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--alerta);
+}
+
+// ── rodapé (recorte §3 — dois botões de 42px) ─────────────────────────────
+
+.detalhe__rodape {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.detalhe__botao {
+  flex: 1;
+  height: 42px;
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  &--excluir {
+    border: 1px solid rgba(198, 40, 40, 0.3);
+    background: var(--superficie);
+    color: var(--alerta);
+  }
+
+  &--fechar {
+    border: none;
+    background: var(--tinta);
+    color: #fff;
+  }
+}
+
+// ── caixa de alcance da exclusão — 🟨 decisão do humano, ver <script> ────
+
+.detalhe__pergunta {
+  margin: 16px 0 0;
+  font-size: 12.5px;
+  color: var(--texto-medio);
+}
+
+.detalhe__escolhas {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+
+  .detalhe__botao {
+    width: 100%;
+  }
+}
+
+.detalhe__cancelar {
+  width: 100%;
+  height: 40px;
+  margin-top: 8px;
+  border: 1px solid var(--borda-media);
+  background: var(--superficie);
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--texto);
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
