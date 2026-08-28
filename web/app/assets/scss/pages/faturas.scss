@@ -1,0 +1,384 @@
+// FATURAS (EF-05) — tela `fatura` do mockup. `.motor/recorte-desenho-19.md`
+// é FONTE, não ilustração — ver o cabeçalho de `pages/faturas.vue` para o
+// que vem do desenho e o que vem de D2/D3/D4 (decisões humanas 2026-08-28).
+//
+// `.lista`/`.linha*` são globais (`base.scss`) — reaproveitados para os dois
+// dropdowns (cartão/D4, conta pagadora/D3) e para a tabela de itens no
+// desktop, mesmo padrão que `extrato.scss` já usa para o filtro de conta.
+
+// O título "Faturas" já vem do shell (`topo__titulo`). Esta tela não o
+// duplica — mesmo padrão de `contas.vue`/`extrato.vue`.
+
+.faturas__vazio {
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--texto-fraco);
+
+  &--erro {
+    color: var(--alerta);
+  }
+}
+
+// ── BREADCRUMB — só mobile (recorte §2: "‹ Contas") ─────────────────────
+
+.faturas__breadcrumb {
+  display: block;
+  margin: -8px 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--texto-fraco);
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
+
+// ── D4/D3 · OS DOIS SELETORES — mesmo padrão do filtro de conta do extrato ──
+
+.faturas__seletor-container {
+  position: relative;
+  z-index: 30;
+  margin-bottom: 14px;
+}
+
+.faturas__seletor {
+  width: 100%;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 13px;
+  background: var(--superficie);
+  border: 1px solid var(--borda-media);
+  border-radius: var(--raio);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.faturas__seletor-quadrado {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 7px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.faturas__seletor-texto {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.faturas__seletor-rotulo {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+}
+
+.faturas__seletor-valor {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--texto);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.faturas__seletor-seta {
+  flex: none;
+  font-size: 14px;
+  color: var(--texto-fraco);
+}
+
+.faturas__seletor-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: transparent;
+}
+
+.faturas__seletor-painel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  max-height: 264px;
+  overflow-y: auto;
+  background: var(--superficie);
+  border-radius: var(--raio);
+  box-shadow: 0 12px 30px rgba(10, 25, 50, 0.22);
+}
+
+.faturas__seletor-check {
+  flex: none;
+  margin-left: auto;
+  font-size: 15px;
+  color: var(--tinta);
+}
+
+// ── CABEÇALHO AZUL (recorte §2/§3 — `#14325a` já é `var(--tinta)`) ──────
+
+.faturas__cabecalho {
+  background: var(--tinta);
+  color: #fff;
+  border-radius: var(--raio-grande);
+  padding: 18px;
+  margin-bottom: 14px;
+}
+
+.faturas__cabecalho-texto {
+  display: flex;
+  flex-direction: column;
+}
+
+.faturas__cabecalho-nome {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  opacity: 0.62;
+}
+
+.faturas__cabecalho-total {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-top: 2px;
+}
+
+.faturas__cabecalho-datas {
+  font-size: 11.5px;
+  opacity: 0.72;
+  margin-top: 6px;
+}
+
+// Só desktop, e só com UMA fatura fechada (o FORK, ver `faturas.vue`).
+.faturas__botao-cabecalho {
+  display: none;
+}
+
+// ── O AVISO (EF-05 §3 — texto literal) ──────────────────────────────────
+
+.faturas__aviso {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--texto-medio);
+}
+
+.faturas__erro-pagamento {
+  margin: 0 0 14px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--alerta);
+}
+
+// ── D2 · OS DOIS BLOCOS ───────────────────────────────────────────────────
+
+.faturas__bloco {
+  margin-bottom: 20px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.faturas__bloco-cabecalho {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 2px 10px;
+}
+
+.faturas__bloco-titulo {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--texto);
+}
+
+.faturas__bloco-subtitulo {
+  display: block;
+  font-size: 11px;
+  color: var(--texto-fraco);
+  margin-top: 2px;
+}
+
+.faturas__bloco-total {
+  flex: none;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--alerta);
+  white-space: nowrap;
+}
+
+// ── ITENS — mobile: cards soltos; desktop: tabela (`.lista`/`.linha`) ────
+
+.faturas__itens--mobile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
+
+.faturas__itens--desktop {
+  display: none;
+
+  @media (min-width: 768px) {
+    display: block;
+  }
+}
+
+.faturas__item-cartao {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 14px;
+}
+
+.faturas__item-icone {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 8px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.faturas__item-texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.faturas__item-desc {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.faturas__item-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--texto-fraco);
+  margin-top: 1px;
+}
+
+.faturas__item-valor {
+  flex: none;
+  margin-left: 8px;
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+// Só o ícone da linha (28px, recorte §2), não os 32px de `.linha__icone`.
+.faturas__item-desktop {
+  .linha__icone {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+}
+
+// ── BOTÃO DE PAGAR — mobile: rodapé do bloco; desktop: dentro do cabeçalho
+//    (ou no bloco, quando há 2+ faturas fechadas — o FORK, ver `faturas.vue`) ──
+
+.faturas__botao-bloco {
+  margin-top: 14px;
+
+  &--mobile {
+    @media (min-width: 768px) {
+      display: none;
+    }
+  }
+
+  &--desktop {
+    display: none;
+
+    @media (min-width: 768px) {
+      display: block;
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// DESKTOP · a partir de 768px (recorte §3)
+// ─────────────────────────────────────────────────────────────────────────
+
+@media (min-width: 768px) {
+  // O botão sobe para dentro do cabeçalho azul: fundo branco, texto azul,
+  // rótulo curto (`rotuloBotao(true)`, `faturas.vue`).
+  .faturas__cabecalho {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .faturas__cabecalho-total {
+    font-size: 36px;
+  }
+
+  .faturas__botao-cabecalho {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    height: 46px;
+    padding: 0 22px;
+    border: none;
+    border-radius: 9999px;
+    background: #fff;
+    color: var(--tinta);
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: default;
+    }
+  }
+
+  // Tipografia sobe um degrau (recorte §3: desc 14px, valor 15px).
+  .faturas__item-desktop {
+    .linha__titulo {
+      font-size: 14px;
+    }
+
+    .faturas__item-valor {
+      font-size: 15px;
+    }
+  }
+}
