@@ -88,6 +88,12 @@ const EsquemaLancamento = registrarEsquema(
     criadoPorMembroId: z.string().meta({ description: 'RN-16 — imutável.' }),
     serieParcelaId: z.string().nullable().meta({ description: 'RN-20/RN-21 — nulo fora de parcelamento.' }),
     numeroParcela: z.number().int().nullable().meta({ description: '1-baseado; nulo fora de parcelamento.' }),
+    quantidadeParcelas: z.number().int().nullable().meta({
+      description:
+        'O total de parcelas da série (series_parcelas.quantidade) — a CONTAGEM da compra ' +
+        'original (RN-20/RN-21), imutável à exclusão de parcela (#52), igual a ' +
+        'criadoPorMembroId (RN-16). Nulo fora de parcelamento, igual a numeroParcela/serieParcelaId.',
+    }),
     criadoEm: z.string().meta({ description: 'ISO 8601.' }),
   }),
 );

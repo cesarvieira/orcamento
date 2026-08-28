@@ -77,6 +77,7 @@ interface LancamentoLido {
   criadoPorMembroId: string;
   serieParcelaId: string | null;
   numeroParcela: number | null;
+  quantidadeParcelas: number | null;
   criadoEm: string;
 }
 
@@ -395,6 +396,43 @@ describe('RN-20/RN-21 — parcelamento sem juros: até 48×, resíduo na última
     expect([...series][0]).not.toBeNull();
   });
 
+  it('tarefa #62 — cada parcela expõe quantidadeParcelas = o total da série (a compra original)', async () => {
+    const conta = await criarConta(cookieA, 'CREDITO', { nome: 'RN-20 cartão total' });
+    const categoria = await criarCategoria(cookieA, 'RN-20 categoria total');
+
+    const resposta = await postLancamento(cookieA, {
+      tipo: 'DESPESA',
+      descricao: 'Compra em 3x — total da série',
+      valorCentavos: 9000,
+      data: '2026-06-10',
+      contaId: conta.id,
+      categoriaId: categoria.id,
+      quantidadeParcelas: 3,
+    });
+
+    const parcelas = resposta.body.lancamentos as LancamentoLido[];
+    expect(parcelas.map(p => p.quantidadeParcelas)).toEqual([3, 3, 3]);
+  });
+
+  it('tarefa #62 — DESPESA avulsa (sem parcelamento) reporta quantidadeParcelas nulo, igual a numeroParcela/serieParcelaId', async () => {
+    const conta = await criarConta(cookieA, 'DEBITO', { nome: 'RN-20 avulsa' });
+    const categoria = await criarCategoria(cookieA, 'RN-20 categoria avulsa');
+
+    const resposta = await postLancamento(cookieA, {
+      tipo: 'DESPESA',
+      descricao: 'Despesa avulsa, sem série',
+      valorCentavos: 1500,
+      data: '2026-06-10',
+      contaId: conta.id,
+      categoriaId: categoria.id,
+    });
+
+    const [lancamento] = resposta.body.lancamentos as LancamentoLido[];
+    expect(lancamento?.quantidadeParcelas).toBeNull();
+    expect(lancamento?.numeroParcela).toBeNull();
+    expect(lancamento?.serieParcelaId).toBeNull();
+  });
+
   it('cada parcela consome o teto da SUA PRÓPRIA competência (RN-18/RN-20 juntas)', async () => {
     const conta = await criarConta(cookieA, 'CREDITO', { nome: 'RN-20 cartão c' });
     const categoria = await criarCategoria(cookieA, 'RN-20 categoria c');
@@ -536,6 +574,63 @@ describe('fork 1/#52 — excluir parcela: o alcance pergunta (esta · todas · a
     expect(ids).toContain(parcelas[0]?.id);
     expect(ids).toContain(parcelas[2]?.id);
     expect(ids).toContain(parcelas[3]?.id);
+  });
+
+  it('tarefa #62 — "esta" NÃO renumera as irmãs: 3x, exclui a parcela 2, a parcela 3 ainda reporta total 3 (não 2)', async () => {
+    // O caso que quebra, medido na issue #62: contar as linhas irmãs
+    // devolvidas por GET /lancamentos daria 2 depois da exclusão — e a tela
+    // escreveria "Parcela 3 de 2". `quantidadeParcelas` vem de
+    // `series_parcelas.quantidade` (a compra ORIGINAL, RN-20/RN-21), que a
+    // exclusão de parcela não reescreve (suposição declarada na #52) — por
+    // isso o valor certo continua sendo 3.
+    const conta = await criarConta(cookieA, 'CREDITO', { nome: 'Cartão #62' });
+    const categoria = await criarCategoria(cookieA, 'Categoria #62');
+    const criado = await postLancamento(cookieA, {
+      tipo: 'DESPESA',
+      descricao: 'Compra em 3x — tarefa #62',
+      valorCentavos: 9000,
+      data: '2026-07-10',
+      contaId: conta.id,
+      categoriaId: categoria.id,
+      quantidadeParcelas: 3,
+    });
+    const parcelas = criado.body.lancamentos as LancamentoLido[];
+    expect(parcelas).toHaveLength(3);
+    const [parcela1, parcela2, parcela3] = parcelas;
+
+    const excluiu = await request(app)
+      .delete(`/lancamentos/${parcela2?.id}?modo=esta`)
+      .set('Cookie', cookieA);
+    expect(excluiu.status).toBe(204);
+
+    // Só duas linhas irmãs sobrevivem — contá-las daria 2, o bug medido.
+    const restantes = await request(app)
+      .get('/lancamentos')
+      .set('Cookie', cookieA)
+      .query({ contaId: parcela1?.contaId });
+    const idsRestantes = (restantes.body.lancamentos as LancamentoLido[]).map(l => l.id);
+    expect(idsRestantes).toHaveLength(2);
+
+    // GET /lancamentos/{id} (detalhe) — a parcela 3 continua dizendo 3, não 2.
+    const detalheParcela3 = await request(app)
+      .get(`/lancamentos/${parcela3?.id}`)
+      .set('Cookie', cookieA);
+    expect(detalheParcela3.status).toBe(200);
+    const lidaNoDetalhe = detalheParcela3.body as LancamentoLido;
+    expect(lidaNoDetalhe.numeroParcela).toBe(3);
+    expect(lidaNoDetalhe.quantidadeParcelas).toBe(3);
+
+    // GET /lancamentos (lista) — mesmo campo, mesmo valor: listagem e
+    // detalhe não podem divergir (sinal de conclusão #4 da issue).
+    const naListagem = (restantes.body.lancamentos as LancamentoLido[]).find(l => l.id === parcela3?.id);
+    expect(naListagem?.quantidadeParcelas).toBe(3);
+    expect(naListagem?.quantidadeParcelas).toBe(lidaNoDetalhe.quantidadeParcelas);
+
+    // A parcela 1 (nunca tocada) também continua reportando o total certo.
+    const detalheParcela1 = await request(app)
+      .get(`/lancamentos/${parcela1?.id}`)
+      .set('Cookie', cookieA);
+    expect((detalheParcela1.body as LancamentoLido).quantidadeParcelas).toBe(3);
   });
 
   it('"todas" remove a série inteira', async () => {
