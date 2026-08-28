@@ -1604,6 +1604,320 @@
           "todas",
           "a-partir-desta"
         ]
+      },
+      "ItemDeFatura": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "descricao": {
+            "type": "string"
+          },
+          "valorCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "data": {
+            "type": "string",
+            "description": "AAAA-MM-DD."
+          },
+          "categoriaId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "numeroParcela": {
+            "nullable": true,
+            "description": "1-baseado; nulo fora de parcelamento.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "quantidadeParcelas": {
+            "nullable": true,
+            "description": "O total de parcelas da série (RN-20/RN-21). Nulo fora de parcelamento.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "descricao",
+          "valorCentavos",
+          "data",
+          "categoriaId",
+          "numeroParcela",
+          "quantidadeParcelas"
+        ],
+        "additionalProperties": false
+      },
+      "Fatura": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contaId": {
+            "type": "string"
+          },
+          "abreEm": {
+            "type": "string",
+            "description": "AAAA-MM-DD — primeiro dia do ciclo."
+          },
+          "fechaEm": {
+            "type": "string",
+            "description": "AAAA-MM-DD — RN-23: dia em que o ciclo encerra."
+          },
+          "venceEm": {
+            "type": "string",
+            "description": "AAAA-MM-DD — dia em que a fatura deve ser paga."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ABERTA",
+              "FECHADA",
+              "PAGA"
+            ]
+          },
+          "totalCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Derivado: Σ dos lançamentos DESPESA da conta com data em [abreEm, fechaEm]. Nunca materializado."
+          },
+          "pagaEm": {
+            "nullable": true,
+            "description": "ISO 8601. RN-24 — só preenchido quando status = PAGA.",
+            "type": "string"
+          },
+          "pagaComContaId": {
+            "nullable": true,
+            "description": "RN-24/D3 — a conta escolhida pelo usuário ao pagar.",
+            "type": "string"
+          },
+          "itens": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "descricao": {
+                  "type": "string"
+                },
+                "valorCentavos": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "data": {
+                  "type": "string",
+                  "description": "AAAA-MM-DD."
+                },
+                "categoriaId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "numeroParcela": {
+                  "nullable": true,
+                  "description": "1-baseado; nulo fora de parcelamento.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "quantidadeParcelas": {
+                  "nullable": true,
+                  "description": "O total de parcelas da série (RN-20/RN-21). Nulo fora de parcelamento.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "id",
+                "descricao",
+                "valorCentavos",
+                "data",
+                "categoriaId",
+                "numeroParcela",
+                "quantidadeParcelas"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "contaId",
+          "abreEm",
+          "fechaEm",
+          "venceEm",
+          "status",
+          "totalCentavos",
+          "pagaEm",
+          "pagaComContaId",
+          "itens"
+        ],
+        "additionalProperties": false
+      },
+      "FaturasDoCartao": {
+        "type": "object",
+        "properties": {
+          "contaId": {
+            "type": "string"
+          },
+          "limiteCentavos": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "limiteLivreCentavos": {
+            "nullable": true,
+            "description": "RN-26: limite − Σ(fatura em aberto, D1 — ABERTA + FECHADA, nunca só o ciclo corrente).",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "faturas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "contaId": {
+                  "type": "string"
+                },
+                "abreEm": {
+                  "type": "string",
+                  "description": "AAAA-MM-DD — primeiro dia do ciclo."
+                },
+                "fechaEm": {
+                  "type": "string",
+                  "description": "AAAA-MM-DD — RN-23: dia em que o ciclo encerra."
+                },
+                "venceEm": {
+                  "type": "string",
+                  "description": "AAAA-MM-DD — dia em que a fatura deve ser paga."
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "ABERTA",
+                    "FECHADA",
+                    "PAGA"
+                  ]
+                },
+                "totalCentavos": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Derivado: Σ dos lançamentos DESPESA da conta com data em [abreEm, fechaEm]. Nunca materializado."
+                },
+                "pagaEm": {
+                  "nullable": true,
+                  "description": "ISO 8601. RN-24 — só preenchido quando status = PAGA.",
+                  "type": "string"
+                },
+                "pagaComContaId": {
+                  "nullable": true,
+                  "description": "RN-24/D3 — a conta escolhida pelo usuário ao pagar.",
+                  "type": "string"
+                },
+                "itens": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "descricao": {
+                        "type": "string"
+                      },
+                      "valorCentavos": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "data": {
+                        "type": "string",
+                        "description": "AAAA-MM-DD."
+                      },
+                      "categoriaId": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "numeroParcela": {
+                        "nullable": true,
+                        "description": "1-baseado; nulo fora de parcelamento.",
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "quantidadeParcelas": {
+                        "nullable": true,
+                        "description": "O total de parcelas da série (RN-20/RN-21). Nulo fora de parcelamento.",
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "descricao",
+                      "valorCentavos",
+                      "data",
+                      "categoriaId",
+                      "numeroParcela",
+                      "quantidadeParcelas"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "contaId",
+                "abreEm",
+                "fechaEm",
+                "venceEm",
+                "status",
+                "totalCentavos",
+                "pagaEm",
+                "pagaComContaId",
+                "itens"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "contaId",
+          "limiteCentavos",
+          "limiteLivreCentavos",
+          "faturas"
+        ],
+        "additionalProperties": false
+      },
+      "PagarFatura": {
+        "type": "object",
+        "properties": {
+          "pagaComContaId": {
+            "type": "string",
+            "description": "D3 — a conta escolhida pelo usuário para pagar esta fatura."
+          }
+        },
+        "required": [
+          "pagaComContaId"
+        ],
+        "additionalProperties": false
       }
     },
     "securitySchemes": {
@@ -3363,6 +3677,169 @@
           },
           "422": {
             "description": "modo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/faturas": {
+      "get": {
+        "summary": "A(s) fatura(s) em aberto (D1: status ABERTA + FECHADA, nunca PAGA) do cartão informado — ciclo, itens e limite livre (RN-23/RN-25/RN-26)",
+        "tags": [
+          "faturas"
+        ],
+        "operationId": "get_faturas",
+        "parameters": [
+          {
+            "name": "contaId",
+            "in": "query",
+            "required": true,
+            "description": "O cartão (conta CREDITO) cuja fatura se quer ver.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A view de fatura do cartão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FaturasDoCartao"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conta inexistente nesta família, ou não é um cartão (CREDITO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "contaId ausente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/faturas/{id}/pagar": {
+      "post": {
+        "summary": "Paga uma fatura — gera uma TRANSFERENCIA da conta escolhida (D3) para o cartão (RN-24); os lançamentos originais mantêm sua conta (não reatribui nada).",
+        "tags": [
+          "faturas"
+        ],
+        "operationId": "post_faturas__id__pagar",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PagarFatura"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Fatura paga",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Fatura"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A conta pagadora é o próprio cartão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Fatura ou conta pagadora inexistente nesta família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Fatura já paga, ou sem valor a pagar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
             "content": {
               "application/json": {
                 "schema": {

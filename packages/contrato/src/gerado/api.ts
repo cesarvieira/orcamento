@@ -391,6 +391,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/faturas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A(s) fatura(s) em aberto (D1: status ABERTA + FECHADA, nunca PAGA) do cartão informado — ciclo, itens e limite livre (RN-23/RN-25/RN-26) */
+        get: operations["get_faturas"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/faturas/{id}/pagar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Paga uma fatura — gera uma TRANSFERENCIA da conta escolhida (D3) para o cartão (RN-24); os lançamentos originais mantêm sua conta (não reatribui nada). */
+        post: operations["post_faturas__id__pagar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -802,6 +836,88 @@ export interface components {
         };
         /** @enum {string} */
         ModoDeExclusao: "esta" | "todas" | "a-partir-desta";
+        ItemDeFatura: {
+            id: string;
+            descricao: string;
+            valorCentavos: number;
+            /** @description AAAA-MM-DD. */
+            data: string;
+            categoriaId: string | null;
+            /** @description 1-baseado; nulo fora de parcelamento. */
+            numeroParcela: number | null;
+            /** @description O total de parcelas da série (RN-20/RN-21). Nulo fora de parcelamento. */
+            quantidadeParcelas: number | null;
+        };
+        Fatura: {
+            id: string;
+            contaId: string;
+            /** @description AAAA-MM-DD — primeiro dia do ciclo. */
+            abreEm: string;
+            /** @description AAAA-MM-DD — RN-23: dia em que o ciclo encerra. */
+            fechaEm: string;
+            /** @description AAAA-MM-DD — dia em que a fatura deve ser paga. */
+            venceEm: string;
+            /** @enum {string} */
+            status: "ABERTA" | "FECHADA" | "PAGA";
+            /** @description Derivado: Σ dos lançamentos DESPESA da conta com data em [abreEm, fechaEm]. Nunca materializado. */
+            totalCentavos: number;
+            /** @description ISO 8601. RN-24 — só preenchido quando status = PAGA. */
+            pagaEm: string | null;
+            /** @description RN-24/D3 — a conta escolhida pelo usuário ao pagar. */
+            pagaComContaId: string | null;
+            itens: {
+                id: string;
+                descricao: string;
+                valorCentavos: number;
+                /** @description AAAA-MM-DD. */
+                data: string;
+                categoriaId: string | null;
+                /** @description 1-baseado; nulo fora de parcelamento. */
+                numeroParcela: number | null;
+                /** @description O total de parcelas da série (RN-20/RN-21). Nulo fora de parcelamento. */
+                quantidadeParcelas: number | null;
+            }[];
+        };
+        FaturasDoCartao: {
+            contaId: string;
+            limiteCentavos: number | null;
+            /** @description RN-26: limite − Σ(fatura em aberto, D1 — ABERTA + FECHADA, nunca só o ciclo corrente). */
+            limiteLivreCentavos: number | null;
+            faturas: {
+                id: string;
+                contaId: string;
+                /** @description AAAA-MM-DD — primeiro dia do ciclo. */
+                abreEm: string;
+                /** @description AAAA-MM-DD — RN-23: dia em que o ciclo encerra. */
+                fechaEm: string;
+                /** @description AAAA-MM-DD — dia em que a fatura deve ser paga. */
+                venceEm: string;
+                /** @enum {string} */
+                status: "ABERTA" | "FECHADA" | "PAGA";
+                /** @description Derivado: Σ dos lançamentos DESPESA da conta com data em [abreEm, fechaEm]. Nunca materializado. */
+                totalCentavos: number;
+                /** @description ISO 8601. RN-24 — só preenchido quando status = PAGA. */
+                pagaEm: string | null;
+                /** @description RN-24/D3 — a conta escolhida pelo usuário ao pagar. */
+                pagaComContaId: string | null;
+                itens: {
+                    id: string;
+                    descricao: string;
+                    valorCentavos: number;
+                    /** @description AAAA-MM-DD. */
+                    data: string;
+                    categoriaId: string | null;
+                    /** @description 1-baseado; nulo fora de parcelamento. */
+                    numeroParcela: number | null;
+                    /** @description O total de parcelas da série (RN-20/RN-21). Nulo fora de parcelamento. */
+                    quantidadeParcelas: number | null;
+                }[];
+            }[];
+        };
+        PagarFatura: {
+            /** @description D3 — a conta escolhida pelo usuário para pagar esta fatura. */
+            pagaComContaId: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -2170,6 +2286,127 @@ export interface operations {
                 };
             };
             /** @description modo inválido */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    get_faturas: {
+        parameters: {
+            query: {
+                /** @description O cartão (conta CREDITO) cuja fatura se quer ver. */
+                contaId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A view de fatura do cartão */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FaturasDoCartao"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Conta inexistente nesta família, ou não é um cartão (CREDITO) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description contaId ausente */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    post_faturas__id__pagar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PagarFatura"];
+            };
+        };
+        responses: {
+            /** @description Fatura paga */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Fatura"];
+                };
+            };
+            /** @description A conta pagadora é o próprio cartão */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Fatura ou conta pagadora inexistente nesta família */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Fatura já paga, ou sem valor a pagar */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Corpo inválido */
             422: {
                 headers: {
                     [name: string]: unknown;

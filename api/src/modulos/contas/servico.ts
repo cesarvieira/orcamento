@@ -32,19 +32,50 @@ export interface ContaLida {
 // ---------------------------------------------------------------------------
 
 /**
- * EF-04, tarefa #52. ⚠️ RN-18/RN-19: compra no crédito consome a categoria
- * na data da compra, mas NÃO move o saldo da conta — quem move é a fatura
- * paga, e a fatura é da EF-05 (ainda não construída). Por isso uma conta
- * `CREDITO` fica com o termo dos lançamentos travado em 0 aqui: só `DEBITO` e
- * `RESERVA` entram na soma.
+ * EF-04 (tarefa #52) travava o termo dos lançamentos em 0 para `CREDITO`,
+ * apontando explicitamente para esta EF (RN-19: "quem move é a fatura paga,
+ * e a fatura é da EF-05 — ainda não construída"). **Este é o ponto que a
+ * EF-05 estende, não duplica.**
  *
- * Para as contas que entram, o termo é um SOMATÓRIO COM SINAL — RN-17:
- * transferência não é despesa, então ela move as DUAS pontas (origem perde,
- * destino ganha), nunca decrementa "gasto":
+ * ⛔ Regra #0: RN-25 e D1 vêm de
+ * `.preator/skills/negocio/faturas-e-ciclo-do-cartao/SKILL.md` — "Saldo do
+ * cartão (exibido) = soma dos totais de TODAS as faturas em aberto do
+ * cartão" —, citando `docs/especificacoes/EF-05-faturas.md` §2 como fonte
+ * primária.
+ *
+ * O termo é um SOMATÓRIO COM SINAL — RN-17: transferência não é despesa,
+ * então ela move as DUAS pontas (origem perde, destino ganha), nunca
+ * decrementa "gasto":
  *   RECEITA                       → + valorCentavos
  *   DESPESA                       → − valorCentavos
  *   TRANSFERENCIA, esta é origem  → − valorCentavos
  *   TRANSFERENCIA, esta é destino → + valorCentavos
+ *
+ * Aplicado SEM EXCEÇÃO a `CREDITO` (a diferença para EF-04: antes havia um
+ * `case when tipo = 'CREDITO' then 0 else (...)`, removido), o mesmo
+ * somatório vira exatamente RN-25/D1: cada `DESPESA` (uma compra no cartão)
+ * SUBTRAI, e o pagamento de fatura (RN-24 — uma `TRANSFERENCIA` com o cartão
+ * como DESTINO) SOMA de volta. Como `saldoInicialCentavos` é sempre `null`
+ * (coalescido a 0) numa `CREDITO` (EF-02 §1 — cartão não tem saldo inicial,
+ * é dívida, não caixa), `saldoCentavos` de um cartão fica:
+ *
+ *   saldoCentavos = −Σ(fatura em aberto, D1: TODA fatura não paga)
+ *
+ * Negativo (ou zero, sem compra nenhuma) — nunca precisa de linha de
+ * `Fatura` para estar correto: é a soma de TODO o histórico da conta, então
+ * não fica desatualizado mesmo que ninguém tenha aberto a tela de fatura
+ * (`modulos/faturas/servico.ts` usa isto para `limiteLivreCentavos`, RN-26).
+ *
+ * 🔀 FORK declarado ao humano: o comentário original de RN-18/RN-19 dizia
+ * "não move o saldo da conta" para uma compra no crédito — eu leio isto como
+ * "não move o CAIXA REAL de uma conta de débito/reserva" (o motivo real de
+ * RN-18/RN-19: a compra no cartão não pode debitar duas vezes, na hora da
+ * compra E na hora do pagamento). A skill de EF-05 (Regra #0, fonte
+ * PRIMÁRIA e mais recente para esta EF) é explícita que o "saldo exibido do
+ * cartão" DEVE refletir a fatura em aberto, que cresce a cada compra — dessa
+ * forma o campo `saldoCentavos` de uma CREDITO passa a ter um significado
+ * novo (dívida, não caixa) a partir desta tarefa. Se esta leitura estiver
+ * errada, é decisão para reverter aqui, não em outro lugar.
  *
  * `::integer` no fim do `coalesce` é deliberado: `sum(integer)` no Postgres
  * devolve `bigint`, e o driver `pg` serializa `bigint` como STRING (evita
@@ -69,8 +100,7 @@ function expressaoSaldoDerivado() {
   ), 0)::integer`;
 
   return sql<number>`(
-    coalesce(${contas.saldoInicialCentavos}, 0) +
-    case when ${contas.tipo} = 'CREDITO' then 0 else (${termoDosLancamentos}) end
+    coalesce(${contas.saldoInicialCentavos}, 0) + (${termoDosLancamentos})
   )`;
 }
 
@@ -87,10 +117,20 @@ const colunasDeLeitura = {
   saldoCentavos: expressaoSaldoDerivado(),
 };
 
-/** RN-07 — "o total 'em conta hoje' não soma reserva": soma tudo que não é RESERVA. */
+/**
+ * RN-07 — "o total 'em conta hoje' não soma reserva". Até a EF-05, isto
+ * filtrava só `tipo !== 'RESERVA'` (incluindo `CREDITO`, cujo `saldoCentavos`
+ * era sempre 0 — o filtro e a soma coincidiam por acidente). Agora que
+ * `CREDITO` carrega uma dívida real (ver `expressaoSaldoDerivado` acima),
+ * manter esse filtro subtrairia a fatura em aberto do "caixa de hoje" — uma
+ * mudança de comportamento da RN-07 (EF-02, já mesclada) que NÃO é desta
+ * tarefa decidir. Por isso o filtro passa a ser explícito `=== 'DEBITO'`:
+ * numericamente idêntico ao de antes (CREDITO sempre contribuía 0), mas
+ * agora correto por CONSTRUÇÃO, não por coincidência.
+ */
 function totalEmContaHoje(linhas: ContaLida[]): number {
   return linhas
-    .filter(linha => linha.tipo !== 'RESERVA')
+    .filter(linha => linha.tipo === 'DEBITO')
     .reduce((total, linha) => total + linha.saldoCentavos, 0);
 }
 
@@ -107,8 +147,14 @@ export async function listarContas(
   return { contas: linhas, totalEmContaHojeCentavos: totalEmContaHoje(linhas) };
 }
 
-/** O único jeito de ler UMA conta — sempre filtrado por família (R1). */
-async function buscarContaDaFamilia(
+/**
+ * O único jeito de ler UMA conta — sempre filtrado por família (R1).
+ * Exportado desde a EF-05: `modulos/faturas/servico.ts` reaproveita (não
+ * duplica) para validar o cartão e para ler `saldoCentavos`/`limiteCentavos`
+ * na hora de calcular `limiteLivreCentavos` (RN-26) e validar a conta
+ * pagadora (D3).
+ */
+export async function buscarContaDaFamilia(
   db: Db,
   familiaId: string,
   id: string,
