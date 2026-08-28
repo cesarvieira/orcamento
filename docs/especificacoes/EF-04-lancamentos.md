@@ -104,9 +104,10 @@ tela `extrato` · modal de detalhe.
       (`api/src/db/semear.ts:60`), então o vazio exercitado é o 🟨 "família sem histórico", nunca
       o 🟦 "por filtro/mês" do mockup. Ver `MC-04`, `EF04-MC-003`
 - [x] Isolamento entre famílias — 4 testes, `lancamentos.teste.ts:836-895`. **Dois clientes veem a
-      mudança sem refresh:** o mecanismo genérico está provado, mas não há teste de dois sockets
-      da MESMA família contra o recurso `lancamentos` (o teste existente com dois sockets prova
-      isolamento entre famílias, não isso). Ver `MC-04`, `EF04-MC-005`
+      mudança sem refresh:** provado — mecanismo genérico e o caso específico de dois sockets da
+      MESMA família contra `lancamentos` (`api/testes/realtime.teste.ts:111-149`). A lacuna existiu
+      (só havia prova de isolamento entre famílias) e foi fechada pela tarefa #64. Ver `MC-04`,
+      `EF04-MC-005`
 - [x] `PROVA_DE_COMPORTAMENTO=PASS` — nas seis tarefas mescladas (`708b068`, `c771b1b`, `fb1c131`,
       `675bfe5`, `fdb9f6f`, `e647bfa`), última rodada com 180 testes
 
