@@ -2,69 +2,95 @@
 /**
  * VISÃO DO MÊS (EF-04) — a tela `home` do mockup. Recorte em
  * `.motor/recorte-desenho-18.md` §4 (não commitado, artefato do condutor) —
- * é FONTE, não ilustração. 🟦 é desenho; 🟨 é anotação do condutor ou decisão
- * do humano.
+ * é FONTE, não ilustração. O LASTRO (EF-06, #20) tem recorte próprio,
+ * `recorte-desenho-20.md`, também na raiz do worktree — citado nos pontos 2,
+ * 4 e 5 abaixo, que esta tarefa (#77) fecha. 🟦 é desenho; 🟨 é anotação do
+ * condutor ou decisão do humano.
  *
- * `recebidoCentavos`, `naoAlocadoCentavos`, `planejadoCentavos` e, por
- * categoria, `tetoCentavos`/`gastoCentavos`/`disponivelCentavos` são
- * DERIVADOS pelo servidor (mesma leitura que `orcamento.vue` já consome,
- * `useOrcamento().lerCompetencia`) — esta tela só formata para exibir,
- * nunca recalcula (regra inviolável #4 do projeto).
+ * `recebidoCentavos`, `naoAlocadoCentavos`, `lastroCentavos`,
+ * `deficitCentavos`, `liberadoTotalCentavos` e, por categoria,
+ * `tetoCentavos`/`gastoCentavos`/`disponivelCentavos`/`liberadoCentavos`/
+ * `bloqueadoCentavos` são DERIVADOS pelo servidor (mesma leitura que
+ * `orcamento.vue` já consome, `useOrcamento().lerCompetencia`) — esta tela só
+ * formata para exibir, nunca recalcula (regra inviolável #4 do projeto).
  *
  * ═══════════════════════════════════════════════════════════════════════
  * ONDE ESTA TELA DIVERGE DO RECORTE, E POR QUÊ — tudo declarado, nada
- * inventado em silêncio (recorte §6):
+ * inventado em silêncio (recorte-desenho-18.md §6; recorte-desenho-20.md §5):
  * ═══════════════════════════════════════════════════════════════════════
  *
- * 1. CABEÇALHO DE MÊS E A PÍLULA "A + B" (recorte §4.1) — não duplicados
- *    aqui. O seletor de mês já é global (`layouts/default.vue`, `.mes`),
- *    porque EF-03/EF-04/EF-08 leem a MESMA competência (mesmo raciocínio já
- *    registrado em `orcamento.vue`) — o recorte lê o mockup isolado e por
- *    isso anota o seletor como "da própria home"; o código já divergiu
- *    disso antes desta tarefa, e repetir o cabeçalho aqui criaria DOIS
- *    controles de mês na mesma tela. A pílula de iniciais da família
+ * 1. CABEÇALHO DE MÊS E A PÍLULA "A + B" (recorte-desenho-18.md §4.1) — não
+ *    duplicados aqui. O seletor de mês já é global (`layouts/default.vue`,
+ *    `.mes`), porque EF-03/EF-04/EF-08 leem a MESMA competência (mesmo
+ *    raciocínio já registrado em `orcamento.vue`) — o recorte lê o mockup
+ *    isolado e por isso anota o seletor como "da própria home"; o código já
+ *    divergiu disso antes desta tarefa, e repetir o cabeçalho aqui criaria
+ *    DOIS controles de mês na mesma tela. A pílula de iniciais da família
  *    ("A + B" no mockup) não tem fonte de dado nem precedente no app (a
  *    sidebar mostra o NOME da família, não iniciais) — omitida, não
- *    inventada.
+ *    inventada. Segue sem fonte de dado (recorte-desenho-20.md §5.4).
  *
- * 2. O NÚMERO DOMINANTE DO CARTÃO-HERÓI (recorte §4.2, `{{ disponivel }}`,
- *    "Liberado até o fim do mês") — é o número do LASTRO (EF-06, #20,
- *    ainda não construída; `CompetenciaLida` não tem esse campo). Calculá-lo
- *    aqui seria reproduzir a fórmula do produto no front (regra inviolável
- *    #4). Como a própria "Sinal de conclusão" desta tarefa (issue #54) só
- *    exige recebido · previsto · planejado · não alocado · categorias — sem
- *    "disponível" —, o cartão usa `planejadoCentavos` (Σ tetos, RN-11) como
- *    número dominante, com o rótulo trocado para "PLANEJADO NO MÊS" (o
- *    rótulo do mockup, "Liberado até o fim do mês", falaria de um número que
- *    esta tela não tem como calcular direito).
+ * 2. O NÚMERO DOMINANTE DO CARTÃO-HERÓI (recorte-desenho-20.md §3, RN-30) —
+ *    FECHADO por esta tarefa. É `liberadoTotalCentavos`
+ *    (`Math.max(0, restanteTotal − déficit)`, calculado e derivado no
+ *    servidor, EF-06 §2), sob o rótulo do desenho, "Liberado até o fim do
+ *    mês". Nada é somado, subtraído ou ratado aqui — o número chega pronto
+ *    de `CompetenciaLida` (regra inviolável #4).
  *
- * 3. `{{ alocLabel }}` (recorte §4.2/§6.5) é dinâmico no mockup; o condutor
- *    não localizou a regra que o alterna. Fixado em "NÃO ALOCADO" — se
- *    precisar variar, é fork, não invenção.
+ * 3. `{{ alocLabel }}` (recorte-desenho-18.md §4.2/§6.5) é dinâmico no
+ *    mockup; o condutor não localizou a regra que o alterna. Continua fixo
+ *    em "NÃO ALOCADO" — vazio declarado de novo em recorte-desenho-20.md
+ *    §5.3. Se precisar variar, é fork, não invenção.
  *
- * 4. FAIXA DE BLOQUEIO (`temDeficit`) E `c.temBloqueio`/`c.bloqLabel`
- *    (recorte §4.4/§4.6, §6.4) — dependem do LASTRO (EF-06, #20, não
- *    construída); `CategoriaNaCompetencia` não tem esses campos. Omitidas
- *    inteiras, não simuladas.
+ * 4. FAIXA DE BLOQUEIO (recorte-desenho-20.md §1) — FECHADA por esta
+ *    tarefa. Aparece entre o cartão-herói e o cabeçalho "Categorias" quando
+ *    `deficitCentavos > 0` — este app não tem uma faixa de estouro GLOBAL
+ *    separada (ver ponto 6: aqui o estouro é por categoria, dentro da
+ *    lista), então esta é a posição equivalente à do mockup ("entre a faixa
+ *    de estouro e 'Categorias'"). O texto da explicação é a variante
+ *    DESKTOP, por decisão do humano (2026-08-29, recorte-desenho-20.md
+ *    §1/§5.1): "lastro" e "reserva" são termos do produto, "poupança" não
+ *    é — a variante mobile foi descartada, não esquecida, e não há split
+ *    responsivo de texto nesta tela.
  *
- * 5. A BARRA DE DUAS FAIXAS da categoria (recorte §4.6) — só a faixa GASTA
- *    é desenhada; a faixa BLOQUEADA (hachura) é o mesmo número do lastro do
- *    ponto 4, e some pelo mesmo motivo. `{{ c.corBarra }}` não tem regra
- *    conhecida (podia ser aviso de estouro) — a barra usa a cor da própria
- *    categoria (`c.cor`), decisão simples e declarada, não o desenho.
+ * 5. BARRA DE DUAS FAIXAS + BLOQUEIO POR CATEGORIA (recorte-desenho-20.md
+ *    §2) — FECHADO por esta tarefa.
+ *    - a linha "«valor» bloqueado por falta de lastro" aparece sob
+ *      `c.gastoLabel` quando `c.bloqueadoCentavos > 0` — posição do recorte
+ *      MOBILE; o recorte desktop move essa linha para fora do bloco de
+ *      texto (`margin-top:8px`, abaixo da barra). Como esta tela é UM único
+ *      template responsivo, sem split mobile/desktop, mantive a posição
+ *      mobile por caber na estrutura de texto já existente —
+ *      divergência declarada, não reconciliação silenciosa de F2/§5.2.
+ *    - o número à direita é `c.liberadoCentavos` (não mais
+ *      `c.disponivelCentavos`); a legenda da seção ("disponível · teto
+ *      mensal") foi ajustada para "liberado · teto mensal" para não
+ *      descrever um número que a coluna já não mostra.
+ *    - a cor de alerta do número continua lendo `c.disponivelCentavos < 0`
+ *      (estouro), não `c.liberadoCentavos`: o contrato garante que
+ *      `liberadoCentavos` nunca é negativo, então não haveria estouro para
+ *      colorir se a leitura fosse sobre ele.
+ *    - `pctLabel` vira `estourou`/`parcial`/percentual, nesta ordem de
+ *      prioridade (EF-06 recorte-desenho-20.md §2).
+ *    - a barra ganha a segunda faixa hachurada,
+ *      `repeating-linear-gradient(135deg,#d7dce3 0 3px,#eceef1 3px 6px)`,
+ *      largura `bloqueado / teto` — mesma base da faixa gasta (não a
+ *      cor da categoria; `c.corBarra` do mockup, cuja regra nunca foi
+ *      localizada, continua sem equivalente aqui, como já era).
  *
- * 6. FAIXA DE ESTOURO (`temEstouro`, recorte §4.3) — já tem precedente:
- *    `orcamento.vue` implementa o MESMO cartão (mesma cópia, "Cobrir com o
- *    saldo de outra categoria") por categoria com `disponivelCentavos < 0`,
- *    e o comentário de lá já reserva este lugar para a home. Reaproveitado
- *    aqui — MESMO texto, mesma condição. O botão "Remanejar", porém, não
- *    reabre a folha de remanejar: essa folha (`sheetRemanejar`) é ~150
- *    linhas de estado só dentro de `orcamento.vue`, e o escopo desta tarefa
- *    é só `pages/index.vue` e `pages/extrato.vue` — nem `orcamento.vue` nem
- *    `components/` são meus para tocar. O botão navega para `/orcamento`,
- *    onde o remanejamento de verdade já existe, em vez de abrir um SEGUNDO
- *    caminho para a mesma ação (o que a doutrina proíbe mais ainda do que
- *    duplicar código).
+ * 6. FAIXA DE ESTOURO (`temEstouro`, recorte-desenho-18.md §4.3) — sem
+ *    mudança nesta tarefa. Já tem precedente: `orcamento.vue` implementa o
+ *    MESMO cartão (mesma cópia, "Cobrir com o saldo de outra categoria")
+ *    por categoria com `disponivelCentavos < 0`, e o comentário de lá já
+ *    reserva este lugar para a home. Reaproveitado aqui — MESMO texto,
+ *    mesma condição. O botão "Remanejar", porém, não reabre a folha de
+ *    remanejar: essa folha (`sheetRemanejar`) é ~150 linhas de estado só
+ *    dentro de `orcamento.vue`, e o escopo desta tarefa é só
+ *    `pages/index.vue` e `assets/scss/pages/home.scss` — nem `orcamento.vue`
+ *    nem `components/` são meus para tocar. O botão navega para
+ *    `/orcamento`, onde o remanejamento de verdade já existe, em vez de
+ *    abrir um SEGUNDO caminho para a mesma ação (o que a doutrina proíbe
+ *    mais ainda do que duplicar código).
  */
 import type { CategoriaNaCompetencia, CompetenciaLida } from '@orcamento/contrato';
 import { useFolhaLancamento, useLancamentos } from '~/composables/useLancamentos';
@@ -86,8 +112,13 @@ const erroLista = ref<string | null>(null);
 const categorias = computed<CategoriaNaCompetencia[]>(() => leitura.value?.categorias ?? []);
 const recebidoCentavos = computed(() => leitura.value?.recebidoCentavos ?? 0);
 const rendaPrevistaCentavos = computed(() => leitura.value?.rendaPrevistaCentavos ?? 0);
-const planejadoCentavos = computed(() => leitura.value?.planejadoCentavos ?? 0);
 const naoAlocadoCentavos = computed(() => leitura.value?.naoAlocadoCentavos ?? 0);
+
+// EF-06 (lastro, #20) — os três campos que fecham o ponto 2/4 do cabeçalho.
+// Vêm prontos de `CompetenciaLida`; esta tela não soma nem rateia nada.
+const lastroCentavos = computed(() => leitura.value?.lastroCentavos ?? 0);
+const deficitCentavos = computed(() => leitura.value?.deficitCentavos ?? 0);
+const liberadoTotalCentavos = computed(() => leitura.value?.liberadoTotalCentavos ?? 0);
 
 /** Mesmo padrão de `orcamento.vue`: só a leitura MAIS RECENTE grava a tela. */
 let leituraEmOrdem = 0;
@@ -143,16 +174,38 @@ useRealtime({
 
 // ── CARTÃO DE CATEGORIA — a "porta 2" do recorte §1 ──────────────────────
 
-/** `pctLabel` — gasto/teto em percentual. Teto zero não tem razão definida: mostra "—". */
+/**
+ * `pctLabel` (EF-06 recorte-desenho-20.md §2) — `estourou` se a categoria
+ * estourou o teto, `parcial` se há bloqueio de lastro, senão o percentual de
+ * sempre (gasto/teto; teto zero sem estouro nem bloqueio não tem razão
+ * definida, mostra "—"). Nesta ordem de prioridade.
+ */
 function pctLabel(c: CategoriaNaCompetencia): string {
+  if (c.disponivelCentavos < 0) return 'estourou';
+  if (c.bloqueadoCentavos > 0) return 'parcial';
   if (c.tetoCentavos <= 0) return '—';
   return `${Math.round(Math.min(999, (c.gastoCentavos / c.tetoCentavos) * 100))}%`;
 }
 
-/** Largura da faixa GASTA da barra (a faixa bloqueada não existe aqui — ver ponto 5 do cabeçalho). */
+/** Largura da faixa GASTA da barra — mede contra o teto. */
 function larguraBarra(c: CategoriaNaCompetencia): string {
   if (c.tetoCentavos <= 0) return c.gastoCentavos > 0 ? '100%' : '0%';
   return `${Math.min(100, (c.gastoCentavos / c.tetoCentavos) * 100)}%`;
+}
+
+/**
+ * Largura da faixa BLOQUEADA (hachurada) — mede contra o TETO, a mesma base
+ * da faixa gasta acima (EF-06 recorte-desenho-20.md §2: "a hachura mede
+ * contra o TETO"). Some sozinha em 0% quando não há bloqueio.
+ */
+function larguraBloqueio(c: CategoriaNaCompetencia): string {
+  if (c.tetoCentavos <= 0) return '0%';
+  return `${Math.min(100, (c.bloqueadoCentavos / c.tetoCentavos) * 100)}%`;
+}
+
+/** Literal do recorte (EF-06 recorte-desenho-20.md §2, `bloqLabel`): "«valor» bloqueado por falta de lastro". */
+function bloqLabel(c: CategoriaNaCompetencia): string {
+  return `${formatarCentavos(c.bloqueadoCentavos)} bloqueado por falta de lastro`;
 }
 
 /** `c.gastoLabel` — construído aqui (o mockup não dá o formato literal): "gasto de teto". */
@@ -160,7 +213,13 @@ function gastoLabel(c: CategoriaNaCompetencia): string {
   return `${formatarCentavos(c.gastoCentavos)} de ${formatarCentavos(c.tetoCentavos)}`;
 }
 
-/** Vermelho só quando a categoria estourou — mesmo critério de `contas.vue#corDoValor`. */
+/**
+ * Vermelho só quando a categoria estourou — mesmo critério de
+ * `contas.vue#corDoValor`. Lê `disponivelCentavos`, não `liberadoCentavos`:
+ * o contrato garante que `liberadoCentavos` nunca é negativo (ver
+ * `packages/contrato/src/gerado/api.ts`), então não haveria estouro para
+ * colorir se a leitura fosse sobre ele.
+ */
 function corDisponivel(c: CategoriaNaCompetencia): string {
   return c.disponivelCentavos < 0 ? 'var(--alerta)' : 'var(--texto)';
 }
@@ -177,10 +236,10 @@ function tituloEstouro(c: CategoriaNaCompetencia): string {
     <p v-else-if="erroLista" class="home__vazio home__vazio--erro" role="alert">{{ erroLista }}</p>
 
     <template v-else>
-      <!-- ── CARTÃO-HERÓI (recorte §4.2 — ver ponto 2 do cabeçalho para o número dominante) ── -->
+      <!-- ── CARTÃO-HERÓI (recorte-desenho-20.md §3, RN-30 — ver ponto 2 do cabeçalho) ── -->
       <div class="home__hero">
-        <p class="home__hero-titulo">PLANEJADO NO MÊS</p>
-        <p class="home__hero-numero">{{ formatarCentavos(planejadoCentavos) }}</p>
+        <p class="home__hero-titulo">LIBERADO ATÉ O FIM DO MÊS</p>
+        <p class="home__hero-numero">{{ formatarCentavos(liberadoTotalCentavos) }}</p>
 
         <div class="home__hero-blocos">
           <div class="home__hero-bloco">
@@ -196,10 +255,22 @@ function tituloEstouro(c: CategoriaNaCompetencia): string {
         </div>
       </div>
 
-      <!-- ── LISTA DE CATEGORIAS (recorte §4.5/§4.6) ─────────────────────── -->
+      <!-- ── FAIXA DE BLOQUEIO (recorte-desenho-20.md §1 — ver ponto 4 do cabeçalho) ── -->
+      <div v-if="deficitCentavos > 0" class="home__bloqueio">
+        <span class="home__bloqueio-icone"><i class="ti ti-lock"></i></span>
+        <div class="home__bloqueio-texto">
+          <p class="home__bloqueio-titulo">{{ formatarCentavos(deficitCentavos) }} do plano está bloqueado</p>
+          <p class="home__bloqueio-explicacao">
+            Conta corrente + limite dos cartões cobrem {{ formatarCentavos(lastroCentavos) }}. A reserva fica
+            fora do orçamento.
+          </p>
+        </div>
+      </div>
+
+      <!-- ── LISTA DE CATEGORIAS (recorte-desenho-20.md §2) ─────────────────────── -->
       <div class="home__secao-cabecalho">
         <span class="home__secao-titulo">Categorias</span>
-        <span class="home__secao-legenda">disponível · teto mensal</span>
+        <span class="home__secao-legenda">liberado · teto mensal</span>
       </div>
 
       <p v-if="categorias.length === 0" class="home__vazio">
@@ -218,14 +289,16 @@ function tituloEstouro(c: CategoriaNaCompetencia): string {
                 <span class="home__nome">{{ c.nome }}</span>
                 <span class="home__valores">
                   <span class="home__disponivel" :style="{ color: corDisponivel(c) }">
-                    {{ formatarCentavos(c.disponivelCentavos) }}
+                    {{ formatarCentavos(c.liberadoCentavos) }}
                   </span>
                   <span class="home__pct">{{ pctLabel(c) }}</span>
                 </span>
               </span>
               <span class="home__gasto">{{ gastoLabel(c) }}</span>
+              <span v-if="c.bloqueadoCentavos > 0" class="home__bloqueado">{{ bloqLabel(c) }}</span>
               <span class="home__barra">
                 <span class="home__barra-fill" :style="{ width: larguraBarra(c), background: c.cor }"></span>
+                <span class="home__barra-bloqueado" :style="{ width: larguraBloqueio(c) }"></span>
               </span>
             </span>
           </button>
