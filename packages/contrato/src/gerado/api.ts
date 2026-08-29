@@ -692,6 +692,10 @@ export interface components {
             gastoCentavos: number;
             /** @description RN-10: teto − gasto. Negativo significa que a categoria estourou. */
             disponivelCentavos: number;
+            /** @description EF-06 RN-29/RN-32 (tarefa #76): disponível − bloqueado, depois do rateio pró-rata do déficit de lastro. O front NUNCA recalcula isto (CONTEXT.md, regra inviolável #4). */
+            liberadoCentavos: number;
+            /** @description EF-06 RN-29 (tarefa #76): fração do disponível "congelada" pró-rata pelo déficit de lastro. Nunca excede o disponível da categoria (piso em max(0, disponível), EF-06 §2). */
+            bloqueadoCentavos: number;
         };
         CompetenciaLida: {
             /** @description AAAA-MM. */
@@ -703,6 +707,12 @@ export interface components {
             recebidoCentavos: number;
             /** @description RN-11: recebido − planejado. */
             naoAlocadoCentavos: number;
+            /** @description EF-06 §2 (tarefa #76): caixaReal (contas DEBITO) + limiteLivre (cartões). A base do cálculo de bloqueio de plano. */
+            lastroCentavos: number;
+            /** @description EF-06 §2 (tarefa #76): max(0, restanteTotal das categorias − lastro). */
+            deficitCentavos: number;
+            /** @description EF-06 RN-30 (tarefa #76): max(0, restanteTotal − déficit). O número em destaque da home — o app nunca mostra o plano cheio como gastável quando há déficit. */
+            liberadoTotalCentavos: number;
             categorias: {
                 id: string;
                 nome: string;
@@ -714,6 +724,10 @@ export interface components {
                 gastoCentavos: number;
                 /** @description RN-10: teto − gasto. Negativo significa que a categoria estourou. */
                 disponivelCentavos: number;
+                /** @description EF-06 RN-29/RN-32 (tarefa #76): disponível − bloqueado, depois do rateio pró-rata do déficit de lastro. O front NUNCA recalcula isto (CONTEXT.md, regra inviolável #4). */
+                liberadoCentavos: number;
+                /** @description EF-06 RN-29 (tarefa #76): fração do disponível "congelada" pró-rata pelo déficit de lastro. Nunca excede o disponível da categoria (piso em max(0, disponível), EF-06 §2). */
+                bloqueadoCentavos: number;
             }[];
         };
         NovoRemanejamento: {
