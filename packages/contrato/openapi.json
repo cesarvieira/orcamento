@@ -1100,6 +1100,18 @@
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
             "description": "RN-10: teto − gasto. Negativo significa que a categoria estourou."
+          },
+          "liberadoCentavos": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "EF-06 RN-29/RN-32 (tarefa #76): disponível − bloqueado, depois do rateio pró-rata do déficit de lastro (EF-06 §5: bloqueado nunca excede o disponível, então isto nunca é negativo). O front NUNCA recalcula isto (CONTEXT.md, regra inviolável #4)."
+          },
+          "bloqueadoCentavos": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "EF-06 RN-29 (tarefa #76): fração do disponível \"congelada\" pró-rata pelo déficit de lastro. Nunca excede o disponível da categoria (piso em max(0, disponível), EF-06 §2)."
           }
         },
         "required": [
@@ -1109,7 +1121,9 @@
           "cor",
           "tetoCentavos",
           "gastoCentavos",
-          "disponivelCentavos"
+          "disponivelCentavos",
+          "liberadoCentavos",
+          "bloqueadoCentavos"
         ],
         "additionalProperties": false
       },
@@ -1142,6 +1156,24 @@
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
             "description": "RN-11: recebido − planejado."
+          },
+          "lastroCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "EF-06 §2 (tarefa #76): caixaReal (contas DEBITO) + limiteLivre (cartões). A base do cálculo de bloqueio de plano."
+          },
+          "deficitCentavos": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "EF-06 §2 (tarefa #76): max(0, restanteTotal das categorias − lastro)."
+          },
+          "liberadoTotalCentavos": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "EF-06 RN-30 (tarefa #76): max(0, restanteTotal − déficit). O número em destaque da home — o app nunca mostra o plano cheio como gastável quando há déficit."
           },
           "categorias": {
             "type": "array",
@@ -1177,6 +1209,18 @@
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991,
                   "description": "RN-10: teto − gasto. Negativo significa que a categoria estourou."
+                },
+                "liberadoCentavos": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "description": "EF-06 RN-29/RN-32 (tarefa #76): disponível − bloqueado, depois do rateio pró-rata do déficit de lastro (EF-06 §5: bloqueado nunca excede o disponível, então isto nunca é negativo). O front NUNCA recalcula isto (CONTEXT.md, regra inviolável #4)."
+                },
+                "bloqueadoCentavos": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "description": "EF-06 RN-29 (tarefa #76): fração do disponível \"congelada\" pró-rata pelo déficit de lastro. Nunca excede o disponível da categoria (piso em max(0, disponível), EF-06 §2)."
                 }
               },
               "required": [
@@ -1186,7 +1230,9 @@
                 "cor",
                 "tetoCentavos",
                 "gastoCentavos",
-                "disponivelCentavos"
+                "disponivelCentavos",
+                "liberadoCentavos",
+                "bloqueadoCentavos"
               ],
               "additionalProperties": false
             }
@@ -1198,6 +1244,9 @@
           "planejadoCentavos",
           "recebidoCentavos",
           "naoAlocadoCentavos",
+          "lastroCentavos",
+          "deficitCentavos",
+          "liberadoTotalCentavos",
           "categorias"
         ],
         "additionalProperties": false

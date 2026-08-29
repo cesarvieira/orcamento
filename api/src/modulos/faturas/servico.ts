@@ -30,7 +30,7 @@ import { and, asc, eq, ne } from 'drizzle-orm';
 
 import type { Db } from '../../db';
 import { faturas, lancamentos, seriesParcelas } from '../../db/schema';
-import { buscarContaDaFamilia } from '../contas/servico';
+import { buscarContaDaFamilia, listarContas } from '../contas/servico';
 import {
   abreEmDoCiclo,
   fechaEmDoCiclo,
@@ -330,6 +330,36 @@ export async function listarFaturasDoCartao(
     limiteLivreCentavos: conta.limiteCentavos !== null ? conta.limiteCentavos + conta.saldoCentavos : null,
     faturas: faturasLidas,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Agregado sobre TODOS os cartões — o insumo de `limiteLivre` do lastro
+// (EF-06 §2/RN-28, tarefa #76).
+// ---------------------------------------------------------------------------
+
+/**
+ * ⛔ Regra #0 (EF-06, tarefa #76): `.preator/skills/negocio/contas-e-lastro/SKILL.md`
+ * — "Limite livre do cartão... entra no lastro" (RN-28) —, citando
+ * `docs/especificacoes/EF-06-lastro.md` §2 como fonte primária.
+ *
+ * MESMA fórmula de `limiteLivreCentavos` acima (`limite + saldoCentavos`,
+ * RN-26/D1: o saldo derivado de uma CREDITO já é −Σ(fatura em aberto) — ver
+ * `modulos/contas/servico.ts#expressaoSaldoDerivado`), agora somada sobre
+ * TODOS os cartões da família — estende o cálculo de UM cartão, não o
+ * reescreve. Por isso NÃO materializa fatura nenhuma (ao contrário de
+ * `listarFaturasDoCartao`, que faz `garantirFaturaDoCiclo` para montar a
+ * TELA de fatura): o número que importa aqui já está inteiro no
+ * `saldoCentavos` derivado da própria conta, então uma família que nunca
+ * abriu a tela de fatura tem, mesmo assim, o lastro certo.
+ */
+export async function limiteLivreTotalCentavos(db: Db, familiaId: string): Promise<number> {
+  const { contas } = await listarContas(db, familiaId);
+  return contas
+    .filter(conta => conta.tipo === 'CREDITO')
+    .reduce(
+      (soma, conta) => soma + (conta.limiteCentavos !== null ? conta.limiteCentavos + conta.saldoCentavos : 0),
+      0,
+    );
 }
 
 // ---------------------------------------------------------------------------
