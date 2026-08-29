@@ -175,7 +175,50 @@ if [ "$__pf_origem" = "hash-do-caminho" ] && command -v docker >/dev/null 2>&1; 
   done
 fi
 
-unset __pf_dir __pf_pasta __pf_proj_raw __pf_base __pf_n __pf_hash __pf_origem __pf_porta __pf_dono
+# ---------------------------------------------------------------------------
+# BANCO DE TESTE  —  vetor #4 da concorrência entre gates (tarefa #84).
+# ---------------------------------------------------------------------------
+# `api/testes/preparar-banco.ts` derruba o schema inteiro a cada execução.
+# Antes desta tarefa, todo worktree apontava pro MESMO `orcamento_teste` no
+# Postgres de DEV (5433, sempre no ar) — duas suítes concorrentes não
+# "misturavam dados", uma derrubava o schema embaixo da outra. Foi assim que
+# o gate de #82 viu 401 virar 404, e o revisor de #83 viu FK quebrar, os dois
+# sem nenhuma linha de causa no diff.
+#
+# A correção NÃO sobe um Postgres por worktree — o de dev é um servidor só,
+# compartilhado de propósito, e não deriva porta (ver POSTGRES_PORT acima,
+# que é de OUTRO Postgres: o do compose de PRODUÇÃO). Aqui cada worktree
+# ganha um DATABASE diferente dentro do MESMO servidor de dev.
+#
+# MESMA derivação de <t>/hash da seção anterior — reaproveita __pf_n e
+# __pf_origem, não inventa um segundo esquema. O prefixo n/h evita a única
+# colisão que restaria: o namespace numerado (<t>, sem teto) e o namespace
+# hash (mod 1000) podem produzir o mesmo número por coincidência — sem o
+# prefixo, a tarefa #84 e um fallback de hash que caísse em 84 apontariam
+# pro MESMO banco.
+if [ "$__pf_origem" = "numero-da-tarefa" ]; then
+  __pf_banco_sufixo="n${__pf_n}"
+else
+  __pf_banco_sufixo="h${__pf_n}"
+fi
+BANCO_TESTE_DERIVADO="orcamento_teste_${__pf_banco_sufixo}"
+
+# Só o NOME viaja daqui — nenhuma credencial, nem string de conexão: o
+# cabeçalho deste arquivo já proíbe isso ("Credencial, token, senha e string
+# de conexão NÃO entram aqui"), e é `api/testes/preparar-banco.ts` quem já
+# monta a URL da suíte a partir de partes nomeadas (usuário/senha/porta, os
+# defaults do docker-compose.dev.yml). Reaproveitar esse único lugar — em vez
+# de montar uma SEGUNDA URL aqui — é o que evita dois esquemas divergentes.
+#
+# `preparar-banco.ts` só troca o NOME do banco por este valor quando
+# `DATABASE_URL_TESTE` não estiver explícito no ambiente: quem já tem
+# `.env.test` (carregado dentro do processo Node, por cima disto) continua
+# vencendo sempre — a derivação nunca sobrescreve o que já foi decidido lá.
+export BANCO_TESTE_DERIVADO
+
+echo "preator-perfil.sh: banco de teste derivado = ${BANCO_TESTE_DERIVADO} (origem: ${__pf_origem})" >&2
+
+unset __pf_dir __pf_pasta __pf_proj_raw __pf_base __pf_n __pf_hash __pf_origem __pf_porta __pf_dono __pf_banco_sufixo
 
 STACK_UP_CMD="API_PORT=$API_PORT FRONT_PORT=$FRONT_PORT POSTGRES_PORT=$POSTGRES_PORT API_BASE_PUBLICA=http://localhost:$API_PORT ORIGEM_WEB=http://localhost:$FRONT_PORT docker compose -f $COMPOSE -p $PROJETO_COMPOSE up -d --build"
 STACK_DOWN_CMD="docker compose -f $COMPOSE -p $PROJETO_COMPOSE down"
