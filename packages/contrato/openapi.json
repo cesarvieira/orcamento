@@ -1967,6 +1967,151 @@
           "pagaComContaId"
         ],
         "additionalProperties": false
+      },
+      "NovaMeta": {
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Nome do cofrinho, escolhido pela família."
+          },
+          "alvoCentavos": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991,
+            "description": "Quanto a família pretende juntar (D-06 — inteiro em centavos). EF-07 §1."
+          }
+        },
+        "required": [
+          "nome",
+          "alvoCentavos"
+        ],
+        "additionalProperties": false
+      },
+      "AtualizarMeta": {
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Nome do cofrinho, escolhido pela família."
+          },
+          "alvoCentavos": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991,
+            "description": "Quanto a família pretende juntar (D-06 — inteiro em centavos). EF-07 §1."
+          }
+        },
+        "required": [
+          "nome",
+          "alvoCentavos"
+        ],
+        "additionalProperties": false
+      },
+      "Meta": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "alvoCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "contaReservaId": {
+            "type": "string",
+            "description": "D3 — a conta RESERVA própria deste cofrinho, 1:1."
+          },
+          "acumuladoCentavos": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Derivado: soma das TRANSFERENCIA cujo contaDestinoId é contaReservaId. Nunca materializado (EF-07 §1)."
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "alvoCentavos",
+          "contaReservaId",
+          "acumuladoCentavos"
+        ],
+        "additionalProperties": false
+      },
+      "MetasListadas": {
+        "type": "object",
+        "properties": {
+          "metas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "nome": {
+                  "type": "string"
+                },
+                "alvoCentavos": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "contaReservaId": {
+                  "type": "string",
+                  "description": "D3 — a conta RESERVA própria deste cofrinho, 1:1."
+                },
+                "acumuladoCentavos": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "description": "Derivado: soma das TRANSFERENCIA cujo contaDestinoId é contaReservaId. Nunca materializado (EF-07 §1)."
+                }
+              },
+              "required": [
+                "id",
+                "nome",
+                "alvoCentavos",
+                "contaReservaId",
+                "acumuladoCentavos"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "metas"
+        ],
+        "additionalProperties": false
+      },
+      "Guardar": {
+        "type": "object",
+        "properties": {
+          "contaOrigemId": {
+            "type": "string",
+            "description": "D2 — a conta DEBITO escolhida pelo usuário para guardar."
+          },
+          "valorCentavos": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991,
+            "description": "Quanto guardar (D-06 — inteiro em centavos). Sujeito ao teto de RN-34/D1."
+          }
+        },
+        "required": [
+          "contaOrigemId",
+          "valorCentavos"
+        ],
+        "additionalProperties": false
       }
     },
     "securitySchemes": {
@@ -3879,6 +4024,325 @@
           },
           "409": {
             "description": "Fatura já paga, ou sem valor a pagar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metas": {
+      "get": {
+        "summary": "Os cofrinhos da família da sessão, com o acumulado derivado (EF-07 §1)",
+        "tags": [
+          "metas"
+        ],
+        "operationId": "get_metas",
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Os cofrinhos da família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetasListadas"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Cria um cofrinho na família da sessão — D3: junto, cria a conta RESERVA dele (saldo inicial 0)",
+        "tags": [
+          "metas"
+        ],
+        "operationId": "post_metas",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaMeta"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Cofrinho criado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meta"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metas/{id}": {
+      "patch": {
+        "summary": "Atualiza nome e alvo de um cofrinho da família da sessão (a conta RESERVA vinculada nunca muda, D3)",
+        "tags": [
+          "metas"
+        ],
+        "operationId": "patch_metas__id_",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtualizarMeta"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cofrinho atualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meta"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Cofrinho inexistente nesta família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Apaga um cofrinho da família da sessão e a conta RESERVA vinculada, se nunca recebeu transferência",
+        "tags": [
+          "metas"
+        ],
+        "operationId": "delete_metas__id_",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Cofrinho apagado"
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Cofrinho inexistente nesta família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O cofrinho já recebeu alguma transferência (guardou ≥ 1 vez) e não pode ser apagado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metas/{id}/guardar": {
+      "post": {
+        "summary": "Guarda dinheiro num cofrinho — gera uma TRANSFERENCIA real (RN-33) da conta DEBITO escolhida (D2) para a conta RESERVA do cofrinho, dentro do não alocado da competência (RN-34/D1)",
+        "tags": [
+          "metas"
+        ],
+        "operationId": "post_metas__id__guardar",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Guardar"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Guardado — o cofrinho com o acumulado atualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meta"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A conta de origem informada não é uma conta DEBITO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Cofrinho ou conta de origem inexistente nesta família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "RN-34/D1 — o valor excede o não alocado da competência (ou o não alocado já é ≤ 0)",
             "content": {
               "application/json": {
                 "schema": {
