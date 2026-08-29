@@ -6,7 +6,7 @@
  * QUALQUER tela via `useFolhaLancamento().abrir()` — ver o cabeçalho de
  * `composables/useLancamentos.ts` para a API inteira (é a costura da #54).
  *
- * FONTE DE DESENHO: `.motor/recorte-desenho-18.md` §2 (não commitado,
+ * FONTE DE DESENHO: `.preator/tmp/recorte-desenho-18.md` §2 (não commitado,
  * artefato do condutor). 🟦 é desenho; 🟨 é anotação/decisão do condutor ou
  * do humano. As DIVERGÊNCIAS DELIBERADAS do desenho, citadas onde aparecem:
  *

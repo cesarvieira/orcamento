@@ -55,14 +55,75 @@ const USUARIO_PADRAO = 'orcamento';
 const SENHA_PADRAO = USUARIO_PADRAO;
 /** 5433 é o default do `docker-compose.dev.yml` — a porta separada da D-02. */
 const HOST_PADRAO = 'localhost:5433';
-/** Criado por `api/docker/criar-banco-de-teste.sql` na primeira subida. */
-const BANCO_PADRAO = 'orcamento_teste';
+/**
+ * Criado por `api/docker/criar-banco-de-teste.sql` na primeira subida — mas
+ * só quando NINGUÉM derivou nada (execução fora de worktree).
+ *
+ * `BANCO_TESTE_DERIVADO` vem de `preator-perfil.sh` (tarefa #84, vetor de
+ * concorrência): cada worktree deriva um nome de banco próprio, determinístico
+ * a partir do número da tarefa (ou hash do caminho, no fallback), para que
+ * dois gates rodando ao mesmo tempo nunca disputem o MESMO schema — antes
+ * disto, `drop schema cascade` de uma suíte derrubava a outra no meio da
+ * execução. `preator-perfil.sh` só exporta o NOME (nunca uma string de
+ * conexão — o cabeçalho dele proíbe isso); a URL inteira continua sendo
+ * montada NESTE único lugar, por partes, como abaixo.
+ */
+const BANCO_PADRAO = process.env.BANCO_TESTE_DERIVADO || 'orcamento_teste';
 
 const BANCO_DE_TESTE_PADRAO = [
   'postgres://',
   USUARIO_PADRAO, ':', SENHA_PADRAO,
   '@', HOST_PADRAO, '/', BANCO_PADRAO,
 ].join('');
+
+/**
+ * Cria o DATABASE de `url` se ele ainda não existir, no MESMO servidor.
+ *
+ * Antes da tarefa #84, `orcamento_teste` só existia porque
+ * `api/docker/criar-banco-de-teste.sql` o cria na primeira subida do
+ * compose de dev — um nome novo (o banco derivado por worktree, ver
+ * `preator-perfil.sh`) nunca teria sido criado, e a suíte morreria com
+ * `database "orcamento_teste_n84" does not exist` antes mesmo do `drop
+ * schema` abaixo.
+ *
+ * `CREATE DATABASE` não roda dentro de uma conexão apontando pro próprio
+ * banco-alvo (nem dentro de transação) — por isso conecta em `postgres`,
+ * o banco administrativo que todo servidor Postgres cria por padrão,
+ * independente do que `POSTGRES_DB` declarar no compose.
+ */
+async function garantirBancoExiste(url: string): Promise<void> {
+  const alvo = new URL(url);
+  const nomeBanco = alvo.pathname.replace(/^\//, '');
+  if (!nomeBanco) return; // URL sem banco no path — nada a garantir aqui.
+
+  const admin = new URL(url);
+  admin.pathname = '/postgres';
+  const poolAdmin = new Pool({ connectionString: admin.toString(), max: 1 });
+
+  try {
+    const existe = await poolAdmin.query(
+      'select 1 from pg_database where datname = $1',
+      [nomeBanco],
+    );
+    if (existe.rowCount === 0) {
+      // Identificador de banco não aceita bind parameter — só literal. O
+      // nome vem de DATABASE_URL_TESTE (perfil ou .env.test), nunca de
+      // input externo, mas a aspa dupla ainda é escapada por hábito são.
+      await poolAdmin.query(`create database "${nomeBanco.replace(/"/g, '""')}"`);
+    }
+  } catch (erro) {
+    const causa = erro instanceof Error ? erro.message : String(erro);
+    throw new Error(
+      `não consegui garantir o banco de teste "${nomeBanco}" (conectando em ${admin.host} como administrativo)\n` +
+      `  causa: ${causa}\n` +
+      '  A suíte precisa CRIAR o database antes de preparar o schema — confira se o' +
+      ' usuário tem permissão de CREATEDB e se o servidor em ' + admin.host + ' está de pé.',
+      { cause: erro },
+    );
+  } finally {
+    await poolAdmin.end();
+  }
+}
 
 export default async function preparar(): Promise<void> {
   // Produção não tem banco de fixture, e cair num default aqui seria pior que
@@ -79,6 +140,8 @@ export default async function preparar(): Promise<void> {
   process.env.DATABASE_URL = url;
   process.env.NODE_ENV = 'test';
   process.env.SESSAO_SEGREDO ??= 'segredo-da-suite';
+
+  await garantirBancoExiste(url);
 
   const pool = new Pool({ connectionString: url, max: 2 });
   const db = drizzle(pool);

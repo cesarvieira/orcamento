@@ -6,7 +6,7 @@
  * `composables/useLancamentos.ts`) — no desenho, é o extrato quem abre
  * (`e.abrir`, recorte §5.5), mas a tarefa #54 é quem constrói o extrato.
  *
- * FONTE DE DESENHO: `.motor/recorte-desenho-18.md` §3 (não commitado,
+ * FONTE DE DESENHO: `.preator/tmp/recorte-desenho-18.md` §3 (não commitado,
  * artefato do condutor). 🟦 é desenho; 🟨 é anotação/decisão.
  *
  * ⚠️ A CAIXA DE EXCLUSÃO DE PARCELA É 🟨, NÃO 🟦. No desenho "Excluir" é UM

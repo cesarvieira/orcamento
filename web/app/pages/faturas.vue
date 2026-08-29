@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * FATURAS (EF-05) — a tela `fatura` do mockup. Tarefa #71 (issue #71 da
- * história #19). O recorte `.motor/recorte-desenho-19.md` é FONTE, não
+ * história #19). O recorte `.preator/tmp/recorte-desenho-19.md` é FONTE, não
  * ilustração (não commitado, artefato do condutor) — 🟦 é desenho, 🟨 é
  * anotação do condutor. As decisões humanas D1-D4 (2026-08-28) são FONTE
  * também, e acrescentam superfície que o desenho NÃO tem.

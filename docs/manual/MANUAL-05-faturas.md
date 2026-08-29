@@ -152,7 +152,7 @@ mudam de conta.
 
 **D3** — a conta pagadora vem do corpo do POST (`pagaComContaId`), sempre escolhida pelo usuário,
 nunca inferida como "a primeira conta de débito" (a armadilha exata do protótipo,
-`.motor/recorte-desenho-19.md` §5, linha `contaPagadora = (s.contas.find(a => a.tipo ===
+`.preator/tmp/recorte-desenho-19.md` §5, linha `contaPagadora = (s.contas.find(a => a.tipo ===
 'debito') || {}).id`).
 
 ### Rotas e contrato — `api/src/modulos/faturas/rotas.ts`, `esquemas.ts`
@@ -315,7 +315,7 @@ conta pagadora escolhidos permanecem).
 ## O que não foi portado do mockup
 
 As duas armadilhas que a EF-05 §4 nomeia explicitamente, confirmadas linha a linha no protótipo
-(`.motor/recorte-desenho-19.md` §5, não versionado):
+(`.preator/tmp/recorte-desenho-19.md` §5, não versionado):
 
 1. **Pagar reatribuía os lançamentos** (`lancs: s.lancs.map(l => l.conta === id ? {...l, conta:
 contaPagadora} : l)`) — não portado; RN-24 garante que nenhum `UPDATE` toca `lancamentos.contaId`.

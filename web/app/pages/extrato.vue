@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * EXTRATO (EF-04) — a tela `extrato` do mockup. Recorte em
- * `.motor/recorte-desenho-18.md` §5 (não commitado, artefato do condutor) —
+ * `.preator/tmp/recorte-desenho-18.md` §5 (não commitado, artefato do condutor) —
  * é FONTE, não ilustração. 🟦 é desenho; 🟨 é anotação do condutor ou decisão
  * do humano.
  *

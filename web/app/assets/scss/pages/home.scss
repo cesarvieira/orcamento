@@ -1,7 +1,8 @@
-// VISÃO DO MÊS (EF-04) — tela `home` do mockup. `.motor/recorte-desenho-18.md`
-// §4 é FONTE, não ilustração — ver o cabeçalho de `pages/index.vue` para as
-// divergências declaradas (número do cartão-herói, faixa de bloqueio, barra
-// de duas faixas).
+// VISÃO DO MÊS (EF-04) — tela `home` do mockup. `.preator/tmp/recorte-desenho-18.md`
+// §4 é FONTE, não ilustração; o LASTRO (EF-06, #20) tem recorte próprio,
+// `recorte-desenho-20.md` §1/§2, para a faixa de bloqueio e a barra de duas
+// faixas abaixo — ver o cabeçalho de `pages/index.vue` para as divergências
+// declaradas (posição da linha `bloqLabel`, texto da explicação).
 //
 // Mesmo princípio de `orcamento.scss`/`contas.scss`: cores, raios e tamanhos
 // vêm do desenho, traduzidos para as variáveis do sistema visual do shell.
@@ -81,6 +82,52 @@
   margin: 2px 0 0;
   font-size: 10.5px;
   opacity: 0.62;
+}
+
+// ── FAIXA DE BLOQUEIO (recorte-desenho-20.md §1) ─────────────────────────
+// Cores do desenho traduzidas: `#ef6c00` já existe no shell como
+// `--atencao`; a explicação `#5b6675` já existe como `--texto-medio`.
+
+.home__bloqueio {
+  margin: 0 0 16px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  background: var(--superficie);
+  border: 1px solid rgba(239, 108, 0, 0.32);
+  border-radius: var(--raio);
+}
+
+.home__bloqueio-icone {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 9px;
+  background: var(--atencao);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.home__bloqueio-texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.home__bloqueio-titulo {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--atencao);
+}
+
+.home__bloqueio-explicacao {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--texto-medio);
 }
 
 // ── "Categorias" + legenda (recorte §4.5) ────────────────────────────────
@@ -187,10 +234,22 @@
   margin-top: 3px;
 }
 
-// Só a faixa GASTA (ver ponto 5 do cabeçalho de `index.vue` — a faixa
-// bloqueada precisa do lastro, que não existe ainda).
-.home__barra {
+// Linha `bloqLabel` (recorte-desenho-20.md §2) — mesma cor de aviso da faixa
+// de bloqueio, posição MOBILE do recorte (ver ponto 5 do cabeçalho de
+// `index.vue`).
+.home__bloqueado {
   display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--atencao);
+  margin-top: 2px;
+}
+
+// Trilho com DUAS faixas lado a lado (recorte-desenho-20.md §2): a gasta e a
+// bloqueada (hachurada). `display:flex` + `overflow:hidden` no trilho —
+// nenhuma das duas faixas arredonda a própria borda, só o trilho.
+.home__barra {
+  display: flex;
   height: 6px;
   margin-top: 8px;
   border-radius: 9999px;
@@ -201,7 +260,14 @@
 .home__barra-fill {
   display: block;
   height: 100%;
-  border-radius: 9999px;
+}
+
+// Faixa bloqueada — hachura literal do recorte (recorte-desenho-20.md §2).
+// Some sozinha quando a largura é 0%.
+.home__barra-bloqueado {
+  display: block;
+  height: 100%;
+  background: repeating-linear-gradient(135deg, #d7dce3 0 3px, #eceef1 3px 6px);
 }
 
 // ── categoria estourada — mesmo cartão de `orcamento.scss`, redeclarado de
