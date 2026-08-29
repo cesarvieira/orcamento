@@ -63,15 +63,15 @@ proporcionalmente — é o mecanismo que torna o app confiável: ele nunca prome
 | RN-29  | O déficit é rateado **pró-rata**; não há categoria privilegiada — todas perdem a mesma fração                             | bloqueio de categoria    | [EF-06](../../../docs/especificacoes/EF-06-lastro.md) §2 RN-29  |
 | RN-30  | O número em destaque é `restante − déficit`. O app **nunca** mostra o plano cheio como gastável quando há déficit          | tela home                | [EF-06](../../../docs/especificacoes/EF-06-lastro.md) §2 RN-30  |
 | RN-31  | Entrada de dinheiro **desbloqueia**; não aumenta teto nenhum — o bloqueio é efeito da falta de lastro, não da capacidade | orçamento + lastro       | [EF-06](../../../docs/especificacoes/EF-06-lastro.md) §2 RN-31  |
-| RN-32  | O resíduo do rateio vai para a categoria de maior saldo; a **soma dos bloqueados é exatamente o déficit**                 | cálculo de bloqueio      | [EF-06](../../../docs/especificacoes/EF-06-lastro.md) §2 RN-32  |
+| RN-32  | O resíduo do rateio vai para a categoria de maior saldo; sem **folga** (disponível − bloqueado) para absorvê-lo inteiro, o excedente cai em **cascata** para a próxima maior, e assim por diante — a soma dos bloqueados é exatamente o déficit, e nenhuma categoria recebe mais que seu disponível | cálculo de bloqueio      | [EF-06](../../../docs/especificacoes/EF-06-lastro.md) §2 RN-32  |
 
 ## Regulação / compliance (o que a lei/norma exige)
 
 - **Dinheiro em centavos** — inteiro na pilha toda (banco, API, contrato, front). Ver
   [D-06](../../../docs/decisoes/D-06-dinheiro-em-centavos.md). Regra: onde houver divisão
-  (rateio do lastro ou parcelamento), o resíduo tem destino explícito (categoria de maior saldo
-  para lastro, última parcela para parcelamento). A soma dos bloqueados é **sempre exatamente**
-  o déficit, sem quebra.
+  (rateio do lastro ou parcelamento), o resíduo tem destino explícito (cascata a partir da
+  categoria de maior saldo para lastro — RN-32 —, última parcela para parcelamento). A soma dos
+  bloqueados é **sempre exatamente** o déficit, sem quebra.
 - **Isolamento entre famílias** — nenhuma conta ou cálculo de lastro expõe dado de uma família a
   outra.
 
@@ -110,7 +110,9 @@ proporcionalmente — é o mecanismo que torna o app confiável: ele nunca prome
   que o lastro é zero.
 - **Rateio com quebra:** exemplo: restante = R$ 100, déficit = R$ 30, categoria com saldo R$ 50
   (1/2 do total de disponível). Bloqueado = R$ 50 × 30/100 = R$ 15 exatamente. Se houver
-  quebra em centavos, o resíduo vai para a de maior saldo, e a soma fecha em R$ 30.
+  quebra em centavos, o resíduo vai para a de maior saldo — aqui ela tem folga de sobra para
+  absorvê-lo — e a soma fecha em R$ 30. Quando a maior não tem folga, RN-32 manda o excedente em
+  cascata para a próxima maior.
 
 ## Fontes do conhecimento
 
