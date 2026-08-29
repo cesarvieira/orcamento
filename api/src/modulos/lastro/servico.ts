@@ -85,7 +85,7 @@ export interface CategoriaParaRateio {
   disponivelCentavos: number;
 }
 
-export interface CategoriaRateada {
+interface CategoriaRateada {
   id: string;
   liberadoCentavos: number;
   bloqueadoCentavos: number;
