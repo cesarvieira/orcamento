@@ -47,13 +47,13 @@ por categoria:
 > **D1** (decisão humana, 2026-08-28) fechou a ambiguidade a favor deste escopo amplo, o que a
 > RN-26 da EF-05 já cita como fonte. Ver EF-05 §2 para o texto completo da decisão.
 
-| # | Regra | Fonte |
-|---|---|---|
-| RN-27 | A conta `RESERVA` **não entra** no lastro | decisão humana |
-| RN-28 | O **limite livre do cartão entra** no lastro | decisão humana |
-| RN-29 | O déficit é rateado **pró-rata**; não há categoria privilegiada | decisão humana |
-| RN-30 | O número em destaque é `restante − déficit`. O app **nunca** mostra o plano cheio como gastável | mockup |
-| RN-31 | Entrada de dinheiro **desbloqueia**; não aumenta teto nenhum | decisão humana |
+| #     | Regra                                                                                                                                                                                                                                                                                                        | Fonte                                                                                         |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| RN-27 | A conta `RESERVA` **não entra** no lastro                                                                                                                                                                                                                                                                    | decisão humana                                                                                |
+| RN-28 | O **limite livre do cartão entra** no lastro                                                                                                                                                                                                                                                                 | decisão humana                                                                                |
+| RN-29 | O déficit é rateado **pró-rata**; não há categoria privilegiada                                                                                                                                                                                                                                              | decisão humana                                                                                |
+| RN-30 | O número em destaque é `restante − déficit`. O app **nunca** mostra o plano cheio como gastável                                                                                                                                                                                                              | mockup                                                                                        |
+| RN-31 | Entrada de dinheiro **desbloqueia**; não aumenta teto nenhum                                                                                                                                                                                                                                                 | decisão humana                                                                                |
 | RN-32 | O resíduo do rateio vai para a categoria de maior saldo — se ela não tiver folga (disponível − bloqueado) para absorvê-lo inteiro, o excedente cai em **cascata** para a próxima maior, e assim por diante; a soma dos bloqueados é exatamente o déficit, e nenhuma categoria recebe mais que seu disponível | [D-06](../decisoes/D-06-dinheiro-em-centavos.md) + extensão, tarefa #76/#78 (ver nota abaixo) |
 
 **As três sub-decisões, cada uma deliberada:**
@@ -93,11 +93,11 @@ skill. Fork aberto ao humano com a mesma proposta de texto (ver relato da tarefa
 **Referência de tela:** tela `home` do mockup — o cartão de aviso de plano bloqueado e a **parte
 hachurada** das barras de categoria.
 
-| Elemento | Onde | Conteúdo |
-|---|---|---|
-| Aviso de déficit | topo da home | *"R$ X do plano está bloqueado"* + o motivo |
-| Barra da categoria | lista | parte cheia (gasto) + parte hachurada (bloqueado) |
-| Rótulo | categoria | `parcial` quando há bloqueio |
+| Elemento           | Onde         | Conteúdo                                          |
+| ------------------ | ------------ | ------------------------------------------------- |
+| Aviso de déficit   | topo da home | _"R$ X do plano está bloqueado"_ + o motivo       |
+| Barra da categoria | lista        | parte cheia (gasto) + parte hachurada (bloqueado) |
+| Rótulo             | categoria    | `parcial` quando há bloqueio                      |
 
 ---
 
@@ -139,7 +139,7 @@ vocabulário que já existe, não uma regra nova. Quando a [EF-07](EF-07-metas.m
 necessário aqui.
 
 **(b) O texto da faixa de bloqueio ficou na variante DESKTOP** — decisão do humano, **2026-08-29**:
-*"Conta corrente + limite dos cartões cobrem «lastro». A reserva fica fora do orçamento."*
+_"Conta corrente + limite dos cartões cobrem «lastro». A reserva fica fora do orçamento."_
 (`web/app/pages/index.vue:264-265`). Motivo registrado: `lastro` e `reserva` são os termos do
 produto (glossário da skill de negócio), e o plural ("cartões") está correto quando a família tem
 mais de um cartão. **O mockup MOBILE diz outra coisa** — "limite do cartão" (singular) e "A poupança
@@ -191,7 +191,7 @@ disponível zero no meio do laço, boundary exato): `api/testes/lastro-rateio.te
   teto que [D-06](../decisoes/D-06-dinheiro-em-centavos.md) já documenta para `integer` no Postgres
   (~R$ 21 milhões em centavos). Nenhum teste desta história exercita esse limite; registrado como
   risco baixo, não como defeito.
-- 🟡 `web/app/pages/index.vue:3` cita `.motor/recorte-desenho-18.md` (com o prefixo `.motor/`)
+- 🟡 `web/app/pages/index.vue:3` cita `.preator/tmp/recorte-desenho-18.md` (com o prefixo `.preator/tmp/`)
   enquanto a linha `:5` do mesmo parágrafo diz que o recorte da EF-06 fica "também na raiz do
   worktree" (sem esse prefixo) — duas convenções de caminho diferentes no mesmo comentário. **Não
   corrigido aqui** — é arquivo de #77, fora do escopo de pasta da tarefa #79 (só `docs/`). Registrado

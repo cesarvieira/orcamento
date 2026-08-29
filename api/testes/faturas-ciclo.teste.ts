@@ -427,7 +427,7 @@ describe('Caso 4 — RN-24: extrato por cartão continua correto após o pagamen
     expect(pagamento.body.status).toBe('PAGA');
     expect(pagamento.body.totalCentavos).toBe(25000);
 
-    // ⛔ Armadilha 1 (EF-05 §4/`.motor/recorte-desenho-19.md` §5): o protótipo
+    // ⛔ Armadilha 1 (EF-05 §5): o protótipo
     // reescreve `lancs.map(l => l.conta === id ? {...l, conta: contaPagadora} : l)`.
     // As DUAS compras originais (a paga E a não paga) têm que continuar com
     // contaId = cartão.

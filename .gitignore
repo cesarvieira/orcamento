@@ -51,7 +51,7 @@ credentials.*
 # versionada aqui dentro e precisava de uma lista de exceções para reabri-la; a
 # lista envelhecia, e foi assim que `auth/agent_identity_jwt_secret` escapou.
 # Agora a fonte da fila é o GitHub Issues e nada aqui precisa de exceção.
-/.motor/
+/.preator/tmp/
 
 # Os DOIS carimbos do ciclo: são por execução, e valem só na máquina que os
 # produziu. Versioná-los seria transformar um veredito local em declaração de

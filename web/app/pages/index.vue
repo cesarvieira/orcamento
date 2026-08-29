@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * VISÃO DO MÊS (EF-04) — a tela `home` do mockup. Recorte em
- * `.motor/recorte-desenho-18.md` §4 (não commitado, artefato do condutor) —
+ * `.preator/tmp/recorte-desenho-18.md` §4 (não commitado, artefato do condutor) —
  * é FONTE, não ilustração. O LASTRO (EF-06, #20) tem recorte próprio,
  * `recorte-desenho-20.md`, também na raiz do worktree — citado nos pontos 2,
  * 4 e 5 abaixo, que esta tarefa (#77) fecha. 🟦 é desenho; 🟨 é anotação do

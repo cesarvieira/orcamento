@@ -106,7 +106,7 @@ DEADCODE_CMD="pnpm run knip"
 #
 # A DERIVAÇÃO (não um hash cru — ver por quê): todo worktree que o condutor
 # abre segue o contrato documentado em CONDUTOR.md —
-# `~/.preator-worktrees/<repo>/<t>-<slug>` —, onde <t> é o número da
+# `.preator/tmp/worktrees/<t>-<slug>` —, onde <t> é o número da
 # tarefa/issue do GitHub. Esse número nunca se repete. Extraindo <t> do nome
 # da pasta e reservando um BLOCO de 3 portas consecutivas por tarefa
 # (api, front, postgres), a colisão entre worktrees numerados fica
