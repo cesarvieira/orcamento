@@ -252,6 +252,90 @@ describe('lastro — sem déficit, bloqueado é zero em todas', () => {
   });
 });
 
+describe('lastro — retrabalho (revisão de diff): déficit capado em restanteTotal quando lastro < 0', () => {
+  it('EF-06 §5: bloqueado nunca excede o disponível, mesmo com lastro negativo (cartão over-limit)', async () => {
+    // Reproduzido pela revisão: disponível=1000, lastro=−1 → sem capar,
+    // déficit=1001 > restanteTotal, bloqueado=1001 > disponível, liberado=−1.
+    // As duas invariantes do DoD §5 ("soma dos bloqueados == déficit" e "o
+    // bloqueado nunca excede o disponível") FORÇAM déficit ≤ restanteTotal —
+    // com déficit capado, o esperado é bloqueado=1000 (== disponível
+    // inteiro), liberado=0, nunca negativo.
+    const { cookie } = await novaFamiliaComCookie('Família retrabalho — deficit capado');
+
+    // lastro = caixaReal(0) + limiteLivre(cartão) = 0 + (0 + (−1)) = −1:
+    // cartão com limite 0 e uma despesa de 1 centavo deixa
+    // limiteLivre = limiteCentavos + saldoCentavos = 0 + (−1) = −1.
+    const categoriaAuxiliar = await novaCategoria(cookie, 'Auxiliar — só para a despesa do cartão');
+    const cartao = await novoCartao(cookie, 'Cartão over-limit', 0);
+    await novaDespesaNoCartao({
+      cookie,
+      cartaoId: cartao,
+      categoriaId: categoriaAuxiliar,
+      valorCentavos: 1,
+      data: '2026-08-05',
+    });
+
+    const categoriaAlvo = await novaCategoria(cookie, 'Alvo — disponível 1000');
+    await definirTeto(cookie, '2026-08', categoriaAlvo, 1000);
+
+    const leitura = await lerCompetencia(cookie, '2026-08');
+    expect(leitura.status).toBe(200);
+    expect(leitura.body.lastroCentavos).toBe(-1);
+
+    // restanteTotal = 1000 (alvo) + max(0, 0−1)=0 (auxiliar, sem teto) = 1000.
+    expect(leitura.body.deficitCentavos).toBe(1000); // capado em restanteTotal, NUNCA 1001.
+
+    const linhaAlvo = acharCategoria(leitura.body, categoriaAlvo);
+    expect(linhaAlvo.bloqueadoCentavos).toBe(1000); // == disponível, nunca 1001.
+    expect(linhaAlvo.liberadoCentavos).toBe(0); // nunca negativo.
+    expect(linhaAlvo.bloqueadoCentavos).toBeLessThanOrEqual(linhaAlvo.disponivelCentavos);
+  });
+
+  it('EF-06 §5/RN-32: quando a maior categoria não absorve o resíduo inteiro, o excedente cai em cascata', async () => {
+    // Reproduzido pela revisão: disponíveis=[1,1,1], lastro=1 → déficit=2
+    // (caso NORMAL, déficit ≤ restanteTotal — não precisa de lastro
+    // negativo). Bloqueado bruto de cada é floor(1*2/3)=0; resíduo=2. Jogar
+    // os 2 centavos inteiros numa única categoria de disponível 1 estouraria
+    // o disponível dela. RN-32 aplicada por inteiro: o resíduo vai para a
+    // maior categoria até a folga dela (aqui, 1), e o que sobra cai para a
+    // PRÓXIMA maior — nunca uma categoria recebe mais do que tem de
+    // disponível.
+    const { cookie } = await novaFamiliaComCookie('Família retrabalho — residuo em cascata');
+    await novaContaDebito(cookie, 'Conta do lastro', 1); // lastro = 1, sem cartão.
+
+    const categoriaA = await novaCategoria(cookie, 'A — 1');
+    const categoriaB = await novaCategoria(cookie, 'B — 1');
+    const categoriaC = await novaCategoria(cookie, 'C — 1');
+    await definirTeto(cookie, '2026-08', categoriaA, 1);
+    await definirTeto(cookie, '2026-08', categoriaB, 1);
+    await definirTeto(cookie, '2026-08', categoriaC, 1);
+
+    const leitura = await lerCompetencia(cookie, '2026-08');
+    expect(leitura.status).toBe(200);
+    expect(leitura.body.lastroCentavos).toBe(1);
+    expect(leitura.body.deficitCentavos).toBe(2);
+
+    const linhas = [categoriaA, categoriaB, categoriaC].map(id => acharCategoria(leitura.body, id));
+
+    // RN-32 — invariante central: soma dos bloqueados é EXATAMENTE o déficit.
+    const somaDosBloqueados = linhas.reduce((soma, linha) => soma + linha.bloqueadoCentavos, 0);
+    expect(somaDosBloqueados).toBe(2);
+
+    // A invariante que a revisão pegou quebrada: NENHUMA categoria pode
+    // receber mais do que o próprio disponível (aqui, 1 cada).
+    for (const linha of linhas) {
+      expect(linha.bloqueadoCentavos).toBeLessThanOrEqual(1);
+      expect(linha.liberadoCentavos).toBeGreaterThanOrEqual(0);
+    }
+
+    // Exatamente duas categorias absorvem 1 centavo cada (a folga máxima de
+    // cada uma), e a terceira fica com bloqueado 0 — não importa QUAL das
+    // três (empate de disponível), só que a distribuição respeite a folga.
+    const bloqueados = linhas.map(l => l.bloqueadoCentavos).sort();
+    expect(bloqueados).toEqual([0, 1, 1]);
+  });
+});
+
 describe('lastro — isolamento entre famílias', () => {
   it('o lastro de uma família nunca aparece na leitura de outra', async () => {
     const { cookie: cookieA } = await novaFamiliaComCookie('Família A do lastro');

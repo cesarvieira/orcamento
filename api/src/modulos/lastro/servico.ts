@@ -105,34 +105,58 @@ export interface ResultadoDoRateio {
  * tanto no AGREGADO (`restanteTotal`, EF-06 §2) quanto POR categoria — esta
  * segunda parte é a redação exata do corpo da issue #76 (`bloqueado =
  * max(0, disponível) × déficit / restanteTotal`), mais explícita que o
- * pseudocódigo condensado da EF-06 §2. Sem o piso por categoria, uma
- * categoria já estourada (disponível negativo) entraria com peso negativo no
- * rateio e poderia produzir `bloqueado` negativo noutra categoria — violando
- * o DoD "o bloqueado de uma categoria nunca excede o disponível dela".
+ * pseudocódigo condensado da EF-06 §2.
  *
- * RN-32/D-06 — a divisão é INTEIRA (`Math.floor`, nunca float — D-06). O
- * resíduo (sempre ≥ 0 e sempre menor que a quantidade de categorias) vai
- * para a categoria de MAIOR saldo disponível: "saldo" aqui é o mesmo
- * `disponível` do glossário — o próprio SKILL.md usa os dois como sinônimo
- * no seu edge case ("categoria com saldo R$ 50 (1/2 do total de
- * disponível)"). Assim a SOMA dos bloqueados fecha EXATAMENTE no déficit,
- * nunca um centavo a mais nem a menos.
+ * ⛔ O TETO do déficit — EF-06 §5 (Definition of Done), retrabalho da
+ * revisão de diff da tarefa #76. A EF-06 fecha DUAS invariantes, literais:
  *
- * 🔀 FORK declarado ao humano (tarefa #76): quando `restanteTotalCentavos`
- * é 0 (nenhuma categoria com disponível positivo — inclusive "nenhuma
- * categoria existe") e ainda assim `lastroCentavos` é NEGATIVO (um cartão
- * pode ficar over-limit hoje: nenhum módulo trava DESPESA além do limite),
- * a fórmula `déficit = max(0, restanteTotal − lastro)` dá déficit > 0 com
- * `restanteTotal / 0` indefinido — e mesmo que se evitasse a divisão, as duas
- * invariantes do DoD ("soma dos bloqueados == déficit" e "bloqueado nunca
- * excede o disponível da categoria") ficam matematicamente incompatíveis
- * quando `déficit > restanteTotal` (soma de parcelas cada uma ≤ seu
- * disponível não pode superar a soma dos disponíveis). A EF-06 §2 e o
- * SKILL.md descrevem só o caso `lastro ≥ 0` (o edge case do SKILL.md fala
- * em "o caso extremo em que o lastro é ZERO", nunca negativo). Esta função
- * escolhe o piso mais conservador — nenhuma categoria bloqueada quando não
- * há base nenhuma para ratear — em vez de inventar qual das duas invariantes
- * ceder; ver o relatório da tarefa para a decisão do humano.
+ *   > "Soma dos bloqueados == déficit, com valores quebrados"
+ *   > "O bloqueado de uma categoria nunca excede o disponível dela"
+ *
+ * As duas JUNTAS forçam `déficit ≤ restanteTotal`: se cada `bloqueado_i` ≤
+ * `disponivel_i` (segunda invariante) e `Σ bloqueado_i == déficit` (primeira),
+ * então `déficit ≤ Σ disponivel_i == restanteTotal` — é aritmética, não
+ * escolha de implementação. `déficitCentavos` abaixo é por isso sempre
+ * CAPADO em `restanteTotalCentavos`, nunca o `restanteTotal − lastro` cru:
+ * quando `lastroCentavos` é negativo (um cartão pode ficar over-limit hoje —
+ * nenhum módulo trava DESPESA além do limite), o cru ultrapassaria
+ * `restanteTotal`, e as duas invariantes acima deixariam de caber juntas.
+ * Capar o déficit em `restanteTotal` é a única leitura que preserva as DUAS
+ * — nunca as duas violadas, nunca uma delas abandonada.
+ *
+ * 🔀 FORK F3 atualizado (tarefa #76, revisão de diff): o caso `déficit >
+ * restanteTotal` NÃO é mais indefinido — a própria EF-06 §5 fecha o teto
+ * acima, e o cálculo é determinístico em qualquer sinal de `lastroCentavos`.
+ * O que PERMANECE aberto ao humano é outra pergunta, de OUTRA EF: hoje
+ * nenhum módulo (`lancamentos`, `faturas`) impede uma `DESPESA` de deixar um
+ * cartão além do `limiteCentavos` — é essa lacuna, não o rateio do lastro,
+ * que decide se `lastroCentavos` chega negativo na prática.
+ *
+
+ * RN-32/D-06 — a divisão é INTEIRA (`Math.floor`, nunca float — D-06):
+ *
+ *   > "O resíduo do rateio vai para a categoria de maior saldo; a soma dos
+ *   > bloqueados é exatamente o déficit"
+ *
+ * "Maior saldo" aqui é o mesmo `disponível` do glossário — o próprio
+ * SKILL.md usa os dois como sinônimo no seu edge case ("categoria com saldo
+ * R$ 50 (1/2 do total de disponível)"). O resíduo (sempre ≥ 0 e sempre menor
+ * que a quantidade de categorias, porque é soma de frações cada uma < 1)
+ * pode ultrapassar a FOLGA da maior categoria (`disponível − bloqueado`
+ * bruto) quando o déficit está perto do restante total — jogar o resíduo
+ * inteiro nela estouraria a segunda invariante (achado da revisão,
+ * reproduzido com `disponíveis=[1,1,1], lastro=1`: déficit=2, bloqueado
+ * bruto de cada é 0, resíduo=2, e dar os 2 a uma categoria de disponível 1
+ * já extrapola). A LETRA de RN-32 ("maior saldo") e o PROPÓSITO dela ("a
+ * soma é exatamente o déficit") continuam valendo juntos se, quando a maior
+ * categoria não absorve o resíduo inteiro sem estourar o próprio disponível,
+ * o EXCEDENTE segue para a PRÓXIMA maior, e assim por diante — é RN-32
+ * aplicada por inteiro, não uma regra nova: a soma continua fechando exata,
+ * e "maior saldo primeiro" continua sendo a prioridade, só que agora
+ * respeitando o teto de cada categoria no caminho. Com `déficit ≤
+ * restanteTotal` já garantido acima, a folga TOTAL (`Σ (disponivel_i −
+ * bloqueado_i)` bruto) é sempre ≥ o resíduo — a distribuição em cascata
+ * abaixo sempre termina de absorver o resíduo inteiro, nunca sobra nada.
  */
 export function ratearDeficit(
   categorias: CategoriaParaRateio[],
@@ -144,11 +168,14 @@ export function ratearDeficit(
   }));
 
   const restanteTotalCentavos = disponiveis.reduce((soma, c) => soma + c.disponivelCentavos, 0);
-  // Piso de segurança contra divisão por zero — ver o FORK no comentário
-  // acima: sem categoria com disponível nenhum, não há base para ratear.
-  const deficitCentavos =
-    restanteTotalCentavos === 0 ? 0 : Math.max(0, restanteTotalCentavos - lastroCentavos);
-  const liberadoTotalCentavos = Math.max(0, restanteTotalCentavos - deficitCentavos);
+
+  // EF-06 §5 — capado em restanteTotal (ver o comentário acima da função):
+  // as duas invariantes do DoD só cabem juntas se déficit ≤ restanteTotal.
+  // Quando restanteTotalCentavos é 0, min(0, ...) já dá 0 sozinho — cobre o
+  // caso "nenhuma categoria com disponível" sem precisar de guarda à parte.
+  const deficitBrutoCentavos = Math.max(0, restanteTotalCentavos - lastroCentavos);
+  const deficitCentavos = Math.min(restanteTotalCentavos, deficitBrutoCentavos);
+  const liberadoTotalCentavos = restanteTotalCentavos - deficitCentavos;
 
   if (deficitCentavos === 0) {
     return {
@@ -163,6 +190,9 @@ export function ratearDeficit(
     };
   }
 
+  // Piso pró-rata por divisão inteira — cada bloqueado bruto é ≤ seu
+  // disponível, porque déficit ≤ restanteTotal (ver acima) faz a razão
+  // déficit/restanteTotal ≤ 1.
   const comBloqueioBruto = disponiveis.map(c => ({
     id: c.id,
     disponivelCentavos: c.disponivelCentavos,
@@ -172,17 +202,34 @@ export function ratearDeficit(
   const somaBrutaCentavos = comBloqueioBruto.reduce((soma, c) => soma + c.bloqueadoCentavos, 0);
   const residuoCentavos = deficitCentavos - somaBrutaCentavos;
 
+  // RN-32 aplicada por inteiro (ver o comentário da função): resíduo vai
+  // para a MAIOR categoria primeiro, mas só até a folga dela (disponível −
+  // bloqueado bruto); o que sobrar segue em cascata para a próxima maior.
   if (residuoCentavos > 0) {
-    let indiceDoMaiorSaldo = 0;
-    for (let indice = 1; indice < comBloqueioBruto.length; indice += 1) {
-      const atual = comBloqueioBruto[indice];
-      const maiorAteAgora = comBloqueioBruto[indiceDoMaiorSaldo];
-      if (atual && maiorAteAgora && atual.disponivelCentavos > maiorAteAgora.disponivelCentavos) {
-        indiceDoMaiorSaldo = indice;
-      }
+    const ordemDecrescente = comBloqueioBruto
+      .map((c, indiceOriginal) => ({ ...c, indiceOriginal }))
+      .sort((a, b) => b.disponivelCentavos - a.disponivelCentavos || a.indiceOriginal - b.indiceOriginal);
+
+    let residuoRestante = residuoCentavos;
+    for (const candidato of ordemDecrescente) {
+      if (residuoRestante === 0) break;
+      const alvo = comBloqueioBruto[candidato.indiceOriginal];
+      if (!alvo) continue;
+      const folga = alvo.disponivelCentavos - alvo.bloqueadoCentavos;
+      const parcela = Math.min(folga, residuoRestante);
+      alvo.bloqueadoCentavos += parcela;
+      residuoRestante -= parcela;
     }
-    const alvoDoResiduo = comBloqueioBruto[indiceDoMaiorSaldo];
-    if (alvoDoResiduo) alvoDoResiduo.bloqueadoCentavos += residuoCentavos;
+
+    if (residuoRestante > 0) {
+      // Não deveria acontecer: a folga total é sempre ≥ o resíduo quando
+      // déficit ≤ restanteTotal (prova no comentário da função). Se isto
+      // disparar, é sinal de que as duas invariantes do DoD §5 não cabem
+      // juntas neste caso — FORK ao humano, não silenciar.
+      throw new Error(
+        'lastro: resíduo do rateio não coube na folga das categorias — invariante de RN-32/DoD §5 quebrada',
+      );
+    }
   }
 
   return {

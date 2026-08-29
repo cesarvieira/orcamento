@@ -692,7 +692,7 @@ export interface components {
             gastoCentavos: number;
             /** @description RN-10: teto − gasto. Negativo significa que a categoria estourou. */
             disponivelCentavos: number;
-            /** @description EF-06 RN-29/RN-32 (tarefa #76): disponível − bloqueado, depois do rateio pró-rata do déficit de lastro. O front NUNCA recalcula isto (CONTEXT.md, regra inviolável #4). */
+            /** @description EF-06 RN-29/RN-32 (tarefa #76): disponível − bloqueado, depois do rateio pró-rata do déficit de lastro (EF-06 §5: bloqueado nunca excede o disponível, então isto nunca é negativo). O front NUNCA recalcula isto (CONTEXT.md, regra inviolável #4). */
             liberadoCentavos: number;
             /** @description EF-06 RN-29 (tarefa #76): fração do disponível "congelada" pró-rata pelo déficit de lastro. Nunca excede o disponível da categoria (piso em max(0, disponível), EF-06 §2). */
             bloqueadoCentavos: number;
@@ -724,7 +724,7 @@ export interface components {
                 gastoCentavos: number;
                 /** @description RN-10: teto − gasto. Negativo significa que a categoria estourou. */
                 disponivelCentavos: number;
-                /** @description EF-06 RN-29/RN-32 (tarefa #76): disponível − bloqueado, depois do rateio pró-rata do déficit de lastro. O front NUNCA recalcula isto (CONTEXT.md, regra inviolável #4). */
+                /** @description EF-06 RN-29/RN-32 (tarefa #76): disponível − bloqueado, depois do rateio pró-rata do déficit de lastro (EF-06 §5: bloqueado nunca excede o disponível, então isto nunca é negativo). O front NUNCA recalcula isto (CONTEXT.md, regra inviolável #4). */
                 liberadoCentavos: number;
                 /** @description EF-06 RN-29 (tarefa #76): fração do disponível "congelada" pró-rata pelo déficit de lastro. Nunca excede o disponível da categoria (piso em max(0, disponível), EF-06 §2). */
                 bloqueadoCentavos: number;

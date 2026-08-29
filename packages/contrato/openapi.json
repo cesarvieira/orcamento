@@ -1103,9 +1103,9 @@
           },
           "liberadoCentavos": {
             "type": "integer",
-            "minimum": -9007199254740991,
+            "minimum": 0,
             "maximum": 9007199254740991,
-            "description": "EF-06 RN-29/RN-32 (tarefa #76): disponível − bloqueado, depois do rateio pró-rata do déficit de lastro. O front NUNCA recalcula isto (CONTEXT.md, regra inviolável #4)."
+            "description": "EF-06 RN-29/RN-32 (tarefa #76): disponível − bloqueado, depois do rateio pró-rata do déficit de lastro (EF-06 §5: bloqueado nunca excede o disponível, então isto nunca é negativo). O front NUNCA recalcula isto (CONTEXT.md, regra inviolável #4)."
           },
           "bloqueadoCentavos": {
             "type": "integer",
@@ -1212,9 +1212,9 @@
                 },
                 "liberadoCentavos": {
                   "type": "integer",
-                  "minimum": -9007199254740991,
+                  "minimum": 0,
                   "maximum": 9007199254740991,
-                  "description": "EF-06 RN-29/RN-32 (tarefa #76): disponível − bloqueado, depois do rateio pró-rata do déficit de lastro. O front NUNCA recalcula isto (CONTEXT.md, regra inviolável #4)."
+                  "description": "EF-06 RN-29/RN-32 (tarefa #76): disponível − bloqueado, depois do rateio pró-rata do déficit de lastro (EF-06 §5: bloqueado nunca excede o disponível, então isto nunca é negativo). O front NUNCA recalcula isto (CONTEXT.md, regra inviolável #4)."
                 },
                 "bloqueadoCentavos": {
                   "type": "integer",

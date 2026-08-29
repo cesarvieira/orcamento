@@ -118,10 +118,11 @@ const EsquemaCategoriaNaCompetencia = registrarEsquema(
     disponivelCentavos: z.number().int().meta({
       description: 'RN-10: teto − gasto. Negativo significa que a categoria estourou.',
     }),
-    liberadoCentavos: z.number().int().meta({
+    liberadoCentavos: z.number().int().nonnegative().meta({
       description:
         'EF-06 RN-29/RN-32 (tarefa #76): disponível − bloqueado, depois do rateio pró-rata do ' +
-        'déficit de lastro. O front NUNCA recalcula isto (CONTEXT.md, regra inviolável #4).',
+        'déficit de lastro (EF-06 §5: bloqueado nunca excede o disponível, então isto nunca é ' +
+        'negativo). O front NUNCA recalcula isto (CONTEXT.md, regra inviolável #4).',
     }),
     bloqueadoCentavos: z.number().int().nonnegative().meta({
       description:
