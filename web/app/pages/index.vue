@@ -164,8 +164,21 @@ useLancamentos({
 // O recurso `orcamento` (teto, renda prevista, remanejamento) — mesma
 // assinatura que `orcamento.vue` já usa, chamada direto por não ser parte
 // do wrapper acima (que só cobre `lancamentos`).
+//
+// `contas` (achado da revisão de COSTURA da #20, tarefa #80) — a tarefa #76
+// tornou esta tela dependente do LASTRO: `lastroCentavos`, `deficitCentavos`,
+// `liberadoTotalCentavos` e, por categoria, `liberadoCentavos`/
+// `bloqueadoCentavos` derivam do saldo das contas de débito e do limite livre
+// dos cartões (EF-06). `api/src/modulos/contas/rotas.ts` emite
+// `recurso: 'contas'` em toda mutação de conta (criar, excluir, editar saldo
+// ou limite) — sem ouvir aqui, editar um cartão numa aba deixava as OUTRAS
+// abas com esses cinco campos velhos até o socket reconectar. Não remova
+// isto sem primeiro verificar se a home ainda depende do lastro: é assim que
+// este defeito volta. Pagar fatura já cai em `lancamentos` (a rota co-emite
+// `contas` e `lancamentos`, e o wrapper acima já ouve `lancamentos`) — não é
+// esta assinatura que cobre aquele caminho.
 useRealtime({
-  recursos: ['orcamento'],
+  recursos: ['orcamento', 'contas'],
   competenciaAtiva: computed(() => competencia.value),
   aoInvalidar: async () => {
     await carregar();
