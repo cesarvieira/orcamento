@@ -28,20 +28,33 @@
     corrige cabeçalho que afirmava mais do que entregava) mesclados em `e75c26d`
   - #89 — esta tarefa (docs — MC-07/MANUAL-07, as-built de EF-07 §5): commit ainda sem hash no
     momento em que este texto foi escrito — confira com `git log --oneline e75c26d^..HEAD`
-- **Confiança:** Média-alta, com uma ressalva declarada — ver a seção "Confiança" de
-  [MC-07](../especificacoes/MC-07-metas.md). Resumo: todo código citado abaixo foi lido linha a
-  linha por este agente `docs`; o carimbo `PASS`/`APROVADA` de cada tarefa, ao contrário do padrão
+- **Confiança:** Alta — ver a seção "Confiança" de [MC-07](../especificacoes/MC-07-metas.md) para o
+  detalhe completo das duas fontes e das URLs. Resumo: todo código citado abaixo foi lido linha a
+  linha por este agente `docs`. O carimbo `PASS`/`APROVADA` de cada tarefa, ao contrário do padrão
   que EF-06/#79 registrou, **não está** no corpo dos commits de merge desta história (os quatro
   merges — `79269b6`, `de255fa`, `fe13fe2`, `e75c26d` — têm corpo vazio, conferido com
-  `git show -s --format=%B`). A única fonte do veredito por tarefa é a tabela de linhagem que o
-  condutor escreveu na issue #89:
+  `git show -s --format=%B`) — mas **existe**, durável, em dois lugares que conferi abrindo cada um
+  antes de citar (`gh issue view <n> --comments` e `gh api .../issues/comments/<id>`): o comentário
+  que `carimbar-issue.sh` publicou em cada issue (evidência **primária**, por tarefa — máquina
+  escrevendo) e o comentário de linhagem consolidado na história #21
+  ([issuecomment-5465501063](https://github.com/cesarvieira/orcamento/issues/21#issuecomment-5465501063),
+  **registro consolidado**). ⚠️ **Retificação desta rodada:** a versão anterior desta tabela citava
+  "a tabela de linhagem que o condutor escreveu na issue #89" — essa issue tinha **zero
+  comentários**; a fonte só existia no prompt do condutor, nunca em lugar durável. A revisão
+  reprovou por isso, e é a mesma classe de defeito que reprovou a #85 nesta história: fonte certa,
+  endereço errado. Corrigido citando as duas fontes reais abaixo, por tarefa:
 
-| tarefa | papel | commit | mesclada em | veredito (fonte: issue #89) |
-| --- | --- | --- | --- | --- |
-| #85 skill `metas-e-reservas` | `docs` | `79621a0` | `79269b6` | gate PASS · revisão REPROVADA em `701c3bb`, aprovada após retrabalho |
-| #86 módulo `metas` | `backend` | `b291ea4` | `de255fa` | gate PASS (251 testes) · revisão APROVADA |
-| #87 tela `/metas` | `frontend` | `857c3d0` | `fe13fe2` | gate PASS (10 rotas, 0 quebradas) · revisão APROVADA |
-| #88 casos do DoD | `qa` | `ce0b318` | `e75c26d` | gate PASS (264 testes) · revisão APROVADA, republicada após retrabalho de lint |
+| tarefa                       | papel      | commit    | mesclada em | veredito e fonte primária (comentário de `carimbar-issue.sh`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ---------------------------- | ---------- | --------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| #85 skill `metas-e-reservas` | `docs`     | `79621a0` | `79269b6`   | gate `PASS` (`fails=0`) · revisão `REPROVADA` em `701c3bb`, `APROVADA` em `79621a0` — [issuecomment-5465164193](https://github.com/cesarvieira/orcamento/issues/85#issuecomment-5465164193)                                                                                                                                                                                                                                                                                                                                                                                                      |
+| #86 módulo `metas`           | `backend`  | `b291ea4` | `de255fa`   | gate `PASS` (`fails=0`) · revisão `APROVADA` — [issuecomment-5465303925](https://github.com/cesarvieira/orcamento/issues/86#issuecomment-5465303925). "251 testes / 18 arquivos": só no registro consolidado da #21, não achei o número em comentário de #86                                                                                                                                                                                                                                                                                                                                     |
+| #87 tela `/metas`            | `frontend` | `857c3d0` | `fe13fe2`   | gate `PASS` (`fails=0`) · revisão `APROVADA` — [issuecomment-5465377852](https://github.com/cesarvieira/orcamento/issues/87#issuecomment-5465377852). "10 rotas / 0 quebradas": só no registro consolidado da #21, não achei o número em comentário de #87                                                                                                                                                                                                                                                                                                                                       |
+| #88 casos do DoD             | `qa`       | `ce0b318` | `e75c26d`   | gate `PASS` (`fails=0`) · revisão `APROVADA` em `96f5a40`, republicada em `ce0b318` — [issuecomment-5465413681](https://github.com/cesarvieira/orcamento/issues/88#issuecomment-5465413681). "264 testes / 19 arquivos" (`metas-dod.teste.ts`=13, `metas.teste.ts`=27): saída real de `pnpm run teste`, citada em dois comentários de revisão do próprio #88 — [issuecomment-5465377622](https://github.com/cesarvieira/orcamento/issues/88#issuecomment-5465377622) e, após o retrabalho, [issuecomment-5465404039](https://github.com/cesarvieira/orcamento/issues/88#issuecomment-5465404039) |
+
+Conferência cruzada que fiz eu mesma: 251 (#86) + 13 (os testes que `metas-dod.teste.ts` acrescenta,
+confirmados na fonte primária de #88) = 264 (#88) — os dois números do registro consolidado fecham
+exatos contra o único delta que eu podia checar sozinha, o que sustenta citá-los mesmo sem uma
+fonte primária própria para #86/#87.
 
 ---
 
@@ -231,18 +244,32 @@ previram — a previsão se cumpriu.
 
 ## Prova rodada (evidência)
 
-Citada pela tabela de linhagem que o condutor registrou na issue #89 (ver "Confiança" acima) — este
-agente `docs` **não** reconferiu o carimbo no corpo dos commits de merge, porque os quatro merges
-desta história têm corpo vazio (diferente do padrão de EF-06/#79):
+Citada pelas duas fontes duráveis descritas em "Confiança" acima — o comentário de
+`carimbar-issue.sh` de cada issue (primária) e o registro consolidado da #21 (para os números que
+não achei em comentário por tarefa). Os quatro merges desta história têm corpo vazio, diferente do
+padrão de EF-06/#79 (`git show -s --format=%B` nos quatro, conferido) — a evidência não está lá,
+mas está nos comentários das issues, abertos um a um antes desta citação:
 
-1. **#85** (skill, com retrabalho interno): merge `79269b6`. Gate PASS · revisão REPROVADA em
-   `701c3bb`, aprovada após retrabalho em `79621a0`.
-2. **#86** (backend, módulo): merge `de255fa`. Gate PASS (251 testes) · revisão APROVADA.
-3. **#87** (frontend, tela): merge `fe13fe2`. Gate PASS (10 rotas, 0 quebradas) · revisão APROVADA.
-4. **#88** (qa, os casos do DoD, com retrabalho de lint): merge `e75c26d`. Gate PASS (264 testes) ·
-   revisão APROVADA, republicada após o retrabalho de lint em `ce0b318`.
-5. **#89** (docs, esta tarefa): commit ainda sem hash no momento em que este texto foi escrito —
-   confira com `git log --oneline e75c26d^..HEAD`.
+1. **#85** (skill, com retrabalho interno): merge `79269b6`. Gate `PASS` (`fails=0`) · revisão
+   `REPROVADA` em `701c3bb`, `APROVADA` em `79621a0` —
+   [issuecomment-5465164193](https://github.com/cesarvieira/orcamento/issues/85#issuecomment-5465164193).
+2. **#86** (backend, módulo): merge `de255fa`. Gate `PASS` (`fails=0`) · revisão `APROVADA` —
+   [issuecomment-5465303925](https://github.com/cesarvieira/orcamento/issues/86#issuecomment-5465303925).
+   "251 testes / 18 arquivos": só no registro consolidado da #21.
+3. **#87** (frontend, tela): merge `fe13fe2`. Gate `PASS` (`fails=0`) · revisão `APROVADA` —
+   [issuecomment-5465377852](https://github.com/cesarvieira/orcamento/issues/87#issuecomment-5465377852).
+   "10 rotas / 0 quebradas": só no registro consolidado da #21.
+4. **#88** (qa, os casos do DoD, com retrabalho de lint): merge `e75c26d`. Gate `PASS` (`fails=0`) ·
+   revisão `APROVADA` em `96f5a40`, republicada em `ce0b318` —
+   [issuecomment-5465413681](https://github.com/cesarvieira/orcamento/issues/88#issuecomment-5465413681).
+   "264 testes / 19 arquivos": saída real de `pnpm run teste`, citada diretamente nos comentários de
+   revisão do próprio #88 —
+   [issuecomment-5465377622](https://github.com/cesarvieira/orcamento/issues/88#issuecomment-5465377622)
+   e [issuecomment-5465404039](https://github.com/cesarvieira/orcamento/issues/88#issuecomment-5465404039).
+5. **#89** (docs, esta tarefa): reprovada em `a024f69` (citava uma fonte — "a tabela de linhagem que
+   o condutor escreveu na issue #89" — que nunca existiu como comentário durável; a #89 tinha zero
+   comentários no momento da citação). Corrigida nesta rodada — commit ainda sem hash no momento em
+   que este texto foi escrito; confira com `git log --oneline e75c26d^..HEAD`.
 
 Esta tarefa (#89), de documentação, não toca `api/`/`web/`/`.preator/skills/` e portanto não altera
 nem recarimba nenhum dos números acima — são evidência herdada, citada por tarefa. Por não tocar
@@ -256,6 +283,27 @@ suíte inteira — reexecutá-lo não produziria sinal novo para um diff que é 
 nenhum crawler clica em "Guardar 100"/"Guardar 500", abre a folha de criação, nem provoca o 409 de
 RN-34/D1 na interface — só o comportamento por trás (a API) está provado por máquina; o clique em si
 foi lido no código. Mesma classe de limitação já registrada em MC-04, MC-05 e MC-06.
+
+## Um FAIL falso de ambiente, não de código (sintoma reconhecível)
+
+Durante a revisão da tarefa #85 (diff de **um único** `.md`), o gate `test(N>0)` caiu com
+`ECONNREFUSED`. A causa não era o código: o container `orcamento-dev-postgres-1` (porta `5433`,
+`docker-compose.dev.yml`) estava **parado**. Subir o serviço fez o **mesmo commit** passar, sem
+tocar em nada além do container — o gate do mesmo worktree já tinha passado antes, quando o
+container ainda estava de pé, e voltou a passar depois de reiniciado.
+
+Registrado aqui porque **quem não souber que gate vermelho às vezes é ambiente, não código, vai
+caçar defeito no diff errado** — mesmo precedente que [MC-06 §5, nota "f"](../especificacoes/MC-06-lastro.md)
+abriu para o achado de fan-out (dois `gate-motor.sh` simultâneos disputando o mesmo compose/portas).
+São causas diferentes (ali era colisão de dois gates; aqui é um container que não estava de pé
+sozinho), mas a mesma classe de sintoma: um `FAIL` que não é do módulo `metas`, e que uma leitura
+apressada do gate atribuiria a ele.
+
+Este achado não tem citação de arquivo:linha porque é **operacional**, não de código — a fonte é o
+relato do condutor, que confirmou a causa e o conserto (subir o container) depois que o revisor da
+#89 sinalizou não conseguir confirmá-lo sozinho. Registrado no [comentário de linhagem da
+#21](https://github.com/cesarvieira/orcamento/issues/21#issuecomment-5465501063), seção "O que deu
+errado, e por quê importa registrar".
 
 ## O que ainda não é desta EF
 

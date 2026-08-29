@@ -79,13 +79,21 @@ dinheiro de conta nenhuma. No produto, guardar é transferência real.
 - [x] `PROVA_DE_COMPORTAMENTO=PASS` — carimbado em cada merge desta história (#85 a #88). ⚠️
       **Diferente do padrão da EF-06/#79**: os commits de merge desta história (`79269b6`,
       `de255fa`, `fe13fe2`, `e75c26d`) têm corpo **vazio** — conferido com
-      `git show -s --format=%B <hash>` nos quatro —, então o carimbo e o número de testes por
-      tarefa **não estão** no histórico de git. A única fonte é a tabela de linhagem que o condutor
-      registrou na issue #89 (reproduzida em MANUAL-07 e MC-07), a mesma classe de fato que
-      "morre se não for escrito". O número TOTAL de testes do módulo, esse sim conferido por esta
-      tarefa nos arquivos: `api/testes/metas.teste.ts` (10 `describe`, 27 `it`) +
-      `api/testes/metas-dod.teste.ts` (10 `describe`, 13 `it`) = 40 casos de teste próprios de
-      `metas`, batendo com "13 testes" que o próprio cabeçalho de `metas-dod.teste.ts:21` cita.
+      `git show -s --format=%B <hash>` nos quatro —, então o carimbo não está no histórico de git.
+      **Está**, durável, em dois lugares abertos e conferidos antes desta citação (detalhe completo
+      em MC-07 "Confiança"): o comentário que `carimbar-issue.sh` publicou em cada issue (#85
+      [issuecomment-5465164193](https://github.com/cesarvieira/orcamento/issues/85#issuecomment-5465164193),
+      #86 [issuecomment-5465303925](https://github.com/cesarvieira/orcamento/issues/86#issuecomment-5465303925),
+      #87 [issuecomment-5465377852](https://github.com/cesarvieira/orcamento/issues/87#issuecomment-5465377852),
+      #88 [issuecomment-5465413681](https://github.com/cesarvieira/orcamento/issues/88#issuecomment-5465413681))
+      e o comentário de linhagem consolidado na história #21
+      ([issuecomment-5465501063](https://github.com/cesarvieira/orcamento/issues/21#issuecomment-5465501063)).
+      O número TOTAL de testes do módulo, conferido por esta tarefa diretamente nos arquivos:
+      `api/testes/metas.teste.ts` (10 `describe`, 27 `it`) + `api/testes/metas-dod.teste.ts` (10
+      `describe`, 13 `it`) = 40 casos próprios de `metas`, batendo com "13 testes" que o próprio
+      cabeçalho de `metas-dod.teste.ts:21` cita e com "264 testes / 19 arquivos" (o total do
+      projeto após #88) citado com saída real de `pnpm run teste` nos comentários de revisão do
+      próprio #88.
 
 ### As decisões e derivações que a execução tomou
 
@@ -109,7 +117,7 @@ junto (saldo inicial 0), vínculo 1:1 único imposto por `uniqueIndex('metas_con
 (`api/src/db/schema.ts:698`, migration `api/drizzle/0008_wet_millenium_guard.sql:15`). ⚠️ **O
 mockup mostra o contrário** — uma "Poupança" com três metas — rejeitado porque, com conta
 compartilhada, as três exibiriam o mesmo acumulado (a fórmula de §1 deriva o acumulado da conta
-vinculada). Testado: `api/testes/metas.teste.ts:154-172` (duas metas, contas distintas) e
+vinculada). Testado: `api/testes/metas.teste.ts:167-171` (duas metas, contas distintas) e
 `api/testes/metas-dod.teste.ts:416-441` (três guardares intercalados em dois cofrinhos, acumulados
 nunca se misturam).
 
