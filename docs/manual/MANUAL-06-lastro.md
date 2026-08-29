@@ -8,7 +8,7 @@
   · tarefas: [#76](https://github.com/cesarvieira/orcamento/issues/76) (módulo: caixa real, limite
   livre, déficit, rateio pró-rata), [#77](https://github.com/cesarvieira/orcamento/issues/77) (home:
   número liberado, faixa de bloqueio, barra hachurada), [#78](https://github.com/cesarvieira/orcamento/issues/78)
-  (os dez casos do DoD, valores quebrados), [#79](https://github.com/cesarvieira/orcamento/issues/79)
+  (os sete itens do DoD, provados por dez testes, valores quebrados), [#79](https://github.com/cesarvieira/orcamento/issues/79)
   (documentação, esta tarefa). **Nenhuma tarefa nasceu fora do DAG avalizado pelo humano na abertura
   da #20** — a tarefa #76 teve retrabalho **dentro do próprio ciclo dela** (reprovada na revisão,
   corrigida, aprovada), o que é o Portão B funcionando, não uma tarefa extra.
@@ -21,7 +21,7 @@
     sem consumidor, knip) **reprovado na revisão de diff** + `1b81f1f` (retrabalho: capa o déficit,
     distribui o resíduo em cascata) mesclados em `f2b67aa`
   - #77 — `2899ac8` (home: liberado, faixa de bloqueio, barra hachurada) mesclado em `fccec4b`
-  - #78 — `84e5547` (os dez casos do DoD, fixture com valores quebrados) mesclado em `7d9f35d`
+  - #78 — `84e5547` (os sete itens do DoD, provados por dez testes, fixture com valores quebrados) mesclado em `7d9f35d`
   - #79 — esta tarefa (docs — MC-06/MANUAL-06, as-built de EF-06 §5, proposta de texto de RN-32 em
     §2): commit ainda sem hash no momento em que este texto foi escrito — confira com
     `git log --oneline f2b67aa^..HEAD`
@@ -75,7 +75,7 @@ de maior saldo, em **cascata** quando ela não tem folga (ver a seção própria
 ## D1-como · o cap do déficit (decisão da execução, não do humano — é derivação)
 
 > **`déficit = min(restanteTotal, max(0, restanteTotal − lastro))`**, nunca o `restanteTotal −
-> lastro` cru.
+lastro` cru.
 
 A primeira entrega de #76 (`3aa59b1`) **foi reprovada** na revisão de diff: sem o `min(...)`, um
 `lastroCentavos` negativo (um cartão pode ficar acima do próprio limite — nenhum módulo trava
@@ -153,7 +153,7 @@ Fecha três pontos do cabeçalho da tela `home` (já existente desde a EF-04, `#
 
 O texto que entrou é a variante **DESKTOP** do mockup:
 
-> *"Conta corrente + limite dos cartões cobrem «lastro». A reserva fica fora do orçamento."*
+> _"Conta corrente + limite dos cartões cobrem «lastro». A reserva fica fora do orçamento."_
 > (`index.vue:264-265`)
 
 Decidido pelo humano porque `lastro` e `reserva` são os termos do produto — o glossário da skill de
@@ -223,7 +223,7 @@ carimbo citado no próprio commit de merge:
    (214 testes). Revisao: APROVADO em `1b81f1f` (reprovada em `3aa59b1`, retrabalhada)".
 2. **#77** (home): `fccec4b`. "Gate: PROVA_DE_COMPORTAMENTO=PASS (214 testes, navegacao 10/0).
    Revisao: APROVADO em `2899ac8`".
-3. **#78** (qa — os dez casos do DoD): `7d9f35d`. "Gate: PROVA_DE_COMPORTAMENTO=PASS (224 testes).
+3. **#78** (qa — os sete itens do DoD, provados por dez testes): `7d9f35d`. "Gate: PROVA_DE_COMPORTAMENTO=PASS (224 testes).
    Revisao: APROVADO em `84e5547` (valores esperados reconferidos a mao contra a spec)".
 4. **#79** (docs — esta tarefa): commit ainda sem hash no momento em que este texto foi escrito —
    nenhuma tarefa consegue citar o hash do próprio merge antes de ele existir. Confira com
@@ -252,14 +252,9 @@ outra EF. A **formalização de "meta" como entidade** é da [EF-07](../especifi
 teto que [D-06](../decisoes/D-06-dinheiro-em-centavos.md) já documenta) e não foi criado nem
 resolvido por esta história.
 
-## Achado de fan-out, fora de escopo desta EF e desta MC (registrado por completude)
+## Achado de fan-out (ponteiro)
 
-`preator-perfil.sh:92-99` fixa o projeto de compose de teste (`-p orcamento-teste`) e as portas
-`3010`/`3011` para o gate mestre — dois gates simultâneos disputando o mesmo projeto/portas colidem.
-Isto **aconteceu duas vezes** nesta história: um FAIL falso no gate do revisor da tarefa #77
-(diagnosticado por `curl` contra a porta errada) e, mais grave, um FAIL falso no gate do revisor da
-tarefa #78 que **sobrescreveu o carimbo de máquina** de uma tarefa correta — sem uma re-execução
-isolada depois, essa tarefa não teria mesclado. Isolado (um gate por vez), tudo passa. O conserto
-real é o projeto compose e as portas derivarem do worktree, não ficarem fixos no perfil — é mudança
-de perfil/fábrica, não desta história. Não registrado em arquivo por esta tarefa (fora do escopo de
-`docs/especificacoes` e `docs/manual`); proposto como fork ao humano no relato desta tarefa (#79).
+Uma restrição de fan-out do gate (`preator-perfil.sh:92-99`, projeto compose e portas fixos)
+produziu dois FAILs falsos nesta história, um deles sobrescrevendo um carimbo de máquina válido.
+**Dono do fato:** [EF-06 §5, nota (f)](../especificacoes/EF-06-lastro.md) — não repetido aqui (fato
+duplicado é bug). É achado de infraestrutura de prova, não de comportamento do módulo.
