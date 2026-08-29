@@ -12,16 +12,30 @@
  *
  * ⛔ Esta suíte NÃO é `api/testes/metas.teste.ts` — aquela é da tarefa #86
  * (backend) e prova a FIAÇÃO do módulo com valores redondos. Este arquivo é o
- * meu (tarefa #88/qa): prova a REGRA em LARGURA, com valores QUEBRADOS (não
- * redondos, de propósito — precedente `api/testes/lastro-rateio.teste.ts`), e
- * com ângulos que aquela suíte não cobre: a borda EXATA de RN-34/D1 no "zero"
- * (distinta da negativa), RN-35 como propriedade DINÂMICA da conta RESERVA
- * (crédito direto, sem passar por `guardar`), a prova literal de "familiaId
- * vem do token" (campo forjado no corpo), o isolamento da conta de ORIGEM
- * (não só do cofrinho) entre famílias, e a invalidação de tempo real para a
- * mutação de CRIAR (não só a de guardar). Nenhum teste aqui repete o par
- * valor/cenário de `metas.teste.ts` — nem um teste passaria aqui se a regra
- * fosse removida do serviço (ver `api/src/modulos/metas/servico.ts`).
+ * meu (tarefa #88/qa): todo teste usa valores QUEBRADOS (não redondos, de
+ * propósito — precedente `api/testes/lastro-rateio.teste.ts`), e nenhum
+ * passaria aqui se a regra fosse removida do serviço (ver
+ * `api/src/modulos/metas/servico.ts`).
+ *
+ * Sobre sobreposição de CENÁRIO com `metas.teste.ts` — sem meias-verdades:
+ * 9 dos 13 testes abaixo são ângulo genuinamente NOVO, que aquela suíte não
+ * cobre — a borda EXATA de RN-34/D1 no "zero" (distinta da negativa), RN-35
+ * como propriedade DINÂMICA da conta RESERVA (crédito direto, sem passar por
+ * `guardar`), D2 com família de UMA SÓ conta DEBITO (a armadilha da inferência
+ * "óbvia"), D3 com acumulados intercalados (não só dois `contaReservaId`
+ * distintos), a prova LITERAL de "familiaId vem do token" (campo forjado no
+ * corpo), o isolamento da conta de ORIGEM (não só do cofrinho) entre
+ * famílias, e a invalidação de tempo real para a mutação de CRIAR (não só a
+ * de guardar). Os outros 4 — RN-33 no caso principal, "guardar não consome
+ * teto", "guardar reduz o lastro" e "excluir cofrinho com transferência" —
+ * REEXERCITAM estruturalmente um cenário que `metas.teste.ts` já cobre com
+ * números redondos; aqui eles rodam de novo com valores quebrados (onde
+ * arredondamento erraria) e, em alguns, com asserções a mais (ex.: "nenhuma
+ * DESPESA foi criada" em RN-33; "sem 'stack' no corpo" na exclusão). Isso não
+ * é vácuo — é a mesma disciplina de `lastro-rateio.teste.ts`, que reroda a
+ * largura das RNs do lastro com números quebrados por cima da fiação já
+ * provada por #76 — mas também não é "cobertura nova" para os quatro, e este
+ * arquivo não finge que é.
  *
  * Toda mutação de meta emite invalidação (D-04/R3) e exige o servidor de
  * tempo real DE PÉ — mesmo padrão de `testes/lastro-rateio.teste.ts` e
@@ -286,7 +300,9 @@ describe('DoD §5 — RN-34/D1: o teto do "não alocado" (quebrado, três bordas
 describe('DoD §5 — RN-35: a conta RESERVA do cofrinho fica fora do lastro, mesmo crescendo fora de "guardar"', () => {
   it('um crédito direto na conta RESERVA do cofrinho (bypassando guardar) não move o lastro nem um centavo', async () => {
     const { cookie } = await novaFamiliaComCookie('RN-35 dinâmico');
-    const contaOrigem = await novaContaDebito(cookie, 'RN-35 conta de débito', 733);
+    // Carregada de efeito só: dá à família um caixa de débito de 733 (a base
+    // do `lastroCentavos` conferido abaixo). Não precisa do binding.
+    await novaContaDebito(cookie, 'RN-35 conta de débito', 733);
     const meta = await novaMeta(cookie, 'RN-35 cofrinho', 900001);
 
     const antes = await lerCompetenciaAtual(cookie);
