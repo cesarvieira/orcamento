@@ -425,6 +425,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/metas": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Os cofrinhos da família da sessão, com o acumulado derivado (EF-07 §1) */
+        get: operations["get_metas"];
+        put?: never;
+        /** Cria um cofrinho na família da sessão — D3: junto, cria a conta RESERVA dele (saldo inicial 0) */
+        post: operations["post_metas"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/metas/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Apaga um cofrinho da família da sessão e a conta RESERVA vinculada, se nunca recebeu transferência */
+        delete: operations["delete_metas__id_"];
+        options?: never;
+        head?: never;
+        /** Atualiza nome e alvo de um cofrinho da família da sessão (a conta RESERVA vinculada nunca muda, D3) */
+        patch: operations["patch_metas__id_"];
+        trace?: never;
+    };
+    "/metas/{id}/guardar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Guarda dinheiro num cofrinho — gera uma TRANSFERENCIA real (RN-33) da conta DEBITO escolhida (D2) para a conta RESERVA do cofrinho, dentro do não alocado da competência (RN-34/D1) */
+        post: operations["post_metas__id__guardar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -931,6 +984,44 @@ export interface components {
         PagarFatura: {
             /** @description D3 — a conta escolhida pelo usuário para pagar esta fatura. */
             pagaComContaId: string;
+        };
+        NovaMeta: {
+            /** @description Nome do cofrinho, escolhido pela família. */
+            nome: string;
+            /** @description Quanto a família pretende juntar (D-06 — inteiro em centavos). EF-07 §1. */
+            alvoCentavos: number;
+        };
+        AtualizarMeta: {
+            /** @description Nome do cofrinho, escolhido pela família. */
+            nome: string;
+            /** @description Quanto a família pretende juntar (D-06 — inteiro em centavos). EF-07 §1. */
+            alvoCentavos: number;
+        };
+        Meta: {
+            id: string;
+            nome: string;
+            alvoCentavos: number;
+            /** @description D3 — a conta RESERVA própria deste cofrinho, 1:1. */
+            contaReservaId: string;
+            /** @description Derivado: soma das TRANSFERENCIA cujo contaDestinoId é contaReservaId. Nunca materializado (EF-07 §1). */
+            acumuladoCentavos: number;
+        };
+        MetasListadas: {
+            metas: {
+                id: string;
+                nome: string;
+                alvoCentavos: number;
+                /** @description D3 — a conta RESERVA própria deste cofrinho, 1:1. */
+                contaReservaId: string;
+                /** @description Derivado: soma das TRANSFERENCIA cujo contaDestinoId é contaReservaId. Nunca materializado (EF-07 §1). */
+                acumuladoCentavos: number;
+            }[];
+        };
+        Guardar: {
+            /** @description D2 — a conta DEBITO escolhida pelo usuário para guardar. */
+            contaOrigemId: string;
+            /** @description Quanto guardar (D-06 — inteiro em centavos). Sujeito ao teto de RN-34/D1. */
+            valorCentavos: number;
         };
     };
     responses: never;
@@ -2412,6 +2503,248 @@ export interface operations {
                 };
             };
             /** @description Fatura já paga, ou sem valor a pagar */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Corpo inválido */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    get_metas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Os cofrinhos da família */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MetasListadas"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    post_metas: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NovaMeta"];
+            };
+        };
+        responses: {
+            /** @description Cofrinho criado */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Meta"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Corpo inválido */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    delete_metas__id_: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Cofrinho apagado */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Cofrinho inexistente nesta família */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description O cofrinho já recebeu alguma transferência (guardou ≥ 1 vez) e não pode ser apagado */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    patch_metas__id_: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AtualizarMeta"];
+            };
+        };
+        responses: {
+            /** @description Cofrinho atualizado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Meta"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Cofrinho inexistente nesta família */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Corpo inválido */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    post_metas__id__guardar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Guardar"];
+            };
+        };
+        responses: {
+            /** @description Guardado — o cofrinho com o acumulado atualizado */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Meta"];
+                };
+            };
+            /** @description A conta de origem informada não é uma conta DEBITO */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Cofrinho ou conta de origem inexistente nesta família */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description RN-34/D1 — o valor excede o não alocado da competência (ou o não alocado já é ≤ 0) */
             409: {
                 headers: {
                     [name: string]: unknown;

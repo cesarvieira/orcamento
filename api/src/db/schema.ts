@@ -651,6 +651,56 @@ export const faturas = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Meta — cofrinho de poupança (EF-07 §1). Alvo + conta RESERVA própria, 1:1.
+// ---------------------------------------------------------------------------
+
+/**
+ * ⛔ Regra #0: `.preator/skills/negocio/metas-e-reservas/SKILL.md` — glossário
+ * ("Cofrinho (= Meta)", "Acumulado", "Conta RESERVA do cofrinho") e decisão
+ * D3, citando `docs/especificacoes/EF-07-metas.md` §1 como fonte primária.
+ *
+ * O ACUMULADO NÃO mora aqui: é a soma, na leitura, das transferências
+ * (`TRANSFERENCIA`) cujo `contaDestinoId` é a conta `RESERVA` vinculada
+ * (`modulos/metas/servico.ts`) — materializar um `atual` criaria a segunda
+ * verdade que o produto evita em toda entidade derivada (mesmo motivo de
+ * saldo de conta e de lastro).
+ *
+ * D3 — cada cofrinho tem a PRÓPRIA conta `RESERVA`, criada junto (saldo
+ * inicial 0), em vínculo 1:1 ÚNICO — por isso `contaReservaId` carrega
+ * `uniqueIndex` abaixo; sem essa restrição, duas metas apontando para a
+ * mesma conta leriam o MESMO acumulado (o edge case que D3 rejeita — ver a
+ * skill, seção "Edge cases").
+ */
+export const metas = pgTable(
+  'metas',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** Todo dado do produto pende da família (R1). Vem sempre do token. */
+    familiaId: uuid('familia_id')
+      .notNull()
+      .references(() => familias.id, { onDelete: 'cascade' }),
+    nome: text('nome').notNull(),
+    alvoCentavos: dinheiroCentavos('alvo_centavos').notNull(),
+    /**
+     * D3 — a conta `RESERVA` própria deste cofrinho. `ON DELETE cascade`: se
+     * a conta some, o cofrinho some junto (a conta é dona da existência
+     * dele, não o contrário).
+     */
+    contaReservaId: uuid('conta_reserva_id')
+      .notNull()
+      .references(() => contas.id, { onDelete: 'cascade' }),
+    criadoEm: criadoEm(),
+    atualizadoEm: atualizadoEm(),
+  },
+  t => [
+    index('metas_por_familia').on(t.familiaId),
+    // D3 — o vínculo 1:1: UMA conta RESERVA nunca serve a mais de um cofrinho.
+    uniqueIndex('metas_conta_reserva_unica').on(t.contaReservaId),
+    check('metas_alvo_positivo', sql`${t.alvoCentavos} > 0`),
+  ],
+);
+
+// ---------------------------------------------------------------------------
 // Relações
 // ---------------------------------------------------------------------------
 
@@ -763,6 +813,17 @@ export const faturasRelacoes = relations(faturas, ({ one }) => ({
   }),
 }));
 
+export const metasRelacoes = relations(metas, ({ one }) => ({
+  familia: one(familias, {
+    fields: [metas.familiaId],
+    references: [familias.id],
+  }),
+  contaReserva: one(contas, {
+    fields: [metas.contaReservaId],
+    references: [contas.id],
+  }),
+}));
+
 export const membrosRelacoes = relations(membros, ({ one, many }) => ({
   familia: one(familias, {
     fields: [membros.familiaId],
@@ -811,3 +872,4 @@ export type CompetenciaDb = typeof competencias.$inferSelect;
 export type SerieParcelas = typeof seriesParcelas.$inferSelect;
 export type LancamentoDb = typeof lancamentos.$inferSelect;
 export type FaturaDb = typeof faturas.$inferSelect;
+export type MetaDb = typeof metas.$inferSelect;
