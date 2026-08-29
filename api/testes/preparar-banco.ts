@@ -114,7 +114,7 @@ async function garantirBancoExiste(url: string): Promise<void> {
   } catch (erro) {
     const causa = erro instanceof Error ? erro.message : String(erro);
     throw new Error(
-      `não consegui garantir o banco de teste "${nomeBanco}" (conectando em ${admin.origin} como administrativo)\n` +
+      `não consegui garantir o banco de teste "${nomeBanco}" (conectando em ${admin.host} como administrativo)\n` +
       `  causa: ${causa}\n` +
       '  A suíte precisa CRIAR o database antes de preparar o schema — confira se o' +
       ' usuário tem permissão de CREATEDB e se o servidor em ' + admin.host + ' está de pé.',
