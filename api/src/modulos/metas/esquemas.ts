@@ -51,6 +51,16 @@ registrarEsquema('MetasListadas', z.object({ metas: z.array(EsquemaMeta) }));
  * O corpo de `POST /metas/:id/guardar` — D2/D5: as DUAS pontas vêm do
  * REQUEST, escolhidas pelo usuário no ato. `contaOrigemId` nunca é inferida
  * (mesma armadilha, mesmo remédio, de `pagaComContaId` em `faturas/esquemas.ts`).
+ *
+ * `data` — D6 (2026-08-29, tarefa #91): a data do fato vem do CLIENTE, nunca
+ * do relógio do servidor (`hojeIso()` em UTC virava o dia seguinte das 21h à
+ * meia-noite no fuso do Brasil, e no último dia do mês isso empurrava a
+ * competência inteira para o mês errado — RN-34/D1 conferido contra o teto
+ * do mês seguinte). Espelha literalmente `lancamentos/esquemas.ts:31`
+ * (`camposComuns.data`) — mesmo campo, mesmo formato, mesma regra: RN-15
+ * (`.preator/skills/negocio/lancamentos-e-parcelamento/SKILL.md`) já
+ * estabelece que a competência segue a `data`, nunca o relógio; guardar passa
+ * a seguir o mesmo caminho.
  */
 export const EsquemaGuardar = registrarEsquema(
   'Guardar',
@@ -58,6 +68,11 @@ export const EsquemaGuardar = registrarEsquema(
     contaOrigemId: z.string().meta({ description: 'D2 — a conta DEBITO escolhida pelo usuário para guardar.' }),
     valorCentavos: z.number().int().positive().meta({
       description: 'Quanto guardar (D-06 — inteiro em centavos). Sujeito ao teto de RN-34/D1.',
+    }),
+    data: z.iso.date().meta({
+      description:
+        'AAAA-MM-DD — quando o ato aconteceu, do CLIENTE (D6). A competência de RN-34/D1 é ' +
+        'calculada a partir DESTA data (RN-15), nunca do relógio do servidor.',
     }),
   }),
 );

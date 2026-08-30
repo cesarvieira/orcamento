@@ -34,7 +34,6 @@ import { buscarContaDaFamilia, listarContas } from '../contas/servico';
 import {
   abreEmDoCiclo,
   fechaEmDoCiclo,
-  hojeIso,
   statusDoCiclo,
   type StatusFatura,
   venceEmDoCiclo,
@@ -245,10 +244,20 @@ async function comStatusEmDia(db: DbOuTx, fatura: FaturaDb, hoje: string): Promi
 // Leitura — GET /faturas?contaId=
 // ---------------------------------------------------------------------------
 
+/**
+ * `hoje` — D6 (2026-08-29, tarefa #91): o dia corrente vem do CLIENTE, nunca
+ * do relógio do servidor. Era aqui que `hojeIso()` UTC produzia o defeito: um
+ * ciclo que já fechou no fuso do usuário (21h–meia-noite no Brasil) ainda
+ * aparecia `ABERTA`, porque o servidor achava que ainda era o dia anterior.
+ * ✅ Conferido pelo condutor: `limiteLivreTotalCentavos` NÃO depende de
+ * `hoje` — o lastro não é afetado por esta mudança, o raio fica contido
+ * neste endpoint.
+ */
 export async function listarFaturasDoCartao(
   db: Db,
   familiaId: string,
   contaId: string,
+  hoje: string,
 ): Promise<FaturasDoCartaoLidas | undefined> {
   const conta = await buscarContaDaFamilia(db, familiaId, contaId);
   if (!conta || conta.tipo !== 'CREDITO') return undefined;
@@ -260,7 +269,6 @@ export async function listarFaturasDoCartao(
     throw new Error(`faturas: conta ${contaId} é CREDITO sem diaFechamento/diaVencimento`);
   }
 
-  const hoje = hojeIso();
   const despesas = await despesasDoCartao(db, familiaId, contaId);
   const grupos = agruparPorFechaEm(conta.diaFechamento, despesas);
 
@@ -379,10 +387,15 @@ export interface DadosDePagamento {
   autorMembroId: string;
   faturaId: string;
   pagaComContaId: string;
+  /**
+   * D6 (2026-08-29, tarefa #91) — a data do fato vem do CLIENTE, nunca do
+   * relógio do servidor. `AAAA-MM-DD`.
+   */
+  data: string;
 }
 
 export async function pagarFatura(db: Db, dados: DadosDePagamento): Promise<ResultadoDePagamento> {
-  const { familiaId, autorMembroId, faturaId, pagaComContaId } = dados;
+  const { familiaId, autorMembroId, faturaId, pagaComContaId, data } = dados;
 
   const [fatura] = await db
     .select()
@@ -405,8 +418,10 @@ export async function pagarFatura(db: Db, dados: DadosDePagamento): Promise<Resu
   const totalCentavos = itensDoCiclo.reduce((soma, d) => soma + d.valorCentavos, 0);
   if (totalCentavos <= 0) return { tipo: 'sem_valor' };
 
-  const hoje = hojeIso();
-  const competencia = hoje.slice(0, 7);
+  // D6 (tarefa #91) — a competência segue a DATA DO CLIENTE (RN-15), nunca o
+  // relógio do servidor. Mesmo defeito e mesmo remédio de `metas/servico.ts
+  // #guardar`.
+  const competencia = data.slice(0, 7);
 
   const faturaPaga = await db.transaction(async (tx) => {
     // RN-24 — a transferência em si. ⛔ NENHUM update em `lancamentos` aqui:
@@ -418,7 +433,7 @@ export async function pagarFatura(db: Db, dados: DadosDePagamento): Promise<Resu
       tipo: 'TRANSFERENCIA',
       descricao: 'Pagamento de fatura',
       valorCentavos: totalCentavos,
-      data: hoje,
+      data,
       competencia,
       categoriaId: null,
       contaId: pagaComContaId,

@@ -11,6 +11,7 @@
  * lidos aqui, nunca recalculados.
  */
 import type { Fatura, FaturasDoCartao, PagarFatura } from '@orcamento/contrato';
+import { hojeLocal } from '~/utils/data';
 
 /**
  * Mesmo cabeçalho que `useContas.ts`/`useLancamentos.ts` usam — vai em toda
@@ -31,15 +32,24 @@ export function useFaturas() {
    * (RN-26). `contaId` precisa ser uma conta `CREDITO` da família da sessão
    * — a API devolve 404 caso contrário (tratado por quem chama, via
    * `mensagemDoErro`).
+   *
+   * D6 (2026-08-29, tarefa #91) — `?hoje=` é o dia corrente do CLIENTE (fuso
+   * local, `utils/data.ts#hojeLocal`), que decide ABERTA/FECHADA na API.
+   * Nunca inferido do relógio do servidor: era daí que vinha o defeito —
+   * `hojeIso()` em UTC virava o dia seguinte das 21h à meia-noite no Brasil.
    */
   async function listarFaturas(contaId: string): Promise<FaturasDoCartao> {
-    return api<FaturasDoCartao>('/faturas', { query: { contaId } });
+    return api<FaturasDoCartao>('/faturas', { query: { contaId, hoje: hojeLocal() } });
   }
 
   /**
    * Paga a fatura `faturaId`. RN-24/D3 — gera uma `TRANSFERENCIA` da conta
    * escolhida (`dados.pagaComContaId`, ESCOLHIDA PELO USUÁRIO — nunca
    * inferida) para o cartão; os lançamentos originais mantêm sua conta.
+   *
+   * `dados.data` — D6 (tarefa #91): quem chama informa a data do pagamento
+   * (fuso local, `utils/data.ts#hojeLocal`); a API deriva a competência dela
+   * (RN-15), nunca do próprio relógio.
    */
   async function pagarFatura(faturaId: string, dados: PagarFatura): Promise<Fatura> {
     return api<Fatura>(`/faturas/${faturaId}/pagar`, {

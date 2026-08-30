@@ -111,20 +111,37 @@ async function definirTeto(cookie: string, competencia: string, categoriaId: str
   expect(resposta.status).toBe(200);
 }
 
-/** Dá à família `recebidoCentavos` (RN-39/RN-11) na competência ATUAL, via um RECEITA de verdade. */
-async function darRecebido(cookie: string, contaId: string, valorCentavos: number): Promise<void> {
+/**
+ * Dá à família `recebidoCentavos` (RN-39/RN-11), via um RECEITA de verdade.
+ * `data` — default hoje (competência atual); os testes de D6 (tarefa #91)
+ * passam uma data de outra competência de propósito.
+ */
+async function darRecebido(cookie: string, contaId: string, valorCentavos: number, data?: string): Promise<void> {
   const resposta = await request(app).post('/lancamentos').set('Cookie', cookie).send({
     tipo: 'RECEITA',
     descricao: 'Recebido de teste',
     valorCentavos,
-    data: hojeIso(),
+    data: data ?? hojeIso(),
     contaId,
   });
   expect(resposta.status).toBe(201);
 }
 
+async function lerCompetencia(cookie: string, competencia: string) {
+  return request(app).get(`/competencias/${competencia}`).set('Cookie', cookie);
+}
+
 async function lerCompetenciaAtual(cookie: string) {
-  return request(app).get(`/competencias/${competenciaAtual()}`).set('Cookie', cookie);
+  return lerCompetencia(cookie, competenciaAtual());
+}
+
+/** Desloca `AAAA-MM` em `meses` (pode ser negativo) — só para montar cenários de teste (D6, tarefa #91). */
+function deslocarCompetencia(competencia: string, meses: number): string {
+  const [anoStr, mesStr] = competencia.split('-');
+  const totalBaseZero = Number(anoStr) * 12 + (Number(mesStr) - 1) + meses;
+  const novoAno = Math.floor(totalBaseZero / 12);
+  const novoMes = (totalBaseZero % 12) + 1;
+  return `${novoAno}-${String(novoMes).padStart(2, '0')}`;
 }
 
 async function novaMeta(cookie: string, nome: string, alvoCentavos: number): Promise<Meta> {
@@ -138,13 +155,24 @@ interface DadosDeGuardar {
   metaId: string;
   contaOrigemId: string;
   valorCentavos: number;
+  /**
+   * D6 (tarefa #91) — a data do fato vem do CLIENTE, nunca do relógio do
+   * servidor. Default = hoje: mantém o comportamento que os testes já
+   * provavam (competência CORRENTE) sem tocar em cada chamada; os testes de
+   * data retroativa/virada de mês passam um valor explícito.
+   */
+  data?: string;
 }
 
 async function guardar(dados: DadosDeGuardar) {
   return request(app)
     .post(`/metas/${dados.metaId}/guardar`)
     .set('Cookie', dados.cookie)
-    .send({ contaOrigemId: dados.contaOrigemId, valorCentavos: dados.valorCentavos });
+    .send({
+      contaOrigemId: dados.contaOrigemId,
+      valorCentavos: dados.valorCentavos,
+      data: dados.data ?? hojeIso(),
+    });
 }
 
 // ---------------------------------------------------------------------------
@@ -297,6 +325,140 @@ describe('RN-34/D1 — guardar nunca excede o não alocado da competência (TETO
     const resposta = await guardar({ cookie, metaId: meta.id, contaOrigemId: contaOrigem.id, valorCentavos: 1 });
     expect(resposta.status).toBe(409);
     expect(resposta.body.erro).toBe('teto_excedido');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// D6 (2026-08-29, tarefa #91) — a data do fato vem do CLIENTE, nunca do
+// relógio do servidor. O defeito corrigido: `hojeIso()` calculava "hoje" com
+// getters UTC, e das 21h à meia-noite no fuso do Brasil isso devolvia o DIA
+// SEGUINTE — no último dia do mês, a competência inteira ia para o mês
+// errado (RN-34/D1 conferido contra o não alocado do mês errado). RN-15
+// (`.preator/skills/negocio/lancamentos-e-parcelamento/SKILL.md`) já
+// estabelecia que a competência segue a DATA, nunca o relógio — guardar
+// passa a seguir o mesmo caminho.
+// ---------------------------------------------------------------------------
+
+describe('D6 — a data de "guardar" vem do CLIENTE; a competência (RN-34/D1) segue a data, não o relógio', () => {
+  it('data RETROATIVA cai na competência da DATA, não na competência atual (RN-15)', async () => {
+    const familia = await criarFamiliaComMembro('D6 retroativo');
+    const cookie = await cookieDeSessao(familia.membroId);
+    const contaOrigem = await novaContaDebito(cookie, 'D6 retroativo conta', 500000);
+    const meta = await novaMeta(cookie, 'D6 retroativo cofrinho', 500000);
+
+    const competenciaRetroativa = deslocarCompetencia(competenciaAtual(), -2);
+    const dataRetroativa = `${competenciaRetroativa}-10`;
+    // Recebido só na competência RETROATIVA — a atual fica com naoAlocado = 0
+    // (sem nenhuma receita), então guardar só passa se a API de fato usar a
+    // competência DA DATA informada, nunca a do relógio.
+    await darRecebido(cookie, contaOrigem.id, 20000, dataRetroativa);
+
+    const naoAlocadoAtual = await lerCompetenciaAtual(cookie);
+    expect(naoAlocadoAtual.body.naoAlocadoCentavos).toBeLessThanOrEqual(0);
+
+    const resposta = await guardar({
+      cookie,
+      metaId: meta.id,
+      contaOrigemId: contaOrigem.id,
+      valorCentavos: 15000,
+      data: dataRetroativa,
+    });
+    // Se a API ainda usasse "hoje" (o defeito antigo), isto seria 409: a
+    // competência atual tem naoAlocado ≤ 0. 200 só é possível porque o teto
+    // foi conferido contra o naoAlocado da competência RETROATIVA (20000).
+    expect(resposta.status).toBe(200);
+    expect(resposta.body.acumuladoCentavos).toBe(15000);
+
+    const extrato = await request(app).get('/lancamentos').set('Cookie', cookie).query({ contaId: contaOrigem.id });
+    interface LancamentoDoExtrato {
+      tipo: string;
+      data: string;
+      competencia: string;
+    }
+    const transferencia = (extrato.body.lancamentos as LancamentoDoExtrato[]).find(l => l.tipo === 'TRANSFERENCIA');
+    expect(transferencia?.competencia).toBe(competenciaRetroativa);
+  });
+
+  it('data na VIRADA DO MÊS confere o teto contra o mês DA DATA — 30/mês vs 1/mês seguinte', async () => {
+    const familia = await criarFamiliaComMembro('D6 virada de mes');
+    const cookie = await cookieDeSessao(familia.membroId);
+    const contaOrigem = await novaContaDebito(cookie, 'D6 virada conta', 500000);
+    const meta = await novaMeta(cookie, 'D6 virada cofrinho', 500000);
+
+    // Dois meses passados, de propósito (nenhum é "hoje"): o mês ANTERIOR
+    // tem folga grande; o mês SEGUINTE (a ele) tem folga pequena. É
+    // exatamente a fronteira que o defeito original cruzava sozinho — depois
+    // das 21h no fuso do Brasil, o último dia do mês virava o primeiro dia
+    // do mês seguinte pelo relógio UTC do servidor.
+    const competenciaAnterior = deslocarCompetencia(competenciaAtual(), -4);
+    const competenciaSeguinte = deslocarCompetencia(competenciaAtual(), -3);
+    await darRecebido(cookie, contaOrigem.id, 50000, `${competenciaAnterior}-30`);
+    await darRecebido(cookie, contaOrigem.id, 1000, `${competenciaSeguinte}-05`);
+
+    const naoAlocadoAnterior = await lerCompetencia(cookie, competenciaAnterior);
+    const naoAlocadoSeguinte = await lerCompetencia(cookie, competenciaSeguinte);
+    expect(naoAlocadoAnterior.body.naoAlocadoCentavos).toBe(50000);
+    expect(naoAlocadoSeguinte.body.naoAlocadoCentavos).toBe(1000);
+
+    // Guardar 40000 no ÚLTIMO dia do mês anterior: cabe no naoAlocado DELE
+    // (50000), mas excederia o do mês seguinte (1000).
+    const noUltimoDia = await guardar({
+      cookie,
+      metaId: meta.id,
+      contaOrigemId: contaOrigem.id,
+      valorCentavos: 40000,
+      data: `${competenciaAnterior}-30`,
+    });
+    expect(noUltimoDia.status).toBe(200);
+
+    // O MESMO valor, um dia depois (primeiro dia do mês seguinte): agora
+    // excede o naoAlocado do mês seguinte (1000) e é recusado.
+    const noPrimeiroDiaSeguinte = await guardar({
+      cookie,
+      metaId: meta.id,
+      contaOrigemId: contaOrigem.id,
+      valorCentavos: 40000,
+      data: `${competenciaSeguinte}-01`,
+    });
+    expect(noPrimeiroDiaSeguinte.status).toBe(409);
+    expect(noPrimeiroDiaSeguinte.body.erro).toBe('teto_excedido');
+  });
+
+  it('a data GRAVADA é exatamente a informada, sem deslocamento de fuso', async () => {
+    // Família NOVA de propósito (mesmo motivo do describe RN-34 acima): a
+    // competência de `dataInformada` (2026-03) não é a competência ATUAL do
+    // relógio real do ambiente, então o recebido precisa ser dado NELA — não
+    // dá pra reaproveitar `familiaA`/`cookieA`, cujo saldo é de outra competência.
+    const familia = await criarFamiliaComMembro('D6 sem deslocamento');
+    const cookie = await cookieDeSessao(familia.membroId);
+    const contaOrigem = await novaContaDebito(cookie, 'D6 sem deslocamento conta', 500000);
+    const meta = await novaMeta(cookie, 'D6 sem deslocamento cofrinho', 500000);
+
+    const dataInformada = '2026-03-15';
+    await darRecebido(cookie, contaOrigem.id, 900000, dataInformada);
+
+    const resposta = await guardar({
+      cookie,
+      metaId: meta.id,
+      contaOrigemId: contaOrigem.id,
+      valorCentavos: 12345,
+      data: dataInformada,
+    });
+    expect(resposta.status).toBe(200);
+
+    const extrato = await request(app)
+      .get('/lancamentos')
+      .set('Cookie', cookie)
+      .query({ contaId: contaOrigem.id });
+    interface LancamentoDoExtrato {
+      tipo: string;
+      valorCentavos: number;
+      data: string;
+    }
+    const transferencia = (extrato.body.lancamentos as LancamentoDoExtrato[]).find(
+      l => l.tipo === 'TRANSFERENCIA' && l.valorCentavos === 12345,
+    );
+    expect(transferencia?.data).toBe(dataInformada);
   });
 });
 
@@ -638,7 +800,7 @@ describe('tempo real — guardar invalida "metas" e "contas" sem refresh', () =>
       const resposta = await request(stack.http)
         .post(`/metas/${meta.id}/guardar`)
         .set('Cookie', cookieA)
-        .send({ contaOrigemId: contaOrigem.id, valorCentavos: 1000 });
+        .send({ contaOrigemId: contaOrigem.id, valorCentavos: 1000, data: hojeIso() });
       expect(resposta.status).toBe(200);
 
       await new Promise(r => setTimeout(r, 400));

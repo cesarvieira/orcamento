@@ -13,7 +13,7 @@
  * pelo usuário. Nunca inferida (a armadilha do protótipo: "primeira conta de
  * débito").
  */
-import type { Router as RouterType } from 'express';
+import type { Response, Router as RouterType } from 'express';
 import { Router } from 'express';
 
 import { db } from '../../db';
@@ -24,10 +24,18 @@ import {
 } from '../../http/middleware/tenant';
 import { registrarRota } from '../../openapi/registro';
 import { CABECALHO_ORIGEM_CLIENTE, emitirInvalidacao } from '../../realtime/emissor';
-import { EsquemaPagarFatura } from './esquemas';
+import { EsquemaPagarFatura, PADRAO_DATA } from './esquemas';
 import { listarFaturasDoCartao, pagarFatura } from './servico';
 
 export const rotasDeFaturas: RouterType = Router();
+
+function dataValida(valor: string): boolean {
+  return PADRAO_DATA.test(valor);
+}
+
+function respostaHojeInvalido(res: Response): void {
+  res.status(422).json({ erro: 'hoje_invalido', mensagem: 'Informe hoje no formato AAAA-MM-DD.' });
+}
 
 /**
  * Uma mutação de fatura invalida TRÊS leituras: `faturas` (o status/pagamento
@@ -70,6 +78,14 @@ registrarRota({
       descricao: 'O cartão (conta CREDITO) cuja fatura se quer ver.',
       esquema: { type: 'string' },
     },
+    {
+      nome: 'hoje',
+      obrigatorio: true,
+      descricao:
+        'AAAA-MM-DD — o dia corrente do CLIENTE (D6, tarefa #91), que decide ABERTA/FECHADA. ' +
+        'Nunca inferido do relógio do servidor.',
+      esquema: { type: 'string' },
+    },
   ],
   respostas: [
     { status: 200, descricao: 'A view de fatura do cartão', esquema: 'FaturasDoCartao' },
@@ -79,7 +95,7 @@ registrarRota({
       descricao: 'Conta inexistente nesta família, ou não é um cartão (CREDITO)',
       esquema: 'Erro',
     },
-    { status: 422, descricao: 'contaId ausente', esquema: 'Erro' },
+    { status: 422, descricao: 'contaId ausente, ou hoje ausente/fora do formato AAAA-MM-DD', esquema: 'Erro' },
   ],
 });
 
@@ -91,8 +107,16 @@ rotasDeFaturas.get('/faturas', exigirSessao, async (req, res, next) => {
       return;
     }
 
+    // D6 (tarefa #91) — o dia corrente vem do CLIENTE, nunca do relógio do
+    // servidor. Ver o comentário em `servico.ts#listarFaturasDoCartao`.
+    const hoje = typeof req.query.hoje === 'string' ? req.query.hoje : undefined;
+    if (!hoje || !dataValida(hoje)) {
+      respostaHojeInvalido(res);
+      return;
+    }
+
     const familiaId = familiaDaRequisicao(req);
-    const resultado = await listarFaturasDoCartao(db, familiaId, contaId);
+    const resultado = await listarFaturasDoCartao(db, familiaId, contaId, hoje);
 
     if (!resultado) {
       res.status(404).json({
@@ -136,7 +160,7 @@ rotasDeFaturas.post('/faturas/:id/pagar', exigirSessao, async (req, res, next) =
   try {
     const analise = EsquemaPagarFatura.safeParse(req.body);
     if (!analise.success) {
-      res.status(422).json({ erro: 'corpo_invalido', mensagem: 'Informe pagaComContaId.' });
+      res.status(422).json({ erro: 'corpo_invalido', mensagem: 'Informe pagaComContaId e data (AAAA-MM-DD).' });
       return;
     }
 
@@ -147,6 +171,9 @@ rotasDeFaturas.post('/faturas/:id/pagar', exigirSessao, async (req, res, next) =
       autorMembroId,
       faturaId: req.params.id as string,
       pagaComContaId: analise.data.pagaComContaId,
+      // D6 (tarefa #91) — a data do fato vem do CLIENTE, nunca do relógio do
+      // servidor. Ver o comentário em `servico.ts#pagarFatura`.
+      data: analise.data.data,
     });
 
     if (resultado.tipo === 'fatura_nao_encontrada') {
@@ -174,7 +201,12 @@ rotasDeFaturas.post('/faturas/:id/pagar', exigirSessao, async (req, res, next) =
     }
 
     const origemClienteId = req.get(CABECALHO_ORIGEM_CLIENTE) ?? null;
-    const competenciaDoPagamento = resultado.fatura.pagaEm?.slice(0, 7) ?? '';
+    // D6 (tarefa #91) — a competência invalidada é a da DATA informada pelo
+    // cliente (mesmo cálculo de `servico.ts#pagarFatura`), nunca de `pagaEm`
+    // (carimbo do RELÓGIO DO SERVIDOR): usar `pagaEm` aqui reintroduziria a
+    // mesma classe de defeito só que na invalidação — a família que pagou
+    // uma fatura com `data` retroativa veria o mês ERRADO recarregar.
+    const competenciaDoPagamento = analise.data.data.slice(0, 7);
     invalidarPagamento(familiaId, competenciaDoPagamento, origemClienteId);
 
     res.json(resultado.fatura);

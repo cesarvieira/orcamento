@@ -136,6 +136,72 @@ desta matriz, na ordem em que cada `describe` aparece no respectivo arquivo.
 | Dois clientes veem o valor guardado sem refresh | Invalidação chega à sessão irmã            | Provado — `metas.teste.ts:565-652`, `metas-dod.teste.ts:537-575`                                                                                                                                                                                                                                                                                                                                                                                          |
 | `PROVA_DE_COMPORTAMENTO=PASS`                   | Gate mestre verde em cada tarefa           | #85 a #88, todos `PASS`/`APROVADA` — citado pelo comentário de `carimbar-issue.sh` de cada issue (evidência primária) e pelo comentário de linhagem da #21 (registro consolidado); ver a lista de URLs em "Confiança" acima. **Não** reconferível no corpo dos commits de merge desta história (ver EF07-MC-004); esta tarefa (#89), de documentação, não toca `api/`/`web/`/`.preator/skills/` e portanto não altera nem recarimba nenhum desses números |
 
+## Correção pós-entrega — D6 (2026-08-29, tarefa #91)
+
+**Defeito encontrado pelo humano depois da entrega da história**, não da EF-07: `hojeIso()`
+calculava "hoje" com getters **UTC** (`api/src/modulos/faturas/dominio.ts:126` — dona da
+convenção, copiada fielmente por `metas/servico.ts` na tarefa #86). Das 21h à meia-noite no fuso do
+Brasil (UTC−3), isso devolvia o **dia seguinte**: guardar às 21h de 29/08 gravava `2026-08-30`. A
+consequência grave não era a data em si — era a **competência**: no último dia do mês, depois das
+21h, `competenciaDaData(hoje)` devolvia o **mês seguinte**, e o teto de RN-34/D1 era conferido
+contra o não alocado do mês **errado**, com o lançamento caindo no envelope errado. Num produto de
+envelope, é a regra central do produto corrompendo — não um detalhe cosmético de fuso horário.
+Trocar para getters locais **não** resolveria: o container roda em UTC, não no fuso do usuário
+(`docker run --rm node:22-alpine node -e "console.log(new Date().getDate())"` devolve o dia UTC,
+não o do relógio da família).
+
+**A decisão do humano (2026-08-29) — D6:** a **data do fato vem do CLIENTE**, no corpo da
+requisição, como já acontecia em todo lançamento comum (`lancamentos/esquemas.ts:31`,
+`z.iso.date()`). O servidor **para de decidir "hoje"**. Não é regra nova — é a aplicação, a
+`guardar` e `pagarFatura`, da mesma RN-15 que `lancamentos-e-parcelamento/SKILL.md` já estabelece
+para todo lançamento: a competência segue a `data`, nunca o relógio de quem grava.
+
+Os três pontos corrigidos:
+
+1. **`metas/servico.ts#guardar`** — `EsquemaGuardar` (`metas/esquemas.ts`) ganha `data`
+   (`z.iso.date()`, espelhando `lancamentos/esquemas.ts:31`); o teto de RN-34/D1 passa a ser
+   conferido contra a competência **dessa** data (`competenciaDaData(dados.data)`), nunca de
+   `hojeIso()`.
+2. **`faturas/servico.ts#pagarFatura`** — `EsquemaPagarFatura` ganha `data`; a `TRANSFERENCIA` de
+   RN-24 e a competência (inclusive a da invalidação em `rotas.ts`, que usava `pagaEm` — o carimbo
+   do RELÓGIO DO SERVIDOR, a mesma classe de defeito por outra porta) passam a sair dela.
+3. **`faturas/servico.ts#listarFaturasDoCartao`** — o `hoje` que decide `ABERTA`/`FECHADA` passa a
+   vir da query `?hoje=` da requisição. Conferido: `limiteLivreTotalCentavos`
+   (`faturas/servico.ts:355-363`) não depende de `hoje` — o lastro não foi afetado, o raio da
+   mudança ficou contido no endpoint de fatura.
+
+`hojeIso()` deixou de ter uso — removida de `faturas/dominio.ts` e da cópia local de
+`metas/servico.ts` (o gate `deadcode`/knip confirmou zero export sem consumidor após a remoção).
+No front, o cálculo de "hoje no fuso local" — que `FolhaLancamento.vue` já fazia certo — foi
+extraído para `web/app/utils/data.ts#hojeLocal()` (mesmo padrão de `utils/competencia.ts`) e
+reaproveitado em `metas.vue` (guardar) e `faturas.vue` (pagar, listar), fechando as três cópias que
+existiriam senão.
+
+**Evidência (testes que prova a virada de mês, não só a existência do campo):**
+
+- `api/testes/metas.teste.ts` — `describe` "D6 — a data de guardar vem do CLIENTE..." (a partir de
+  `:314`): data retroativa cai na competência da data mesmo com a competência atual zerada (prova
+  que descarta o relógio); a MESMA virada de mês (dia 30 de um mês vs. dia 1 do seguinte) aceita
+  40000 num lado e recusa no outro, só trocando a `data`; a data gravada é bit-a-bit a informada.
+- `api/testes/faturas.teste.ts` — `describe` "D6 — a data do fato vem do CLIENTE..." (após a
+  antiga RN-25/RN-26): pagar retroativo grava a `TRANSFERENCIA` na competência de 2020-02, não na
+  do relógio real do ambiente; a MESMA fatura responde `ABERTA` ou `FECHADA` só trocando `?hoje=`;
+  `GET /faturas` sem `hoje`, ou fora do formato `AAAA-MM-DD`, responde 422.
+- `api/testes/faturas-ciclo.teste.ts` e `api/testes/metas-dod.teste.ts` — chamadas existentes
+  atualizadas para o novo contrato (campo `data` obrigatório), sem enfraquecer nenhuma asserção de
+  regra que já provavam.
+- Suíte completa: `pnpm run teste` — 270 testes, 19 arquivos, 0 falhas (era 264/19 em #89; a
+  diferença são os `it()` novos desta tarefa). `pnpm run build`, `NUXT_BUILD_DIR=.nuxt-gate pnpm run
+typecheck` (front), `eslint .` e `knip` (com `DATABASE_URL` apontado para o Postgres de dev) —
+  todos limpos.
+
+**Costura tocada:** `packages/contrato/` regenerado (`Guardar`/`PagarFatura` ganham `data`; `GET
+/faturas` ganha o parâmetro `hoje`); `web/app/pages/faturas.vue` e `web/app/pages/metas.vue`
+(chamadas atualizadas); esta seção e a de `MANUAL-07-metas.md`.
+
+Commit da correção: `tarefa/91-data-do-cliente` — hash ainda não fechado no momento em que este
+texto foi escrito; confira com `git log --oneline main..tarefa/91-data-do-cliente`.
+
 ## Pendências de decisão
 
 Nenhuma pendência **em aberto que bloqueie** a EF-07. Duas já foram decididas durante a execução e

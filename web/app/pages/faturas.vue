@@ -88,6 +88,7 @@ import { classeDoIcone, useContas } from '~/composables/useContas';
 import { useFaturas } from '~/composables/useFaturas';
 import { useLancamentos } from '~/composables/useLancamentos';
 import { classeDoIconeCategoria } from '~/composables/useOrcamento';
+import { hojeLocal } from '~/utils/data';
 import { formatarCentavos } from '~/utils/dinheiro';
 
 const rota = useRoute();
@@ -314,7 +315,9 @@ async function pagar(fatura: Fatura): Promise<void> {
   pagando.value = fatura.id;
   erroPagamento.value = null;
   try {
-    await pagarFatura(fatura.id, { pagaComContaId: conta.id });
+    // D6 (tarefa #91) — a data vem do CLIENTE (fuso local), nunca do relógio
+    // do servidor: é ela que decide a competência da TRANSFERENCIA (RN-15).
+    await pagarFatura(fatura.id, { pagaComContaId: conta.id, data: hojeLocal() });
     // Sem recalcular nada aqui (regra inviolável #4): refaz a leitura para
     // pegar o saldo/limite derivados e recomputados no servidor.
     await Promise.all([atualizarContas(), carregarFatura()]);

@@ -61,6 +61,7 @@
 import type { Conta, Meta, NovaMeta } from '@orcamento/contrato';
 import { classeDoIcone, useContas } from '~/composables/useContas';
 import { GUARDAR_100_CENTAVOS, GUARDAR_500_CENTAVOS, PASSO_ALVO_CENTAVOS, useMetas } from '~/composables/useMetas';
+import { hojeLocal } from '~/utils/data';
 import { centavosParaTexto, formatarCentavos, textoParaCentavos } from '~/utils/dinheiro';
 
 const { listarContas } = useContas();
@@ -196,7 +197,9 @@ async function guardarValor(meta: Meta, valorCentavos: number): Promise<void> {
 
   guardandoId.value = meta.id;
   try {
-    await guardar(meta.id, { contaOrigemId: conta.id, valorCentavos });
+    // D6 (tarefa #91) — a data vem do CLIENTE (fuso local), nunca do relógio
+    // do servidor: é ela que decide a competência conferida contra RN-34/D1.
+    await guardar(meta.id, { contaOrigemId: conta.id, valorCentavos, data: hojeLocal() });
     // Sem somar nada aqui (regra inviolável #4 / EF-07 §4): refaz a leitura
     // para pegar o acumulado DERIVADO e recomputado no servidor.
     await carregarMetas();

@@ -56,7 +56,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { fecharBanco } from '../src/db';
-import { hojeIso, fechaEmDoCiclo } from '../src/modulos/faturas/dominio';
+import { fechaEmDoCiclo } from '../src/modulos/faturas/dominio';
 import {
   abrirApp,
   cookieDeSessao,
@@ -95,6 +95,20 @@ afterAll(async () => {
 // Fixture DERIVADA do relógio real — ver o cabeçalho para a prova de que
 // `diaFechamentoSemColisao` nunca coincide com o dia-do-mês de hoje.
 // ---------------------------------------------------------------------------
+
+/**
+ * Cópia LOCAL — a produção não tem mais `hojeIso()` (D6, tarefa #91: o
+ * cliente informa `hoje`/`data`, nunca o servidor calcula). Aqui ela segue
+ * fazendo o papel do "relógio real" só para DERIVAR a fixture (ver o
+ * cabeçalho do arquivo — `diaFechamentoSemColisao` precisa do dia-do-mês
+ * real para nunca colidir).
+ */
+function hojeIso(): string {
+  const agora = new Date();
+  const mes = String(agora.getUTCMonth() + 1).padStart(2, '0');
+  const dia = String(agora.getUTCDate()).padStart(2, '0');
+  return `${agora.getUTCFullYear()}-${mes}-${dia}`;
+}
 
 const HOJE = hojeIso();
 const DIA_DE_HOJE = Number(HOJE.slice(8, 10)); // dia-do-mês real de hoje (1..31).
@@ -165,8 +179,14 @@ function faturaDoCiclo(faturas: Fatura[], fechaEm: string): Fatura {
   );
 }
 
+/**
+ * D6 (2026-08-29, tarefa #91) — `?hoje=` é o dia corrente do CLIENTE, nunca
+ * do relógio do servidor (era daí que vinha o defeito corrigido nesta
+ * tarefa). Todos os chamadores desta suíte passam por aqui, então um só
+ * lugar precisou aprender o novo campo obrigatório.
+ */
 async function listarFaturas(cookie: string, contaId: string) {
-  return request(app).get('/faturas').query({ contaId }).set('Cookie', cookie);
+  return request(app).get('/faturas').query({ contaId, hoje: HOJE }).set('Cookie', cookie);
 }
 
 async function novaCategoria(cookie: string, nome: string): Promise<string> {
@@ -422,7 +442,7 @@ describe('Caso 4 — RN-24: extrato por cartão continua correto após o pagamen
     const pagamento = await request(app)
       .post(`/faturas/${faturaFechada.id}/pagar`)
       .set('Cookie', cookie)
-      .send({ pagaComContaId: contaCorrenteId });
+      .send({ pagaComContaId: contaCorrenteId, data: HOJE });
     expect(pagamento.status).toBe(200);
     expect(pagamento.body.status).toBe('PAGA');
     expect(pagamento.body.totalCentavos).toBe(25000);
@@ -521,7 +541,7 @@ describe('Caso 5 — D1: limite livre = limite − Σ(faturas não pagas); recom
     const pagamento = await request(app)
       .post(`/faturas/${fechada.id}/pagar`)
       .set('Cookie', cookie)
-      .send({ pagaComContaId: contaCorrenteId });
+      .send({ pagaComContaId: contaCorrenteId, data: HOJE });
     expect(pagamento.status).toBe(200);
 
     const depois = await listarFaturas(cookie, cartaoId);
@@ -568,7 +588,7 @@ describe('Caso 6 — isolamento entre famílias · dois clientes veem o pagament
     const pagamentoDeB = await request(app)
       .post(`/faturas/${fatura.id}/pagar`)
       .set('Cookie', cookieB)
-      .send({ pagaComContaId: contaDeB });
+      .send({ pagaComContaId: contaDeB, data: HOJE });
     expect(pagamentoDeB.status).toBe(404);
     expect(pagamentoDeB.body.erro).toBe('fatura_nao_encontrada');
   });
@@ -630,7 +650,7 @@ describe('Caso 6 — isolamento entre famílias · dois clientes veem o pagament
       const pagamento = await request(stack.http)
         .post(`/faturas/${fatura.id}/pagar`)
         .set('Cookie', cookie)
-        .send({ pagaComContaId: contaCorrenteId });
+        .send({ pagaComContaId: contaCorrenteId, data: HOJE });
       expect(pagamento.status).toBe(200);
 
       await new Promise(r => setTimeout(r, 400));

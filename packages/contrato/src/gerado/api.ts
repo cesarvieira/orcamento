@@ -984,6 +984,11 @@ export interface components {
         PagarFatura: {
             /** @description D3 — a conta escolhida pelo usuário para pagar esta fatura. */
             pagaComContaId: string;
+            /**
+             * Format: date
+             * @description AAAA-MM-DD — quando o pagamento aconteceu, do CLIENTE (D6). Decide a competência (RN-15).
+             */
+            data: string;
         };
         NovaMeta: {
             /** @description Nome do cofrinho, escolhido pela família. */
@@ -1022,6 +1027,11 @@ export interface components {
             contaOrigemId: string;
             /** @description Quanto guardar (D-06 — inteiro em centavos). Sujeito ao teto de RN-34/D1. */
             valorCentavos: number;
+            /**
+             * Format: date
+             * @description AAAA-MM-DD — quando o ato aconteceu, do CLIENTE (D6). A competência de RN-34/D1 é calculada a partir DESTA data (RN-15), nunca do relógio do servidor.
+             */
+            data: string;
         };
     };
     responses: never;
@@ -2406,6 +2416,8 @@ export interface operations {
             query: {
                 /** @description O cartão (conta CREDITO) cuja fatura se quer ver. */
                 contaId: string;
+                /** @description AAAA-MM-DD — o dia corrente do CLIENTE (D6, tarefa #91), que decide ABERTA/FECHADA. Nunca inferido do relógio do servidor. */
+                hoje: string;
             };
             header?: never;
             path?: never;
@@ -2440,7 +2452,7 @@ export interface operations {
                     "application/json": components["schemas"]["Erro"];
                 };
             };
-            /** @description contaId ausente */
+            /** @description contaId ausente, ou hoje ausente/fora do formato AAAA-MM-DD */
             422: {
                 headers: {
                     [name: string]: unknown;
