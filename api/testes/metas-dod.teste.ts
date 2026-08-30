@@ -171,10 +171,16 @@ interface DadosDeGuardar {
   metaId: string;
   contaOrigemId?: string;
   valorCentavos?: number;
+  /**
+   * D6 (tarefa #91) — a data do fato vem do CLIENTE, nunca do relógio do
+   * servidor. Default = hoje, sempre presente no corpo (mesmo quando outro
+   * campo é omitido de propósito para testar 422 daquele campo específico).
+   */
+  data?: string;
 }
 
 async function guardar(dados: DadosDeGuardar) {
-  const corpo: Record<string, unknown> = {};
+  const corpo: Record<string, unknown> = { data: dados.data ?? hojeIso() };
   if (dados.contaOrigemId !== undefined) corpo.contaOrigemId = dados.contaOrigemId;
   if (dados.valorCentavos !== undefined) corpo.valorCentavos = dados.valorCentavos;
   return request(app).post(`/metas/${dados.metaId}/guardar`).set('Cookie', dados.cookie).send(corpo);

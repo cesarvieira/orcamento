@@ -9,11 +9,14 @@
   `metas-e-reservas`), [#86](https://github.com/cesarvieira/orcamento/issues/86) (módulo: cofrinho,
   CRUD, guardar com teto), [#87](https://github.com/cesarvieira/orcamento/issues/87) (tela `/metas`),
   [#88](https://github.com/cesarvieira/orcamento/issues/88) (os casos do DoD, 13 testes em largura),
-  [#89](https://github.com/cesarvieira/orcamento/issues/89) (documentação, esta tarefa). **Nenhuma
+  [#89](https://github.com/cesarvieira/orcamento/issues/89) (documentação da história). **Nenhuma
   tarefa nasceu fora do DAG avalizado pelo humano na abertura da #21** — a #85 teve retrabalho
   **dentro do próprio ciclo dela** (reprovada na revisão, corrigida, aprovada) e a #88 teve
   retrabalho de lint (`ce0b318`) — as duas são o Portão B funcionando, não tarefa extra.
-  **Lista viva de toda tarefa mesclada, na ordem real:** `git log --oneline 79269b6^..e75c26d`
+  **Lista viva de toda tarefa mesclada, na ordem real:** `git log --oneline 79269b6^..e75c26d`.
+  [#91](https://github.com/cesarvieira/orcamento/issues/91) (esta tarefa) é **correção de defeito
+  encontrado pelo humano depois da entrega** — não faz parte do DAG original de construção da EF-07;
+  ver "Correção pós-entrega — D6" ao final deste documento.
 - **Construído por:** agente `docs` (#85, skill); agente `backend` (#86); agente `frontend` (#87);
   agente `qa` (#88); agente `docs` (#89, esta tarefa) — todos `claude-sonnet-5`
 - **Data:** 2026-08-29 (todas as tarefas)
@@ -314,3 +317,97 @@ reportada" acima. **A exclusão de cofrinho com acumulado > 0** tem comportament
 código (`excluirConta` recusa via RN-06) mas nenhuma fonte de negócio decidiu se deveria ser
 permitida de outra forma (por exemplo, zerando o saldo antes) — a `SKILL.md` já registra isso como
 "não inventado aqui" no seu próprio edge case.
+
+## Correção pós-entrega — D6 (2026-08-29, tarefa #91)
+
+**Não é defeito da EF-07** — a EF-07 (`#86`) copiou fielmente a convenção de `hojeIso()` que já
+existia em `faturas/dominio.ts:126` desde a EF-05 (`#70`). É um **defeito atravessando pastas de
+propósito**, encontrado pelo humano em uso real depois da entrega da história, e corrigido aqui
+como tarefa de costura própria — não uma reabertura de nenhuma das tarefas #85–#89.
+
+**O defeito, medido pelo condutor:** `hojeIso()` usava getters `Date.prototype.getUTC*`. Entre as
+21h e a meia-noite no fuso do Brasil (UTC−3), esses getters já enxergam o **dia seguinte** em UTC —
+um guardar feito às 21h de 29/08 gravava `data = 2026-08-30`. No **último dia do mês**, depois das
+21h, isso empurrava `competenciaDaData(hoje)` para o **mês seguinte**: o teto de RN-34/D1 era
+conferido contra o não alocado do mês errado, e a `TRANSFERENCIA` caía no envelope errado. Trocar
+os getters UTC por locais **não resolveria** — o container de produção roda em UTC, não no fuso do
+usuário; a correção precisava ser estrutural.
+
+**D6 — a decisão do humano:** a data do fato vem do **cliente**, no corpo da requisição — o mesmo
+caminho que `lancamentos/esquemas.ts:31` (`z.iso.date()`) já usa para todo lançamento comum desde a
+EF-04. O servidor para de decidir "hoje" para qualquer efeito de negócio. Não é regra nova: é RN-15
+(`.preator/skills/negocio/lancamentos-e-parcelamento/SKILL.md`, "competência segue a data") sendo
+aplicada ao ato de guardar e ao ato de pagar fatura, que antes escapavam dela por decidirem "hoje"
+sozinhos.
+
+### O que mudou, ponto a ponto
+
+1. **`api/src/modulos/metas/esquemas.ts#EsquemaGuardar`** — novo campo `data` (`z.iso.date()`).
+   **`api/src/modulos/metas/servico.ts#guardar`** — a competência de RN-34/D1 vem de
+   `competenciaDaData(dados.data)`, nunca de `hojeIso()` (removida do arquivo). O `INSERT` da
+   `TRANSFERENCIA` grava `data: dados.data`, sem transformação.
+2. **`api/src/modulos/faturas/esquemas.ts#EsquemaPagarFatura`** — novo campo `data`.
+   **`api/src/modulos/faturas/servico.ts#pagarFatura`** — a competência da `TRANSFERENCIA` de
+   RN-24 vem de `data.slice(0, 7)`. **`faturas/rotas.ts`** — a competência usada para invalidar o
+   recurso `lancamentos` (tempo real) também passou a vir de `analise.data.data`, não de
+   `resultado.fatura.pagaEm` (um carimbo do relógio do servidor que reintroduziria a mesma classe
+   de defeito, só no raio da invalidação em vez da escrita).
+3. **`api/src/modulos/faturas/servico.ts#listarFaturasDoCartao`** — novo parâmetro `hoje: string`,
+   que decide `ABERTA`/`FECHADA` (`statusDoCiclo`) e qual ciclo é "o corrente"
+   (`fechaEmDoCiclo(diaFechamento, hoje)`). **`faturas/rotas.ts`** — `GET /faturas` ganhou a query
+   obrigatória `?hoje=`, validada contra `AAAA-MM-DD` (`PADRAO_DATA`, `faturas/esquemas.ts`); ausente
+   ou mal formatada responde 422 (`erro: 'hoje_invalido'`). Conferido pelo condutor antes de
+   autorizar o raio: `limiteLivreTotalCentavos` (`faturas/servico.ts:355-363`) soma sobre
+   `contas`/`saldoCentavos` derivado, sem tocar `hoje` — o **lastro não foi afetado**.
+
+`hojeIso()` não tem mais nenhum consumidor — removida de `faturas/dominio.ts:126` e da cópia local
+que `metas/servico.ts:42` mantinha (o próprio cabeçalho da cópia já citava a razão de existir:
+"não importado de lá, faturas/ não está na lista de módulos permitidos" — a lista mudou nesta
+tarefa, que é exatamente de costura entre as duas pastas). `pnpm run knip`, rodado depois da
+remoção, não acusou export sem consumidor.
+
+### Front — um helper único, três consumidores
+
+`FolhaLancamento.vue:102` já calculava a data de hoje no **fuso local** corretamente (o comentário
+já dizia isso); as outras duas telas que agora precisam desse valor (`metas.vue` para guardar,
+`faturas.vue` para pagar e listar) não tinham cópia própria antes desta tarefa. Em vez de criar
+três, a função foi extraída para `web/app/utils/data.ts#hojeLocal()` (mesmo padrão de
+`web/app/utils/competencia.ts`) e reaproveitada nas três — `FolhaLancamento.vue` trocou sua cópia
+local pelo import, sem mudar de comportamento.
+
+### Testes — a virada de mês virou caso de teste, não só o campo novo
+
+Adicionar `data`/`hoje` como obrigatório não bastava para provar o defeito morto — um teste que só
+manda `data = hoje` de qualquer jeito não distingue "usei a data certa" de "ainda uso o relógio, por
+coincidência bateu". Os casos novos comparam os dois caminhos deliberadamente:
+
+- `api/testes/metas.teste.ts`, `describe` "D6 — a data de guardar vem do CLIENTE" (a partir da
+  linha `:314`): guardar com `data` retroativa é aceito mesmo com a competência **atual** zerada
+  (só é possível se a API usou a competência da data, não a de hoje); a mesma virada de mês — 40000
+  no dia 30 de um mês, recusado no dia 1 do mês seguinte, com os dois meses tendo folgas diferentes
+  de propósito — prova o ponto exato onde `hojeIso()` UTC rolava sozinho; a data lida de volta no
+  extrato bate byte a byte com a informada.
+- `api/testes/faturas.teste.ts`, `describe` "D6 — a data do fato vem do CLIENTE": pagar com `data`
+  de 2020 grava a `TRANSFERENCIA` na competência de 2020, nunca na do relógio real do ambiente; a
+  MESMA fatura, com a MESMA compra, responde `ABERTA` com um `?hoje=` e `FECHADA` com outro — só
+  trocando o parâmetro, nunca esperando o relógio virar; `?hoje=` ausente ou fora do formato
+  responde 422.
+- `api/testes/faturas-ciclo.teste.ts` e `api/testes/metas-dod.teste.ts` (as suítes que #72/#88
+  já tinham escrito) tiveram só as **chamadas** atualizadas para o contrato novo — a asserção de
+  regra que cada teste já provava ficou intacta; nenhum teste foi "ajustado para passar".
+
+**Evidência rodada** (comando e saída real, não "passou"):
+
+```
+$ pnpm run teste
+ Test Files  19 passed (19)
+      Tests  270 passed (270)
+```
+
+(era 264 testes/19 arquivos em #89 — a diferença são os `it()` novos desta tarefa, listados acima).
+`pnpm run build` (tsc da API + regeração de `packages/contrato/`), `NUXT_BUILD_DIR=.nuxt-gate pnpm
+run typecheck` (front, dentro de `web/`), `eslint .` e `knip` (com `DATABASE_URL` apontada para o
+Postgres de dev, 5433) — todos limpos, zero achado.
+
+**Commit desta correção:** `8442ebc` (branch `tarefa/91-data-do-cliente`) — confira com
+`git show --stat 8442ebc`.

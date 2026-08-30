@@ -75,6 +75,10 @@ export function useMetas() {
    * não alocado da competência, ou quando o não alocado já é ≤ 0 (RN-34/D1) —
    * esta função não trata o erro, só propaga: quem chama decide a mensagem
    * (`mensagemDoErro`).
+   *
+   * `dados.data` — D6 (tarefa #91): quem chama informa a data do ato (fuso
+   * local, `utils/data.ts#hojeLocal`); a API deriva a competência dela
+   * (RN-15) para conferir o teto de RN-34/D1, nunca do próprio relógio.
    */
   async function guardar(metaId: string, dados: Guardar): Promise<Meta> {
     return api<Meta>(`/metas/${metaId}/guardar`, {

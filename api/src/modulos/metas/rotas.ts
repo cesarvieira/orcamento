@@ -237,7 +237,7 @@ rotasDeMetas.post('/metas/:id/guardar', exigirSessao, async (req, res, next) => 
     if (!analise.success) {
       res.status(422).json({
         erro: 'corpo_invalido',
-        mensagem: 'Informe contaOrigemId e valorCentavos (inteiro, > 0).',
+        mensagem: 'Informe contaOrigemId, valorCentavos (inteiro, > 0) e data (AAAA-MM-DD).',
       });
       return;
     }
@@ -250,6 +250,9 @@ rotasDeMetas.post('/metas/:id/guardar', exigirSessao, async (req, res, next) => 
       metaId: req.params.id as string,
       contaOrigemId: analise.data.contaOrigemId,
       valorCentavos: analise.data.valorCentavos,
+      // D6 (tarefa #91) — a data do fato vem do CLIENTE, nunca do relógio do
+      // servidor. Ver o comentário em `servico.ts#guardar`.
+      data: analise.data.data,
     });
 
     if (resultado.tipo === 'meta_nao_encontrada') {

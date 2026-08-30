@@ -1961,10 +1961,17 @@
           "pagaComContaId": {
             "type": "string",
             "description": "D3 — a conta escolhida pelo usuário para pagar esta fatura."
+          },
+          "data": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+            "description": "AAAA-MM-DD — quando o pagamento aconteceu, do CLIENTE (D6). Decide a competência (RN-15)."
           }
         },
         "required": [
-          "pagaComContaId"
+          "pagaComContaId",
+          "data"
         ],
         "additionalProperties": false
       },
@@ -2105,11 +2112,18 @@
             "exclusiveMinimum": true,
             "maximum": 9007199254740991,
             "description": "Quanto guardar (D-06 — inteiro em centavos). Sujeito ao teto de RN-34/D1."
+          },
+          "data": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+            "description": "AAAA-MM-DD — quando o ato aconteceu, do CLIENTE (D6). A competência de RN-34/D1 é calculada a partir DESTA data (RN-15), nunca do relógio do servidor."
           }
         },
         "required": [
           "contaOrigemId",
-          "valorCentavos"
+          "valorCentavos",
+          "data"
         ],
         "additionalProperties": false
       }
@@ -3898,6 +3912,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "hoje",
+            "in": "query",
+            "required": true,
+            "description": "AAAA-MM-DD — o dia corrente do CLIENTE (D6, tarefa #91), que decide ABERTA/FECHADA. Nunca inferido do relógio do servidor.",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "security": [
@@ -3937,7 +3960,7 @@
             }
           },
           "422": {
-            "description": "contaId ausente",
+            "description": "contaId ausente, ou hoje ausente/fora do formato AAAA-MM-DD",
             "content": {
               "application/json": {
                 "schema": {

@@ -41,6 +41,7 @@ import { classeDoIcone, useContas } from '~/composables/useContas';
 import { TIPOS_LANCAMENTO, corDoTipo, useFolhaLancamento, useLancamentos } from '~/composables/useLancamentos';
 import { classeDoIconeCategoria, useOrcamento } from '~/composables/useOrcamento';
 import { competenciaAtual, rotuloDaCompetencia } from '~/utils/competencia';
+import { hojeLocal } from '~/utils/data';
 import { formatarCentavos, textoParaCentavos } from '~/utils/dinheiro';
 
 const { aberta, categoriaPreSelecionada, fechar } = useFolhaLancamento();
@@ -98,14 +99,6 @@ const valorExibido = computed({
   },
 });
 
-/** `AAAA-MM-DD` de hoje, no fuso local — só o valor inicial da folha ao abrir. */
-function dataDeHoje(): string {
-  const agora = new Date();
-  const mes = String(agora.getMonth() + 1).padStart(2, '0');
-  const dia = String(agora.getDate()).padStart(2, '0');
-  return `${agora.getFullYear()}-${mes}-${dia}`;
-}
-
 /**
  * A competência de uma `data` (`AAAA-MM-DD` → `AAAA-MM`) — espelho de
  * LEITURA de `api/src/modulos/lancamentos/dominio.ts#competenciaDaData`
@@ -139,7 +132,7 @@ watch(aberta, novo => {
   tipo.value = 'DESPESA';
   descricao.value = '';
   valorTexto.value = '';
-  data.value = dataDeHoje();
+  data.value = hojeLocal();
   contaId.value = null;
   contaDestinoId.value = null;
   categoriaId.value = categoriaPreSelecionada.value;

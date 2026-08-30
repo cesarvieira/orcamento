@@ -34,18 +34,6 @@ export interface MetaLida {
   acumuladoCentavos: number;
 }
 
-/**
- * `AAAA-MM-DD` de hoje, em UTC — mesmo padrão de
- * `modulos/faturas/dominio.ts#hojeIso` (não importado de lá: `faturas/` não
- * está na lista de módulos permitidos para importar nesta tarefa).
- */
-function hojeIso(agora: Date = new Date()): string {
-  const ano = agora.getUTCFullYear();
-  const mes = String(agora.getUTCMonth() + 1).padStart(2, '0');
-  const dia = String(agora.getUTCDate()).padStart(2, '0');
-  return `${ano}-${mes}-${dia}`;
-}
-
 // ---------------------------------------------------------------------------
 // O acumulado DERIVADO — EF-07 §1: "soma das transferências para a conta
 // RESERVA vinculada". Nunca materializado em coluna.
@@ -206,10 +194,15 @@ export interface DadosDeGuardar {
   metaId: string;
   contaOrigemId: string;
   valorCentavos: number;
+  /**
+   * D6 (2026-08-29, tarefa #91) — a data do fato vem do CLIENTE, nunca do
+   * relógio do servidor. `AAAA-MM-DD`.
+   */
+  data: string;
 }
 
 export async function guardar(db: Db, dados: DadosDeGuardar): Promise<ResultadoDeGuardar> {
-  const { familiaId, autorMembroId, metaId, contaOrigemId, valorCentavos } = dados;
+  const { familiaId, autorMembroId, metaId, contaOrigemId, valorCentavos, data } = dados;
 
   const meta = await buscarMetaDaFamilia(db, familiaId, metaId);
   if (!meta) return { tipo: 'meta_nao_encontrada' };
@@ -227,8 +220,12 @@ export async function guardar(db: Db, dados: DadosDeGuardar): Promise<ResultadoD
   // fonte ("não inventado aqui"); aqui ele simplesmente nunca ocorre.
   if (contaOrigem.tipo !== 'DEBITO') return { tipo: 'conta_origem_invalida' };
 
-  const hoje = hojeIso();
-  const competencia = competenciaDaData(hoje);
+  // D6 (tarefa #91) — a competência segue a DATA DO CLIENTE (RN-15), nunca o
+  // relógio do servidor. Era aqui que `hojeIso()` UTC produzia o defeito: das
+  // 21h à meia-noite no fuso do Brasil, `hojeIso()` já devolvia o dia
+  // seguinte, e no último dia do mês isso arrastava a competência inteira
+  // para o mês seguinte — RN-34/D1 conferido contra o não alocado errado.
+  const competencia = competenciaDaData(data);
 
   // RN-34/D1 — TETO: recusa guardar acima do naoAlocado da competência; com
   // naoAlocado ≤ 0, recusa QUALQUER valor, mesmo pequeno (D1, sem piso de
@@ -248,7 +245,7 @@ export async function guardar(db: Db, dados: DadosDeGuardar): Promise<ResultadoD
     tipo: 'TRANSFERENCIA',
     descricao: `Guardado em ${meta.nome}`,
     valorCentavos,
-    data: hoje,
+    data,
     competencia,
     categoriaId: null,
     contaId: contaOrigemId,
