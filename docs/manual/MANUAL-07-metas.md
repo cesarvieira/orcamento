@@ -409,5 +409,5 @@ $ pnpm run teste
 run typecheck` (front, dentro de `web/`), `eslint .` e `knip` (com `DATABASE_URL` apontada para o
 Postgres de dev, 5433) — todos limpos, zero achado.
 
-**Commit desta correção:** branch `tarefa/91-data-do-cliente` — hash ainda não fechado no momento
-em que este texto foi escrito; confira com `git log --oneline main..tarefa/91-data-do-cliente`.
+**Commit desta correção:** `8442ebc` (branch `tarefa/91-data-do-cliente`) — confira com
+`git show --stat 8442ebc`.

@@ -199,8 +199,8 @@ typecheck` (front), `eslint .` e `knip` (com `DATABASE_URL` apontado para o Post
 /faturas` ganha o parâmetro `hoje`); `web/app/pages/faturas.vue` e `web/app/pages/metas.vue`
 (chamadas atualizadas); esta seção e a de `MANUAL-07-metas.md`.
 
-Commit da correção: `tarefa/91-data-do-cliente` — hash ainda não fechado no momento em que este
-texto foi escrito; confira com `git log --oneline main..tarefa/91-data-do-cliente`.
+Commit da correção: `8442ebc` (branch `tarefa/91-data-do-cliente`) — confira com
+`git show --stat 8442ebc`.
 
 ## Pendências de decisão
 
