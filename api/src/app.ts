@@ -30,6 +30,7 @@ import { rotasDeFaturas } from './modulos/faturas/rotas';
 import { rotasDeLancamentos } from './modulos/lancamentos/rotas';
 import { rotasDeMetas } from './modulos/metas/rotas';
 import { rotasDeOrcamento } from './modulos/orcamento/rotas';
+import { rotasDeFechamento } from './modulos/fechamento/rotas';
 import { construirDocumento } from './openapi/registro';
 import './openapi/esquemas';
 
@@ -72,6 +73,7 @@ export function criarApp(): Express {
   app.use(rotasDeLancamentos);
   app.use(rotasDeFaturas);
   app.use(rotasDeMetas);
+  app.use(rotasDeFechamento);
 
   app.use(tratarNaoEncontrado);
   app.use(tratarErro);

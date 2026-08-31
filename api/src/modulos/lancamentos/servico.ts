@@ -12,7 +12,7 @@ import { and, eq, gte } from 'drizzle-orm';
 import type { z } from 'zod';
 
 import type { Db } from '../../db';
-import { categorias, contas, lancamentos, seriesParcelas } from '../../db/schema';
+import { categorias, contas, lancamentos, seriesParcelas, fechamentosMes } from '../../db/schema';
 import { competenciaDaData, gerarParcelas } from './dominio';
 import type { EsquemaModoDeExclusao, EsquemaNovoLancamento } from './esquemas';
 
@@ -121,11 +121,16 @@ type DbOuTx = Db | Parameters<Parameters<Db['transaction']>[0]>[0];
  * recusado) fica pendente da EF-08 — registrado, não escondido.
  */
 export async function competenciaEstaSelada(
-  _db: DbOuTx,
-  _familiaId: string,
-  _competencia: string,
+  db: DbOuTx,
+  familiaId: string,
+  competencia: string,
 ): Promise<boolean> {
-  return false; // @fundacao — EF-08 substitui isto (ver comentário acima).
+  const [linha] = await db
+    .select({ id: fechamentosMes.id })
+    .from(fechamentosMes)
+    .where(and(eq(fechamentosMes.familiaId, familiaId), eq(fechamentosMes.competencia, competencia)))
+    .limit(1);
+  return Boolean(linha);
 }
 
 // ---------------------------------------------------------------------------

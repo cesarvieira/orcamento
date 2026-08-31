@@ -478,6 +478,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/competencias/{competencia}/fechamento": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Resumo da competência para o fechamento (recebido, planejado, gasto, sobra projetada, categorias estouradas e status) */
+        get: operations["get_competencias__competencia__fechamento"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/competencias/{competencia}/fechar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Realiza o fechamento da competência, selando-a e apurando a sobra que vai para o lastro do próximo mês. */
+        post: operations["post_competencias__competencia__fechar"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1032,6 +1066,35 @@ export interface components {
              * @description AAAA-MM-DD — quando o ato aconteceu, do CLIENTE (D6). A competência de RN-34/D1 é calculada a partir DESTA data (RN-15), nunca do relógio do servidor.
              */
             data: string;
+        };
+        CategoriaEstourada: {
+            id: string;
+            nome: string;
+            disponivelCentavos: number;
+        };
+        ResumoFechamento: {
+            competencia: string;
+            recebidoCentavos: number;
+            planejadoCentavos: number;
+            gastoCentavos: number;
+            sobraProjetadaCentavos: number;
+            categoriasEstouradas: {
+                id: string;
+                nome: string;
+                disponivelCentavos: number;
+            }[];
+            /** @enum {string} */
+            status: "aberto" | "fechado";
+            /** Format: date-time */
+            fechadoEm?: string | null;
+            autorMembroId?: string | null;
+        };
+        FechamentoMes: {
+            competencia: string;
+            sobraCentavos: number;
+            /** Format: date-time */
+            fechadoEm: string;
+            autorMembroId: string;
         };
     };
     responses: never;
@@ -2766,6 +2829,95 @@ export interface operations {
                 };
             };
             /** @description Corpo inválido */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    get_competencias__competencia__fechamento: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                competencia: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Resumo do fechamento da competência */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ResumoFechamento"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Competência fora do formato AAAA-MM */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+        };
+    };
+    post_competencias__competencia__fechar: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                competencia: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Competência fechada com sucesso */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FechamentoMes"];
+                };
+            };
+            /** @description Competência já se encontra fechada */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Sem sessão */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Erro"];
+                };
+            };
+            /** @description Competência fora do formato AAAA-MM */
             422: {
                 headers: {
                     [name: string]: unknown;

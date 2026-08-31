@@ -31,7 +31,7 @@ export default tseslint.config(
     //
     // Saída gerada — `packages/contrato/gerar.mjs` é o único arquivo hand-written
     // ali dentro; o resto é output do OpenAPI e não se edita (D-03).
-    ignores: ['preator/**', 'packages/contrato/src/gerado/**', 'packages/contrato/src/index.ts'],
+    ignores: ['preator/**', 'docs/mockup/**', 'packages/contrato/src/gerado/**', 'packages/contrato/src/index.ts'],
   },
   {
     files: ['**/*.{js,mjs,cjs,ts,tsx}'],

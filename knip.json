@@ -11,7 +11,7 @@
       "project": ["src/**/*.ts", "testes/**/*.ts"]
     },
     "web": {
-      "entry": ["app/composables/useRealtime.ts"],
+      "entry": ["app/composables/useRealtime.ts", "app/components/MolduraDeModulo.vue"],
       "project": ["**/*.{ts,vue}"],
       "ignoreDependencies": [
         "@fontsource/manrope",
