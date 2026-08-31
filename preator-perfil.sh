@@ -55,6 +55,42 @@ TEST_COUNT_CMD="node scripts/contar-testes.mjs"
 # ---------------------------------------------------------------------------
 FRONT_DIR="web"
 
+# ---------------------------------------------------------------------------
+# BOOTSTRAP DO `.nuxt/`  —  tarefa #106, história #63.
+# ---------------------------------------------------------------------------
+# `web/tsconfig.json` tem `extends: "./.nuxt/tsconfig.json"` — caminho FIXO, e
+# esse diretório é gerado e gitignored. `git worktree add` +
+# `submodule update --init --recursive` (como o condutor abre todo worktree)
+# NUNCA o traz, e o gate mestre só popula `.nuxt-gate/` (ver `NUXT_BUILD_DIR`
+# logo abaixo) — nunca precisa do `.nuxt/` puro, então nunca o cria.
+#
+# Consequência medida na tarefa #54, história #18: um agente-folha que roda o
+# comando "normal" do `package.json` (`pnpm run typecheck`, SEM o override) —
+# ou um editor cujo language server carrega `web/tsconfig.json` antes de
+# qualquer comando rodar — recebe centenas de erros em arquivos que nem
+# tocou, porque `.nuxt/tsconfig.json` simplesmente não existe. `nuxt prepare`
+# (e `nuxt typecheck`) SEM o override se autocuram já na primeira chamada —
+# mas só se algo os chamar pelo menos uma vez antes.
+#
+# Este bloco roda essa chamada aqui, toda vez que o perfil carrega (todo gate
+# e todo `. ./preator-perfil.sh` que o protocolo de testes manda o agente
+# rodar) — ANTES do gate mestre ter chance de ser a ÚNICA coisa a tocar o
+# worktree. Idempotente e barato: pula se `.nuxt/tsconfig.json` já existe, e
+# nunca derruba o perfil se falhar (a stack pode não estar instalada ainda —
+# `pnpm install` roda `web`'s `postinstall: nuxt prepare` de qualquer forma,
+# então o caso comum já resolve sozinho; isto cobre o caso em que o
+# `node_modules` já existia e o `pnpm install` seguinte relatou
+# "already up to date", pulando os scripts de ciclo de vida).
+if [ -d "$FRONT_DIR" ] && [ ! -f "$FRONT_DIR/.nuxt/tsconfig.json" ] && [ -d "$FRONT_DIR/node_modules" ]; then
+  echo "preator-perfil.sh: $FRONT_DIR/.nuxt/tsconfig.json ausente — rodando 'nuxt prepare' uma vez (bootstrap #106)" >&2
+  if (cd "$FRONT_DIR" && pnpm exec nuxt prepare >/dev/null 2>&1); then
+    echo "preator-perfil.sh: $FRONT_DIR/.nuxt/ populado." >&2
+  else
+    echo "preator-perfil.sh: 'nuxt prepare' falhou — 'pnpm run typecheck' solto (sem NUXT_BUILD_DIR)" >&2
+    echo "  pode reportar erros de .nuxt/ ausente; rode-o manualmente dentro de $FRONT_DIR/ para ver a causa." >&2
+  fi
+fi
+
 # `NUXT_BUILD_DIR` isola o build do gate do `.nuxt` que o `pnpm dev` usa.
 # Sem isso, `nuxt build` apaga o `.nuxt/manifest/meta/dev.json` — o alvo do
 # alias `#app-manifest` em desenvolvimento — e o front de dev quebra com um
