@@ -82,16 +82,26 @@ próprias, já abertas antes desta MC:
   rodada de #60. Unificada pela tarefa [#102](https://github.com/cesarvieira/orcamento/issues/102)
   num único predicado `ehNomeDeFamiliaId`, dono em `tenant.ts`, consumido pelos outros dois pontos
   — as duas frestas fechadas. PR [#103](https://github.com/cesarvieira/orcamento/pull/103).
-- **[#63](https://github.com/cesarvieira/orcamento/issues/63)** — três sobras não-bloqueantes: (a)
-  a home dispara `carregar()` duas vezes por conexão/reconexão do socket, porque assina
-  `lancamentos` e `orcamento` em duas chamadas separadas de `useRealtime`, cada uma com seu próprio
-  listener `connect` incondicional (achado na revisão da #54); (b) o estado vazio do extrato tem
-  uma corrida entre `verificarSeFamiliaTemHistorico()` e o guarda `leituraEmOrdem` — troca só a
-  frase de vazio, nunca um número; (c) `.nuxt/` não existe em worktree novo, e o `tsconfig.json` da
-  raiz depende dele — sintoma medido na #54: `pnpm run typecheck` solto falhou com centenas de
-  erros em arquivos alheios.
+- **[#63](https://github.com/cesarvieira/orcamento/issues/63)** — **Fechada.** Três sobras
+  não-bloqueantes: (a) a home disparava `carregar()` duas vezes por conexão/reconexão do socket,
+  porque assinava `lancamentos` e `orcamento` em duas chamadas separadas de `useRealtime`, cada uma
+  com seu próprio listener `connect` incondicional (achado na revisão da #54); (b) o estado vazio
+  do extrato tinha uma corrida entre `verificarSeFamiliaTemHistorico()` e o guarda `leituraEmOrdem`
+  — trocava só a frase de vazio, nunca um número; (c) `.nuxt/` não existe em worktree novo, e o
+  `tsconfig.json` da raiz depende dele — sintoma medido na #54: `pnpm run typecheck` solto falhou
+  com centenas de erros em arquivos alheios. Corrigidas por quatro tarefas:
+  [#104](https://github.com/cesarvieira/orcamento/issues/104) reescreveu `useRealtime.ts` para um
+  socket físico singleton por aba (a suposição de que duas chamadas de `useRealtime()`
+  compartilhavam o `Manager` do `socket.io-client` era falsa — confirmado executando a biblioteca
+  real), com coalescência por instância de componente por cima; `#105` estendeu o guarda
+  `leituraEmOrdem` a `verificarSeFamiliaTemHistorico()`, extraindo a lógica para
+  `useExtratoLeitura.ts`; `#106` automatizou o bootstrap do `.nuxt/`; `#107` (aberta durante a
+  esteira, não prevista na decomposição original) adotou `vitest` como runner oficial de `web/`
+  depois que #104 e #105 tropeçaram na mesma lacuna — nenhum teste de frontend estava wireado ao
+  gate — e cada uma tinha começado a resolver isso de um jeito diferente. PR
+  [#108](https://github.com/cesarvieira/orcamento/pull/108).
 
-Nenhuma das duas é lacuna nova desta MC — são apontadas aqui para não se perderem entre "a história
+Nenhuma das três é lacuna nova desta MC — são apontadas aqui para não se perderem entre "a história
 terminou" e "alguém lembra de olhar o backlog".
 
 ## Riscos de implantação
