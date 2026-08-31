@@ -67,7 +67,7 @@ async function criarCategoria(cookie: string, nome: string): Promise<CategoriaCr
   const resposta = await request(app)
     .post('/categorias')
     .set('Cookie', cookie)
-    .send({ nome, icone: 'estrela', cor: '#000000' });
+    .send({ nome, icone: 'ti-glass-full', cor: '#000000' });
   expect(resposta.status).toBe(201);
   return resposta.body as CategoriaCriada;
 }
@@ -93,7 +93,7 @@ describe('categorias — cadastro e leitura', () => {
     const resposta = await request(app)
       .post('/categorias')
       .set('Cookie', cookieA)
-      .send({ nome: 'Mercado', icone: 'carrinho', cor: '#16a34a' });
+      .send({ nome: 'Mercado', icone: 'ti-shopping-cart', cor: '#16a34a' });
 
     expect(resposta.status).toBe(201);
     expect(resposta.body.nome).toBe('Mercado');
