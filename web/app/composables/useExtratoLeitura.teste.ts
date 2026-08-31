@@ -1,22 +1,21 @@
 /**
  * Prova da corrida da tarefa #105 (história #63) e do conserto.
  *
- * ⚠️ ESTE PROJETO NÃO TEM RUNNER DE TESTE PARA O FRONT (`web/package.json`
- * não declara `vitest`/`@vue/test-utils`; `TEST_CMD` do `preator-perfil.sh`
- * só cobre `@orcamento/api`). Montar a SFC de verdade exigiria instalar essa
- * infraestrutura inteira — decisão de plataforma (EF-00), fora do escopo
- * desta tarefa (`web/app/pages/extrato.vue`).
+ * Roda sob o runner OFICIAL de `web/` — vitest, introduzido pela tarefa #107
+ * (história #63) — em vez do `node --test` puro que a primeira rodada desta
+ * tarefa usou: naquele momento `web/` ainda não tinha nenhum runner de teste
+ * (decisão de plataforma fora do escopo desta tarefa de tela), então este
+ * arquivo usava só o runner nativo do Node como ponte. Com #107 mesclado, a
+ * ponte deixou de ser necessária — a lógica do teste é a MESMA, só a sintaxe
+ * de import/assert mudou para `describe`/`it`/`expect`.
  *
- * Por isso este arquivo usa só o RUNNER NATIVO do Node (`node:test` +
- * `node:assert/strict`) sobre `useExtratoLeitura` — o MESMO composable que
- * `extrato.vue` importa e usa (não uma cópia da lógica): `ref`/`computed` do
- * Vue rodam em Node puro, sem bundler, e nenhuma dependência nova entrou.
+ * Exercita `useExtratoLeitura` — o MESMO composable que `extrato.vue` importa
+ * e usa (não uma cópia da lógica).
  *
  * Rodar (de dentro de `web/`):
- *   node --test app/composables/useExtratoLeitura.teste.ts
+ *   pnpm run teste -- app/composables/useExtratoLeitura.teste.ts
  */
-import assert from 'node:assert/strict';
-import { test } from 'node:test';
+import { describe, expect, it } from 'vitest';
 import { useExtratoLeitura, type RespostaDeLancamentos } from './useExtratoLeitura.ts';
 
 type LancamentoFalso = RespostaDeLancamentos['lancamentos'][number];
@@ -56,71 +55,73 @@ function criarListarControlavel() {
   /** Resolve a chamada pendente no índice `indice` (ordem de disparo real de `listar()`). */
   function resolverChamada(indice: number, resposta: RespostaDeLancamentos): void {
     const chamada = pendentes[indice];
-    assert.ok(chamada, `esperava uma chamada de listar() pendente no índice ${indice}, só há ${pendentes.length}`);
+    if (!chamada) {
+      throw new Error(`esperava uma chamada de listar() pendente no índice ${indice}, só há ${pendentes.length}`);
+    }
     chamada.resolver(resposta);
   }
 
   return { listar, resolverChamada };
 }
 
-test('corrida: a resposta ATRASADA de verificarSeFamiliaTemHistorico() da chamada MAIS ANTIGA não pode vencer a MAIS NOVA', async () => {
-  const { listar, resolverChamada } = criarListarControlavel();
-  const leitura = useExtratoLeitura({ listar });
+describe('useExtratoLeitura', () => {
+  it('corrida: a resposta ATRASADA de verificarSeFamiliaTemHistorico() da chamada MAIS ANTIGA não pode vencer a MAIS NOVA', async () => {
+    const { listar, resolverChamada } = criarListarControlavel();
+    const leitura = useExtratoLeitura({ listar });
 
-  // ── DISPARO 1 (mais antigo): carregar('2026-08') ─────────────────────────
-  // listar(filtro) → pendente[0].
-  const chamadaMaisAntiga = leitura.carregar({ competencia: '2026-08' });
+    // ── DISPARO 1 (mais antigo): carregar('2026-08') ─────────────────────────
+    // listar(filtro) → pendente[0].
+    const chamadaMaisAntiga = leitura.carregar({ competencia: '2026-08' });
 
-  // Resolve a leitura filtrada vazia → carregar() entra no caminho vazio e chama
-  // verificarSeFamiliaTemHistorico, que dispara SEU PRÓPRIO listar({}) → pendente[1].
-  // Essa segunda chamada fica pendente (não resolvida ainda) — é a "resposta atrasada".
-  resolverChamada(0, { lancamentos: [] });
-  await aguardarMicrotarefas();
+    // Resolve a leitura filtrada vazia → carregar() entra no caminho vazio e chama
+    // verificarSeFamiliaTemHistorico, que dispara SEU PRÓPRIO listar({}) → pendente[1].
+    // Essa segunda chamada fica pendente (não resolvida ainda) — é a "resposta atrasada".
+    resolverChamada(0, { lancamentos: [] });
+    await aguardarMicrotarefas();
 
-  // ── DISPARO 2 (mais novo): carregar('2026-09'), disparado DEPOIS do disparo 1 ────
-  // listar(filtro) → pendente[2].
-  const chamadaMaisNova = leitura.carregar({ competencia: '2026-09' });
+    // ── DISPARO 2 (mais novo): carregar('2026-09'), disparado DEPOIS do disparo 1 ────
+    // listar(filtro) → pendente[2].
+    const chamadaMaisNova = leitura.carregar({ competencia: '2026-09' });
 
-  // A leitura filtrada da chamada mais nova volta com lançamento (não é vazia) —
-  // decide a tela direto, sem precisar de verificarSeFamiliaTemHistorico.
-  resolverChamada(2, { lancamentos: [lancamentoFalso('mais-novo')] });
-  await chamadaMaisNova;
+    // A leitura filtrada da chamada mais nova volta com lançamento (não é vazia) —
+    // decide a tela direto, sem precisar de verificarSeFamiliaTemHistorico.
+    resolverChamada(2, { lancamentos: [lancamentoFalso('mais-novo')] });
+    await chamadaMaisNova;
 
-  assert.equal(
-    leitura.familiaSemHistorico.value,
-    false,
-    'a chamada mais nova (disparo 2) tem lançamento — não deveria mostrar o vazio de família nova',
-  );
+    expect(
+      leitura.familiaSemHistorico.value,
+      'a chamada mais nova (disparo 2) tem lançamento — não deveria mostrar o vazio de família nova',
+    ).toBe(false);
 
-  // ── A RESPOSTA ATRASADA chega por último: o histórico do disparo 1 (o mais ANTIGO) ──
-  // era vazio — sozinha ela diria "família sem histórico". Mas o disparo 1 já está
-  // OBSOLETO: o disparo 2 (mais novo) já decidiu a tela.
-  resolverChamada(1, { lancamentos: [] });
-  await aguardarMicrotarefas();
-  await chamadaMaisAntiga;
+    // ── A RESPOSTA ATRASADA chega por último: o histórico do disparo 1 (o mais ANTIGO) ──
+    // era vazio — sozinha ela diria "família sem histórico". Mas o disparo 1 já está
+    // OBSOLETO: o disparo 2 (mais novo) já decidiu a tela.
+    resolverChamada(1, { lancamentos: [] });
+    await aguardarMicrotarefas();
+    await chamadaMaisAntiga;
 
-  // A ORDEM DE DISPARO (2 depois de 1) deve vencer, não a ordem de resposta
-  // (a resposta do disparo 1 chegou por último). Antes da tarefa #105,
-  // `verificarSeFamiliaTemHistorico()` não tinha o carimbo `minhaOrdem` e esta
-  // resposta atrasada sobrescrevia `familiaSemHistorico` para `true` — a corrida.
-  assert.equal(
-    leitura.familiaSemHistorico.value,
-    false,
-    'a resposta atrasada da chamada MAIS ANTIGA sobrescreveu o estado da MAIS NOVA — corrida presente',
-  );
-});
+    // A ORDEM DE DISPARO (2 depois de 1) deve vencer, não a ordem de resposta
+    // (a resposta do disparo 1 chegou por último). Antes da tarefa #105,
+    // `verificarSeFamiliaTemHistorico()` não tinha o carimbo `minhaOrdem` e esta
+    // resposta atrasada sobrescrevia `familiaSemHistorico` para `true` — a corrida.
+    expect(
+      leitura.familiaSemHistorico.value,
+      'a resposta atrasada da chamada MAIS ANTIGA sobrescreveu o estado da MAIS NOVA — corrida presente',
+    ).toBe(false);
+  });
 
-test('sem corrida: uma única chamada de carregar() ainda decide corretamente o vazio de família nova', async () => {
-  const { listar, resolverChamada } = criarListarControlavel();
-  const leitura = useExtratoLeitura({ listar });
+  it('sem corrida: uma única chamada de carregar() ainda decide corretamente o vazio de família nova', async () => {
+    const { listar, resolverChamada } = criarListarControlavel();
+    const leitura = useExtratoLeitura({ listar });
 
-  const chamada = leitura.carregar({ competencia: '2026-08' });
-  resolverChamada(0, { lancamentos: [] }); // filtrada vazia → dispara o histórico
-  await aguardarMicrotarefas();
-  resolverChamada(1, { lancamentos: [] }); // histórico também vazio → família nova
-  await chamada;
+    const chamada = leitura.carregar({ competencia: '2026-08' });
+    resolverChamada(0, { lancamentos: [] }); // filtrada vazia → dispara o histórico
+    await aguardarMicrotarefas();
+    resolverChamada(1, { lancamentos: [] }); // histórico também vazio → família nova
+    await chamada;
 
-  assert.equal(leitura.familiaSemHistorico.value, true);
-  assert.equal(leitura.carregando.value, false);
-  assert.equal(leitura.erro.value, null);
+    expect(leitura.familiaSemHistorico.value).toBe(true);
+    expect(leitura.carregando.value).toBe(false);
+    expect(leitura.erro.value).toBe(null);
+  });
 });
