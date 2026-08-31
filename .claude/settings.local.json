@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"C:\\\\Users\\\\gutov\\\\.preator-worktrees\\\\orcamento\\\\84-banco-de-teste\" && grep -n \"DATABASE_URL_TESTE\\\\|export DATABASE\" preator-perfil.sh)",
+      "Bash(bash -n preator-perfil.sh)"
+    ]
+  }
+}
