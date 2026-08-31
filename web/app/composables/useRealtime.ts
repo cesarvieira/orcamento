@@ -109,11 +109,69 @@ export function useOrigemClienteId(): string {
   return id.value;
 }
 
+/**
+ * COALESCÊNCIA DE RECONEXÃO POR INSTÂNCIA DE COMPONENTE — fork já decidido
+ * pelo humano na issue #104 (história #63): quando o MESMO componente Vue
+ * chama `useRealtime`/`useLancamentos` mais de uma vez (ex.:
+ * `pages/index.vue`, que ouve `lancamentos` via `useLancamentos` e
+ * `orcamento`/`contas` via `useRealtime` direto), uma única reconexão não
+ * deve disparar um resync POR CHAMADA — só UM por componente.
+ *
+ * A chave é a INSTÂNCIA DO COMPONENTE (`getCurrentInstance()`), não o socket
+ * físico e não uma dedupe global: componentes DIFERENTES continuam cada um
+ * com seu próprio resync. Funciona porque as chamadas do MESMO componente,
+ * feitas com a mesma URL/path/opções (sem `forceNew`), compartilham o mesmo
+ * `Manager` do socket.io-client — os eventos `connect` de todas elas disparam
+ * no MESMO turno síncrono quando a conexão cai e volta. É essa
+ * simultaneidade que a janela de microtarefa abaixo coalesce.
+ */
+interface GrupoDeReconexao {
+  /** `true` enquanto o resync desta rodada de reconexão já foi disparado. */
+  resyncEmAndamento: boolean;
+}
+
+const gruposPorInstancia = new WeakMap<object, GrupoDeReconexao>();
+
+/**
+ * O grupo de coalescência desta chamada. Fora de um componente (sem
+ * instância — não é o uso real, mas é o caminho de teste direto do
+ * composable) cada chamada vira seu próprio grupo: sem instância não há
+ * "mesmo componente" para coalescer.
+ */
+function grupoDeReconexaoAtual(): GrupoDeReconexao {
+  const chave: object = getCurrentInstance() ?? {};
+  let grupo = gruposPorInstancia.get(chave);
+  if (!grupo) {
+    grupo = { resyncEmAndamento: false };
+    gruposPorInstancia.set(chave, grupo);
+  }
+  return grupo;
+}
+
+/**
+ * Roda `resync` no máximo UMA vez por grupo, por rodada de reconexão. A
+ * segunda (e demais) chamada dentro da MESMA rodada síncrona é descartada —
+ * é exatamente o "N assinaturas, 1 resync" que a issue #104 exige. A janela
+ * fecha numa microtarefa: a PRÓXIMA reconexão (nova queda de socket) já
+ * libera de novo.
+ */
+function resincronizarUmaVezPorGrupo(grupo: GrupoDeReconexao, resync: () => void | Promise<void>): void {
+  if (grupo.resyncEmAndamento) return;
+  grupo.resyncEmAndamento = true;
+  queueMicrotask(() => {
+    grupo.resyncEmAndamento = false;
+  });
+  void resync();
+}
+
 export function useRealtime(opcoes: OpcoesDeRealtime) {
   const conectado = ref(false);
   const socket = shallowRef<Socket | null>(null);
   const origemClienteId = useOrigemClienteId();
   const base = useApiBasePublica();
+  // Capturado AQUI (síncrono, durante o `setup()` de quem chamou) — é o
+  // único ponto em que `getCurrentInstance()` é garantidamente válido.
+  const grupoDeReconexao = grupoDeReconexaoAtual();
 
   function competencia(): string | null {
     const alvo = opcoes.competenciaAtiva;
@@ -171,7 +229,11 @@ export function useRealtime(opcoes: OpcoesDeRealtime) {
       // lançado alguma coisa. E, no reconectar, é o único jeito de saber o que
       // se perdeu — os eventos que passaram enquanto o socket estava fora não
       // voltam. Relê a competência ativa e pronto.
-      void opcoes.aoInvalidar(null);
+      //
+      // Coalescida por COMPONENTE (issue #104): se este `useRealtime` é uma
+      // de várias chamadas do mesmo componente, só a primeira desta rodada
+      // de reconexão efetivamente relê — ver `resincronizarUmaVezPorGrupo`.
+      resincronizarUmaVezPorGrupo(grupoDeReconexao, () => opcoes.aoInvalidar(null));
     });
 
     s.on('disconnect', () => {
