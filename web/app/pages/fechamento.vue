@@ -113,7 +113,10 @@ const formatarData = (dataIso: string) => {
 
       <div v-if="resumo.status === 'aberto'" class="fechamento__aviso">
         <i class="ti ti-alert-circle"></i>
-        <p>Ao fechar o mês, a competência é selada e não aceitará novos lançamentos. A sobra permanece em caixa e entrará no lastro do mês seguinte.</p>
+        <p>
+          Ao fechar o mês, a competência é selada e não aceitará novos lançamentos.
+          A sobra permanece em caixa e entrará no lastro do mês seguinte.
+        </p>
       </div>
 
       <button 
