@@ -1,9 +1,9 @@
 /**
- * RN-06 a RN-09 (EF-01) — criar a própria família, com confirmação de email.
+ * RN-46 a RN-49 (EF-01) — criar a própria família, com confirmação de email.
  *
  * O que estes testes protegem não é a tela: é a fronteira entre o cadastro
- * livre e o convite. Sem RN-07 e RN-08, criar conta viraria um atalho para
- * duplicar pessoa (o furo que RN-04 fecha) ou para escapar do convite.
+ * livre e o convite. Sem RN-47 e RN-48, criar conta viraria um atalho para
+ * duplicar pessoa (o furo que RN-44 fecha) ou para escapar do convite.
  */
 import { eq } from 'drizzle-orm';
 import request from 'supertest';
@@ -118,7 +118,7 @@ describe('criar a própria família', () => {
     expect(quinta.status).toBe(429);
     expect(quinta.body.erro).toBe('confirmacao_bloqueada');
 
-    // Bloqueada de verdade: nem o código certo entra depois disso (RN-11).
+    // Bloqueada de verdade: nem o código certo entra depois disso (RN-51).
     const comOCerto = await tentar(token);
     expect(comOCerto.status).toBe(429);
   });

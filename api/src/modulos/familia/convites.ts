@@ -1,11 +1,11 @@
 /**
- * O SERVIÇO DE CONVITE — RN-01 e RN-03 (EF-01).
+ * O SERVIÇO DE CONVITE — RN-41 e RN-43 (EF-01).
  *
  * `familiaId` chega aqui já resolvido pelo chamador a partir do TOKEN da
- * sessão (RN-01) — este arquivo não lê request nenhum, então não há como ele
+ * sessão (RN-41) — este arquivo não lê request nenhum, então não há como ele
  * aceitar `familiaId` de outro lugar por engano.
  *
- * RN-03: convite expira (`CONVITE_TTL_HORAS`, parâmetro de ambiente — D-07)
+ * RN-43: convite expira (`CONVITE_TTL_HORAS`, parâmetro de ambiente — D-07)
  * e é de uso único (`usadoEm`).
  */
 import { and, desc, eq, gt, isNull } from 'drizzle-orm';
@@ -54,7 +54,7 @@ export async function criarConvite(
 }
 
 /**
- * RN-03/RN-10/RN-11 — acha o convite pelo EMAIL e só então confere o código.
+ * RN-43/RN-50/RN-51 — acha o convite pelo EMAIL e só então confere o código.
  *
  * A ordem importa e não é estilo: um código de 6 dígitos colide entre linhas,
  * então buscar por ele seria ambíguo. Achar pelo email primeiro resolve isso
@@ -70,7 +70,7 @@ export async function convitePendente(
   // O convite MAIS RECENTE daquele email, usado ou não. Filtrar `usadoEm` e
   // `recusadoEm` aqui seria mais curto, mas apagaria a diferença entre "já
   // encerrado" e "nunca existiu" — e é justamente essa diferença que dá a
-  // mensagem certa a quem tenta (RN-03/RN-08). Um convite novo para o mesmo
+  // mensagem certa a quem tenta (RN-43/RN-48). Um convite novo para o mesmo
   // email é sempre mais recente, então re-convidar continua funcionando.
   const [linha] = await db
     .select()
@@ -122,7 +122,7 @@ export async function marcarConviteUsado(db: Db, conviteId: string): Promise<voi
 }
 
 /**
- * RN-08 — o convidado não quis. Encerra o convite SEM criar membro, e é isso
+ * RN-48 — o convidado não quis. Encerra o convite SEM criar membro, e é isso
  * que libera o email para criar a própria família.
  */
 export async function marcarConviteRecusado(db: Db, conviteId: string): Promise<void> {
@@ -131,8 +131,8 @@ export async function marcarConviteRecusado(db: Db, conviteId: string): Promise<
 
 /**
  * EF01-MC-001: os convites PENDENTES da família — não usados, não recusados
- * (RN-08) e não expirados (RN-03), do mais recente para o mais antigo. `familiaId` chega
- * já resolvido do TOKEN da sessão (RN-01), igual às demais funções deste
+ * (RN-48) e não expirados (RN-43), do mais recente para o mais antigo. `familiaId` chega
+ * já resolvido do TOKEN da sessão (RN-41), igual às demais funções deste
  * arquivo.
  */
 export async function listarConvitesPendentes(db: Db, familiaId: string): Promise<Convite[]> {

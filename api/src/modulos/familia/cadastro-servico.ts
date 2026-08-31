@@ -1,15 +1,15 @@
 /**
- * CRIAR A PRÓPRIA FAMÍLIA — RN-06 a RN-09 (EF-01).
+ * CRIAR A PRÓPRIA FAMÍLIA — RN-46 a RN-49 (EF-01).
  *
  * D-05 sempre previu que "o primeiro usuário cria a família e convida os
  * demais". O que este arquivo acrescenta é o caminho para esse primeiro
  * usuário existir sem convite — e as duas recusas que impedem esse caminho de
  * virar um atalho para dentro de família alheia:
  *
- *   RN-07  email que já é de um `Membro` não cadastra. O email identifica a
- *          PESSOA (RN-04), não a conta; deixar cadastrar de novo criaria a
- *          segunda pessoa que RN-04 existe para impedir.
- *   RN-08  email com convite PENDENTE não cadastra. O convite é o único
+ *   RN-47  email que já é de um `Membro` não cadastra. O email identifica a
+ *          PESSOA (RN-44), não a conta; deixar cadastrar de novo criaria a
+ *          segunda pessoa que RN-44 existe para impedir.
+ *   RN-48  email com convite PENDENTE não cadastra. O convite é o único
  *          caminho para entrar numa família existente, e o schema não admite
  *          um membro em duas famílias. A saída é do convidado: ele aceita, ou
  *          RECUSA — e recusar libera o email para criar a própria família.

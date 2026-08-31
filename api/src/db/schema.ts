@@ -104,7 +104,7 @@ export const familias = pgTable('familias', {
 
 /**
  * Autor imutável de cada lançamento. Todo membro tem o MESMO poder sobre os
- * dados da família: não há papéis, e a ausência deles é a regra (RN-05/EF-01).
+ * dados da família: não há papéis, e a ausência deles é a regra (RN-45/EF-01).
  */
 export const membros = pgTable(
   'membros',
@@ -114,7 +114,7 @@ export const membros = pgTable(
       .notNull()
       .references(() => familias.id, { onDelete: 'cascade' }),
     nome: text('nome').notNull(),
-    /** Email canônico do membro — é a chave que liga as identidades (RN-04). */
+    /** Email canônico do membro — é a chave que liga as identidades (RN-44). */
     email: text('email').notNull(),
     criadoEm: criadoEm(),
     atualizadoEm: atualizadoEm(),
@@ -133,7 +133,7 @@ export const membros = pgTable(
  * Separada de `membros` de propósito: o mesmo email pode chegar por Google e
  * por senha e precisa resolver para A MESMA PESSOA. Guardar o provedor dentro
  * de `membros` obrigaria a duplicar a pessoa por provedor — que é exatamente o
- * furo de RN-04 (EF-01).
+ * furo de RN-44 (EF-01).
  *
  * `segredo` só é preenchido no provedor `senha` (hash scrypt + sal, nunca a
  * senha). No provedor `google` fica nulo: quem guarda a credencial é o Google.
@@ -152,7 +152,7 @@ export const identidades = pgTable(
     emailVerificado: timestamp('email_verificado', { withTimezone: true }),
     segredo: text('segredo'),
     /**
-     * O CÓDIGO de 6 dígitos que confirma o cadastro (RN-06/RN-09/RN-10). Nulo
+     * O CÓDIGO de 6 dígitos que confirma o cadastro (RN-46/RN-49/RN-50). Nulo
      * em toda identidade que já nasceu confirmada — Google, que traz o email
      * verificado do provedor, e quem entrou por convite, cujo email o próprio
      * convite já provou.
@@ -166,18 +166,18 @@ export const identidades = pgTable(
     tokenConfirmacao: text('token_confirmacao'),
     confirmacaoExpiraEm: timestamp('confirmacao_expira_em', { withTimezone: true }),
     /**
-     * RN-11 — erros acumulados neste código. Ao chegar no teto, o código é
+     * RN-51 — erros acumulados neste código. Ao chegar no teto, o código é
      * invalidado. É o ÚNICO obstáculo à força bruta desde que o token virou
-     * 6 dígitos (RN-10): sem ele, ~1 milhão de combinações caem em segundos.
+     * 6 dígitos (RN-50): sem ele, ~1 milhão de combinações caem em segundos.
      */
     tentativasConfirmacao: integer('tentativas_confirmacao').notNull().default(0),
     /**
-     * O CÓDIGO de 6 dígitos que troca a senha esquecida (RN-12). Mora aqui
+     * O CÓDIGO de 6 dígitos que troca a senha esquecida (RN-52). Mora aqui
      * pelo mesmo motivo que `tokenConfirmacao`: o que se recupera É o segredo
      * DESTA identidade — um estado dela, não uma entidade nova.
      *
      * Só o provedor `senha` chega a ter um. Numa identidade `google` a coluna
-     * fica sempre nula: não há segredo nosso a trocar (RN-15 resolve isso
+     * fica sempre nula: não há segredo nosso a trocar (RN-55 resolve isso
      * criando a identidade de senha, não recuperando a do Google).
      *
      * Sem índice único, como os outros códigos: 6 dígitos colidem entre
@@ -185,7 +185,7 @@ export const identidades = pgTable(
      */
     tokenRecuperacao: text('token_recuperacao'),
     recuperacaoExpiraEm: timestamp('recuperacao_expira_em', { withTimezone: true }),
-    /** RN-11 aplicada à recuperação — ver o comentário gêmeo acima. */
+    /** RN-51 aplicada à recuperação — ver o comentário gêmeo acima. */
     tentativasRecuperacao: integer('tentativas_recuperacao').notNull().default(0),
     criadoEm: criadoEm(),
     atualizadoEm: atualizadoEm(),
@@ -201,7 +201,7 @@ export const identidades = pgTable(
 // ---------------------------------------------------------------------------
 
 /**
- * Expira e é de uso único (RN-03/EF-01). O prazo é parâmetro de ambiente
+ * Expira e é de uso único (RN-43/EF-01). O prazo é parâmetro de ambiente
  * (`CONVITE_TTL_HORAS`), não regra — por isso mora no `.env`, não aqui.
  *
  * O fluxo de envio e aceite é da EF-01; a EF-00 só declara a forma.
@@ -214,18 +214,18 @@ export const convites = pgTable(
       .notNull()
       .references(() => familias.id, { onDelete: 'cascade' }),
     email: text('email').notNull(),
-    /** O CÓDIGO de 6 dígitos (RN-10). Sem índice único: colide entre linhas. */
+    /** O CÓDIGO de 6 dígitos (RN-50). Sem índice único: colide entre linhas. */
     token: text('token').notNull(),
     expiraEm: timestamp('expira_em', { withTimezone: true }).notNull(),
     usadoEm: timestamp('usado_em', { withTimezone: true }),
     /**
-     * Quando o convidado RECUSOU (RN-08). Separado de `usadoEm` de propósito:
+     * Quando o convidado RECUSOU (RN-48). Separado de `usadoEm` de propósito:
      * os dois encerram o convite, mas só a recusa libera aquele email para
      * criar a própria família — e quem lê a tabela depois precisa distinguir
      * "entrou" de "não quis".
      */
     recusadoEm: timestamp('recusado_em', { withTimezone: true }),
-    /** RN-11 — ver o comentário gêmeo em `identidades`. */
+    /** RN-51 — ver o comentário gêmeo em `identidades`. */
     tentativas: integer('tentativas').notNull().default(0),
     criadoEm: criadoEm(),
   },

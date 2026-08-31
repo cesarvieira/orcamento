@@ -4,7 +4,7 @@
  * A EF-00 entregou a plataforma: sessão em cookie `httpOnly`, o middleware
  * que deriva o tenant dela, e uma leitura da família que prova o isolamento.
  * Este arquivo completa a EF-01 por cima dela: login por Google, envio de
- * convite e aceite — que é onde RN-02/RN-03/RN-04 se encontram.
+ * convite e aceite — que é onde RN-42/RN-43/RN-44 se encontram.
  */
 import { and, eq } from 'drizzle-orm';
 import type { Router as RouterType } from 'express';
@@ -153,7 +153,7 @@ rotasDeFamilia.post('/sessoes', async (req, res, next) => {
 // ---------------------------------------------------------------------------
 //
 // O que autentica é o email VERIFICADO pelo provedor, nunca o que o token
-// alega solto (RN-02/RN-04). Este endpoint NUNCA cria família nem membro: sem
+// alega solto (RN-42/RN-44). Este endpoint NUNCA cria família nem membro: sem
 // conta prévia (nem `Identidade` no provedor `google`, nem `Membro` com o
 // email por `senha`), a resposta é "conta não encontrada" — D-05 não admite
 // autocadastro livre, e login não é convite.
@@ -312,8 +312,8 @@ rotasDeFamilia.get('/familia', exigirSessao, async (req, res, next) => {
 // POST /convites — convidar alguém para a família da SESSÃO
 // ---------------------------------------------------------------------------
 //
-// RN-01: a `familiaId` do convite vem de `familiaDaRequisicao`, nunca do
-// corpo. RN-05: qualquer membro pode convidar — não há papel que restrinja
+// RN-41: a `familiaId` do convite vem de `familiaDaRequisicao`, nunca do
+// corpo. RN-45: qualquer membro pode convidar — não há papel que restrinja
 // isto, e a ausência de checagem de papel É a regra (ver identidade-servico
 // e o teste que prova que um membro convidado também convida).
 
@@ -367,8 +367,8 @@ rotasDeFamilia.post('/convites', exigirSessao, async (req, res, next) => {
 // GET /convites — os convites pendentes da família da SESSÃO
 // ---------------------------------------------------------------------------
 //
-// EF01-MC-001. RN-01: a familiaId vem de `familiaDaRequisicao`, nunca do
-// request — igual a `GET /familia`. Só lista PENDENTES (RN-03): um convite
+// EF01-MC-001. RN-41: a familiaId vem de `familiaDaRequisicao`, nunca do
+// request — igual a `GET /familia`. Só lista PENDENTES (RN-43): um convite
 // já aceito (`usadoEm`) ou já expirado não aparece, porque quem convida quer
 // saber "quem eu ainda estou esperando", não o histórico inteiro.
 
@@ -405,10 +405,10 @@ rotasDeFamilia.get('/convites', exigirSessao, async (req, res, next) => {
 // POST /convites/aceitar — aceitar o convite e entrar
 // ---------------------------------------------------------------------------
 //
-// RN-02: o email que aceita é o convidado — digitado no método `senha`,
+// RN-42: o email que aceita é o convidado — digitado no método `senha`,
 // VERIFICADO pelo Google no método `google` (nunca o que o token alega
-// solto). RN-03: convite expirado ou já usado é recusado com erro claro.
-// RN-04: resolve para o `Membro` já existente quando o email já tem
+// solto). RN-43: convite expirado ou já usado é recusado com erro claro.
+// RN-44: resolve para o `Membro` já existente quando o email já tem
 // identidade (por QUALQUER provedor); só cria um novo quando não havia
 // nenhuma.
 
@@ -421,12 +421,12 @@ registrarRota({
   corpo: 'AceitarConvite',
   respostas: [
     { status: 201, descricao: 'Convite aceito; sessão aberta', esquema: 'SessaoAtual' },
-    { status: 401, descricao: 'Código do convite incorreto (RN-10), código do Google inválido ou email não verificado', esquema: 'Erro' },
+    { status: 401, descricao: 'Código do convite incorreto (RN-50), código do Google inválido ou email não verificado', esquema: 'Erro' },
     { status: 404, descricao: 'Nenhum convite pendente para este email', esquema: 'Erro' },
     { status: 409, descricao: 'Convite já usado, recusado, ou email de outra família', esquema: 'Erro' },
-    { status: 410, descricao: 'Convite expirado (RN-03)', esquema: 'Erro' },
+    { status: 410, descricao: 'Convite expirado (RN-43)', esquema: 'Erro' },
     { status: 422, descricao: 'Corpo inválido', esquema: 'Erro' },
-    { status: 429, descricao: 'Código invalidado por excesso de tentativas (RN-11)', esquema: 'Erro' },
+    { status: 429, descricao: 'Código invalidado por excesso de tentativas (RN-51)', esquema: 'Erro' },
   ],
 });
 
@@ -437,14 +437,14 @@ const STATUS_DO_ERRO_DE_CONVITE: Record<string, number> = {
   // quem o recebeu (RN-08). Expirou é o tempo que decidiu, e por isso é 410.
   convite_recusado: 409,
   convite_expirado: 410,
-  // RN-10/RN-11 — o código errado é 401 (não provou ser o convidado), e o
+  // RN-50/RN-51 — o código errado é 401 (não provou ser o convidado), e o
   // esgotamento das tentativas é 429: não é o convite que está errado, é o
   // ritmo de quem tenta.
   codigo_invalido: 401,
   convite_bloqueado: 429,
 };
 
-/** Os erros de `confirmarCadastro`, mesma lógica de status (RN-09/RN-11). */
+/** Os erros de `confirmarCadastro`, mesma lógica de status (RN-49/RN-51). */
 const STATUS_DO_ERRO_DE_CADASTRO: Record<string, number> = {
   confirmacao_nao_encontrada: 404,
   confirmacao_expirada: 410,
@@ -487,7 +487,7 @@ rotasDeFamilia.post('/convites/aceitar', async (req, res, next) => {
       segredo = await gerarHashDeSenha(analise.data.senha);
     }
 
-    // RN-02 + RN-10 — o convite é procurado PELO email de quem aceita, junto
+    // RN-42 + RN-50 — o convite é procurado PELO email de quem aceita, junto
     // do código. Não há mais comparação depois do fato: quem não é o convidado
     // simplesmente não acha convite nenhum.
     let convite;
@@ -594,7 +594,7 @@ rotasDeFamilia.post('/cadastros', async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
-// POST /cadastros/confirmar — prova o email e entra (RN-06/RN-09)
+// POST /cadastros/confirmar — prova o email e entra (RN-46/RN-49)
 // ---------------------------------------------------------------------------
 
 registrarRota({
@@ -606,11 +606,11 @@ registrarRota({
   corpo: 'ConfirmarConta',
   respostas: [
     { status: 201, descricao: 'Email confirmado; sessão aberta', esquema: 'SessaoAtual' },
-    { status: 401, descricao: 'Código incorreto (RN-10)', esquema: 'Erro' },
+    { status: 401, descricao: 'Código incorreto (RN-50)', esquema: 'Erro' },
     { status: 404, descricao: 'Nenhuma confirmação pendente para este email', esquema: 'Erro' },
-    { status: 410, descricao: 'Código expirado (RN-09)', esquema: 'Erro' },
+    { status: 410, descricao: 'Código expirado (RN-49)', esquema: 'Erro' },
     { status: 422, descricao: 'Corpo inválido', esquema: 'Erro' },
-    { status: 429, descricao: 'Código invalidado por excesso de tentativas (RN-11)', esquema: 'Erro' },
+    { status: 429, descricao: 'Código invalidado por excesso de tentativas (RN-51)', esquema: 'Erro' },
   ],
 });
 
@@ -659,12 +659,12 @@ registrarRota({
   corpo: 'RecusarConvite',
   respostas: [
     { status: 204, descricao: 'Convite recusado' },
-    { status: 401, descricao: 'Código incorreto (RN-10)', esquema: 'Erro' },
+    { status: 401, descricao: 'Código incorreto (RN-50)', esquema: 'Erro' },
     { status: 404, descricao: 'Nenhum convite pendente para este email', esquema: 'Erro' },
     { status: 409, descricao: 'Convite já usado ou já recusado', esquema: 'Erro' },
-    { status: 410, descricao: 'Convite expirado (RN-03)', esquema: 'Erro' },
+    { status: 410, descricao: 'Convite expirado (RN-43)', esquema: 'Erro' },
     { status: 422, descricao: 'Corpo inválido', esquema: 'Erro' },
-    { status: 429, descricao: 'Código invalidado por excesso de tentativas (RN-11)', esquema: 'Erro' },
+    { status: 429, descricao: 'Código invalidado por excesso de tentativas (RN-51)', esquema: 'Erro' },
   ],
 });
 
@@ -696,10 +696,10 @@ rotasDeFamilia.post('/convites/recusar', async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
-// POST /recuperacoes — esqueci minha senha (RN-12/RN-13)
+// POST /recuperacoes — esqueci minha senha (RN-52/RN-53)
 // ---------------------------------------------------------------------------
 //
-// RN-13: a resposta é a MESMA exista ou não a conta. Por isso o handler não
+// RN-53: a resposta é a MESMA exista ou não a conta. Por isso o handler não
 // olha o resultado do serviço para decidir o que responder — ele responde
 // primeiro, no mesmo lugar, para os dois casos. Qualquer `if` que ramificasse
 // aqui seria o oráculo que a regra existe para fechar.
@@ -712,12 +712,12 @@ registrarRota({
   exigeSessao: false,
   corpo: 'PedirRecuperacao',
   respostas: [
-    { status: 202, descricao: 'Pedido aceito — resposta idêntica exista ou não a conta (RN-13)', esquema: 'RecuperacaoPedida' },
+    { status: 202, descricao: 'Pedido aceito — resposta idêntica exista ou não a conta (RN-53)', esquema: 'RecuperacaoPedida' },
     { status: 422, descricao: 'Corpo inválido', esquema: 'Erro' },
   ],
 });
 
-/** O texto de RN-13. Um lugar só: duas cópias divergem e viram o oráculo. */
+/** O texto de RN-53. Um lugar só: duas cópias divergem e viram o oráculo. */
 const RESPOSTA_DA_RECUPERACAO = {
   mensagem: 'Se existir uma conta com este email, o código de recuperação foi enviado para ela.',
 };
@@ -749,7 +749,7 @@ rotasDeFamilia.post('/recuperacoes', async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
-// POST /recuperacoes/concluir — troca a senha e entra (RN-12/RN-14/RN-16)
+// POST /recuperacoes/concluir — troca a senha e entra (RN-52/RN-54/RN-56)
 // ---------------------------------------------------------------------------
 
 /** Os erros de `concluirRecuperacao`, no mesmo critério de status dos outros códigos. */
@@ -769,11 +769,11 @@ registrarRota({
   corpo: 'ConcluirRecuperacao',
   respostas: [
     { status: 201, descricao: 'Senha trocada; sessões antigas encerradas e nova sessão aberta', esquema: 'SessaoAtual' },
-    { status: 401, descricao: 'Código incorreto (RN-12)', esquema: 'Erro' },
+    { status: 401, descricao: 'Código incorreto (RN-52)', esquema: 'Erro' },
     { status: 404, descricao: 'Nenhuma recuperação pendente para este email', esquema: 'Erro' },
     { status: 410, descricao: 'Código expirado', esquema: 'Erro' },
     { status: 422, descricao: 'Corpo inválido', esquema: 'Erro' },
-    { status: 429, descricao: 'Código invalidado por excesso de tentativas (RN-11)', esquema: 'Erro' },
+    { status: 429, descricao: 'Código invalidado por excesso de tentativas (RN-51)', esquema: 'Erro' },
   ],
 });
 

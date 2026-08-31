@@ -193,12 +193,12 @@ export function opcoesDoCookie(expiraEm: Date) {
 }
 
 /**
- * O CÓDIGO de 6 dígitos que vai por email (RN-10) — convite e confirmação.
+ * O CÓDIGO de 6 dígitos que vai por email (RN-50) — convite e confirmação.
  *
  * `randomInt` do `node:crypto`, não `Math.random`: o segundo é previsível e
  * aqui o que está atrás do código é a conta de uma família.
  *
- * Seis dígitos são ~1 milhão de combinações, o que só é seguro porque RN-11
+ * Seis dígitos são ~1 milhão de combinações, o que só é seguro porque RN-51
  * limita as tentativas. Quem trocar isto por algo menor, ou remover o teto,
  * devolve a força bruta ao jogo.
  */
