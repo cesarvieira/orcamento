@@ -1,71 +1,104 @@
 /**
- * Prova da issue #104 (história #63): quando o MESMO componente Vue chama
- * `useRealtime` mais de uma vez — o caso real é `pages/index.vue`, que ouve
- * `lancamentos` via `useLancamentos({ aoInvalidar })` (que por dentro só
- * delega para `useRealtime`, ver o cabeçalho de `useLancamentos.ts`) e
- * `orcamento`/`contas` via `useRealtime` direto —, uma reconexão do socket
- * deve disparar **UM** resync por componente, não um por assinatura.
+ * Prova da issue #104 (história #63) — REESCRITA após a rodada anterior ter
+ * sido reprovada em revisão. O teste anterior mockava `socket.io-client`
+ * inteiro e fabricava, dentro do mock, os dois `connect` disparando no MESMO
+ * turno síncrono — uma simultaneidade que a biblioteca REAL não garante:
+ * medido com ela de verdade, duas chamadas de `useRealtime()` NÃO
+ * compartilham `Manager` por padrão (`s1.io === s2.io` é `false`), e mesmo
+ * que compartilhassem, duas conexões físicas independentes reconectam cada
+ * uma com seu próprio jitter aleatório.
  *
- * Este teste chama `useRealtime` DUAS VEZES direto (em vez de uma vez direto
- * e uma via `useLancamentos`): `useLancamentos` só embrulha `useRealtime`
- * (nenhuma lógica de coalescência vive lá), e chamar direto evita simular
- * `useApi`/`$fetch`/`useRuntimeConfig` — infraestrutura de rede que esta
- * suíte não precisa para provar o comportamento de reconexão. O caminho
- * testado (duas chamadas de `useRealtime` na mesma `setup()`) é
- * byte-a-byte o que `useLancamentos` produziria de qualquer forma.
+ * A correção mudou de arquitetura por causa disso: agora existe UM socket
+ * FÍSICO por aba (`obterOuCriarSocket`, `useRealtime.ts`), reaproveitado por
+ * toda chamada de `useRealtime` — a coalescência por componente entra DEPOIS,
+ * para o caso de o mesmo componente registrar mais de um listener no mesmo
+ * socket físico.
  *
- * O mock de `socket.io-client` simula o que acontece de verdade em produção:
- * as duas chamadas usam a MESMA url/path/opções (sem `forceNew`), então o
- * `socket.io-client` real as multiplexa no mesmo `Manager` — os dois
- * `connect` disparam no MESMO turno síncrono quando a conexão cai e volta.
- * É por isso que os testes abaixo disparam os dois `connect` em sequência
- * síncrona, sem `await` entre eles.
+ * Por isso este teste sobe um servidor Socket.IO REAL em loopback (`socket.io`,
+ * já usado por `api/`) e deixa o `socket.io-client` REAL de ponta a ponta
+ * decidir quando conecta/desconecta/reconecta — nada aqui mocka Manager ou
+ * multiplexação. A única substituição é o auto-import do Nuxt
+ * `useApiBasePublica` (rede — não é a lógica sob teste), apontado para o
+ * servidor de teste.
  */
+import { createServer, type Server as ServidorHttp } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { defineComponent, h } from 'vue';
-import { mount } from '@vue/test-utils';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mount, type VueWrapper } from '@vue/test-utils';
+import { Server as ServidorSocketIO, type Socket as SocketDoServidor } from 'socket.io';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useRealtime } from './useRealtime';
 
-interface SocketFalso {
-  on: (evento: string, cb: (...args: unknown[]) => void) => SocketFalso;
-  close: () => void;
-  emitir: (evento: string, ...args: unknown[]) => void;
-}
+const CAMINHO_REALTIME = '/realtime';
 
-const { socketsCriados, criarSocketFalso } = vi.hoisted(() => {
-  const socketsCriados: SocketFalso[] = [];
+let servidorHttp: ServidorHttp;
+let servidorIo: ServidorSocketIO;
+let baseUrl: string;
+let conexoesAceitas: SocketDoServidor[];
 
-  function criarSocketFalso(): SocketFalso {
-    const ouvintes = new Map<string, Set<(...args: unknown[]) => void>>();
-    const socket: SocketFalso = {
-      on(evento, cb) {
-        const grupo = ouvintes.get(evento) ?? new Set();
-        grupo.add(cb);
-        ouvintes.set(evento, grupo);
-        return socket;
-      },
-      // Fake sem estado de conexão real: nada a fazer ao "fechar".
-      close: () => undefined,
-      emitir(evento, ...args) {
-        for (const cb of ouvintes.get(evento) ?? []) cb(...args);
-      },
-    };
-    return socket;
-  }
+beforeEach(async () => {
+  conexoesAceitas = [];
+  servidorHttp = createServer();
+  servidorIo = new ServidorSocketIO(servidorHttp, { path: CAMINHO_REALTIME });
+  servidorIo.on('connection', (socket) => {
+    conexoesAceitas.push(socket);
+  });
 
-  return { socketsCriados, criarSocketFalso };
+  await new Promise<void>(resolve => servidorHttp.listen(0, '127.0.0.1', resolve));
+  const endereco = servidorHttp.address() as AddressInfo;
+  baseUrl = `http://127.0.0.1:${endereco.port}`;
+
+  // Único substituto: a URL de conexão. `obterOuCriarSocket` chama isto para
+  // decidir o `base` — aqui aponta para o servidor real desta suíte.
+  vi.stubGlobal('useApiBasePublica', () => baseUrl);
 });
 
-vi.mock('socket.io-client', () => ({
-  io: vi.fn(() => {
-    const s = criarSocketFalso();
-    socketsCriados.push(s);
-    return s;
-  }),
-}));
+afterEach(async () => {
+  vi.unstubAllGlobals();
+  servidorIo.close();
+  await new Promise<void>(resolve => servidorHttp.close(() => resolve()));
+});
+
+/** Espera o servidor de teste aceitar `quantidade` conexões (poll simples — sem depender de timers falsos). */
+function aguardarConexoes(quantidade: number, timeoutMs = 4000): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const inicio = Date.now();
+    const intervalo = setInterval(() => {
+      if (conexoesAceitas.length >= quantidade) {
+        clearInterval(intervalo);
+        resolve();
+      } else if (Date.now() - inicio > timeoutMs) {
+        clearInterval(intervalo);
+        reject(new Error(`esperava ${quantidade} conexão(ões), servidor viu ${conexoesAceitas.length}`));
+      }
+    }, 10);
+  });
+}
+
+/**
+ * Derruba a conexão mais recente pelo lado do SERVIDOR e espera o
+ * `socket.io-client` real reconectar por conta própria.
+ *
+ * ⚠️ `Socket#disconnect()` (nível socket.io) manda um pacote de desconexão
+ * cuja `reason` do lado do cliente vira `"io server disconnect"` — e essa é
+ * justamente a ÚNICA razão que o `socket.io-client` trata como "não
+ * reconecte sozinho" (é a API para o servidor EXPULSAR alguém). Fechar o
+ * transporte (`conn.close()`, nível engine.io) simula a queda de rede que a
+ * issue #104 é sobre: o cliente vê `"transport close"` e reconecta sozinho.
+ */
+async function derrubarEEsperarReconexao(): Promise<void> {
+  const antes = conexoesAceitas.length;
+  const atual = conexoesAceitas[antes - 1];
+  if (!atual) throw new Error('nenhuma conexão do servidor para derrubar');
+  atual.conn.close();
+  await aguardarConexoes(antes + 1, 6000);
+  // Um instante para os listeners `on('connect', ...)` do lado do CLIENTE
+  // rodarem depois que o servidor já viu a nova conexão.
+  await new Promise(resolve => setTimeout(resolve, 50));
+}
 
 /** Monta um componente que assina `useRealtime` `n` vezes, cada uma com seu próprio `aoInvalidar`. */
-function montarComponenteComAssinaturas(aoInvalidarPorAssinatura: (() => void)[]) {
+function montarComponenteComAssinaturas(aoInvalidarPorAssinatura: (() => void)[]): VueWrapper {
   const Componente = defineComponent({
     setup() {
       for (const aoInvalidar of aoInvalidarPorAssinatura) {
@@ -77,69 +110,85 @@ function montarComponenteComAssinaturas(aoInvalidarPorAssinatura: (() => void)[]
   return mount(Componente);
 }
 
-/** O socket falso criado pela n-ésima chamada de `useRealtime` desta suíte — sem non-null assertion no teste. */
-function socketCriado(indice: number): SocketFalso {
-  const socket = socketsCriados[indice];
-  if (!socket) throw new Error(`esperava um socket falso no índice ${indice}, mock criou só ${socketsCriados.length}`);
-  return socket;
-}
+describe('useRealtime — socket físico singleton por aba + coalescência de reconexão por componente (issue #104)', () => {
+  it(
+    'duas assinaturas (mesma base) abrem UM socket físico só — não dois',
+    async () => {
+      montarComponenteComAssinaturas([vi.fn(), vi.fn()]);
 
-beforeEach(() => {
-  socketsCriados.length = 0;
-});
+      await aguardarConexoes(1);
+      // Espera um pouco mais: se a correção falhasse, uma SEGUNDA conexão
+      // apareceria aqui (a assinatura B abrindo seu próprio socket).
+      await new Promise(resolve => setTimeout(resolve, 200));
 
-describe('useRealtime — coalescência de reconexão por instância de componente (issue #104)', () => {
-  it('duas assinaturas do MESMO componente produzem 1 resync por reconexão, não 2', () => {
-    const aoInvalidarA = vi.fn();
-    const aoInvalidarB = vi.fn();
+      expect(conexoesAceitas).toHaveLength(1);
+    },
+    8000,
+  );
 
-    montarComponenteComAssinaturas([aoInvalidarA, aoInvalidarB]);
+  it(
+    'uma reconexão do socket físico único produz 1 resync por COMPONENTE, não 1 por assinatura',
+    async () => {
+      const aoInvalidarA = vi.fn();
+      const aoInvalidarB = vi.fn();
+      montarComponenteComAssinaturas([aoInvalidarA, aoInvalidarB]);
 
-    expect(socketsCriados).toHaveLength(2);
+      // A CONEXÃO INICIAL do mount já é, por si só, uma rodada de "conectou"
+      // (R4 — "inclusive a primeira", ver cabeçalho de `useRealtime.ts`) e já
+      // dispara seu próprio resync coalescido. Descarta essa primeira rodada
+      // dos contadores: o que este teste mede é a reconexão FORÇADA abaixo.
+      await aguardarConexoes(1);
+      aoInvalidarA.mockClear();
+      aoInvalidarB.mockClear();
 
-    // A RECONEXÃO: os dois `connect` do mesmo componente, no mesmo turno
-    // síncrono (ver cabeçalho do arquivo).
-    socketCriado(0).emitir('connect');
-    socketCriado(1).emitir('connect');
+      await derrubarEEsperarReconexao();
 
-    const totalDeResyncs = aoInvalidarA.mock.calls.length + aoInvalidarB.mock.calls.length;
-    expect(totalDeResyncs).toBe(1);
-  });
+      const totalDeResyncs = aoInvalidarA.mock.calls.length + aoInvalidarB.mock.calls.length;
+      expect(totalDeResyncs).toBe(1);
+    },
+    10000,
+  );
 
-  it('cada reconexão SEGUINTE ainda gera seu próprio resync — a coalescência não trava para sempre', async () => {
-    const aoInvalidarA = vi.fn();
-    const aoInvalidarB = vi.fn();
+  it(
+    'NÃO é dedupe global: componentes DIFERENTES continuam cada um com seu próprio resync, mesmo compartilhando o socket físico',
+    async () => {
+      const aoInvalidarX = vi.fn();
+      const aoInvalidarY = vi.fn();
+      montarComponenteComAssinaturas([aoInvalidarX]);
+      montarComponenteComAssinaturas([aoInvalidarY]);
 
-    montarComponenteComAssinaturas([aoInvalidarA, aoInvalidarB]);
+      // Mesma base ⇒ mesmo socket físico — mas são componentes diferentes.
+      // Descarta a rodada da conexão INICIAL (ver comentário no teste acima)
+      // e mede só a reconexão forçada.
+      await aguardarConexoes(1);
+      aoInvalidarX.mockClear();
+      aoInvalidarY.mockClear();
 
-    socketCriado(0).emitir('connect');
-    socketCriado(1).emitir('connect');
-    expect(aoInvalidarA.mock.calls.length + aoInvalidarB.mock.calls.length).toBe(1);
+      await derrubarEEsperarReconexao();
 
-    // A janela de coalescência fecha numa microtarefa — depois dela, uma
-    // NOVA queda e volta do socket é uma rodada nova, com seu próprio resync.
-    await Promise.resolve();
+      expect(aoInvalidarX).toHaveBeenCalledTimes(1);
+      expect(aoInvalidarY).toHaveBeenCalledTimes(1);
+    },
+    10000,
+  );
 
-    socketCriado(0).emitir('connect');
-    socketCriado(1).emitir('connect');
-    expect(aoInvalidarA.mock.calls.length + aoInvalidarB.mock.calls.length).toBe(2);
-  });
+  it(
+    'desmontar UM assinante não fecha o socket que outro assinante ainda usa',
+    async () => {
+      const wrapperDoPrimeiro = montarComponenteComAssinaturas([vi.fn()]);
+      montarComponenteComAssinaturas([vi.fn()]);
 
-  it('NÃO é uma dedupe global: componentes DIFERENTES continuam cada um com seu resync', () => {
-    const aoInvalidarComponenteX = vi.fn();
-    const aoInvalidarComponenteY = vi.fn();
+      await aguardarConexoes(1);
+      const conexaoCompartilhada = conexoesAceitas[0];
 
-    montarComponenteComAssinaturas([aoInvalidarComponenteX]);
-    montarComponenteComAssinaturas([aoInvalidarComponenteY]);
+      wrapperDoPrimeiro.unmount();
+      // Se o unmount fechasse o socket compartilhado incondicionalmente
+      // (defeito que a issue #104 pede para evitar), o servidor veria esta
+      // conexão cair aqui.
+      await new Promise(resolve => setTimeout(resolve, 200));
 
-    expect(socketsCriados).toHaveLength(2);
-
-    // As reconexões dos DOIS componentes no mesmo turno síncrono — cada
-    // componente é seu próprio grupo, então nenhum suprime o outro.
-    socketCriado(0).emitir('connect');
-    socketCriado(1).emitir('connect');
-
-    expect(aoInvalidarComponenteX).toHaveBeenCalledTimes(1);
-    expect(aoInvalidarComponenteY).toHaveBeenCalledTimes(1);
-  });
+      expect(conexaoCompartilhada?.connected).toBe(true);
+    },
+    8000,
+  );
 });

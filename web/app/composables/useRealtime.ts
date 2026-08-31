@@ -110,20 +110,76 @@ export function useOrigemClienteId(): string {
 }
 
 /**
+ * O SOCKET FÍSICO — UM por aba, não um por chamada de `useRealtime`.
+ *
+ * A rodada anterior desta correção supôs que duas chamadas de
+ * `useRealtime()` com a mesma URL/path compartilhassem o `Manager` do
+ * `socket.io-client` por multiplexação implícita. Medido com a biblioteca
+ * REAL (não o mock): `s1.io === s2.io` deu `false` para duas chamadas do
+ * mesmo componente — a premissa era falsa. E mesmo que fosse verdadeira, duas
+ * conexões físicas independentes reconectam com jitter aleatório cada uma; os
+ * dois `connect` não cairiam de forma confiável no mesmo microtask.
+ *
+ * A correção não depende de nenhuma garantia da biblioteca: existe UM único
+ * `Socket` por `base` nesta aba, criado na primeira chamada e reaproveitado
+ * por TODA chamada seguinte de `useRealtime`. Com um socket físico só, existe
+ * fisicamente UM `connect` por reconexão — não dois disputando jitter
+ * separado.
+ *
+ * Fecha só quando o ÚLTIMO assinante desmontar (contagem de referências
+ * abaixo): se a primeira tela a montar o socket for também a primeira a
+ * desmontar, ela não pode derrubar a conexão que uma segunda tela ainda usa.
+ */
+interface EntradaDeSocket {
+  socket: Socket;
+  assinantes: number;
+}
+
+const socketsPorBase = new Map<string, EntradaDeSocket>();
+
+/** Reaproveita o socket físico desta `base` se já existir; cria um novo (e o registra) se não. */
+function obterOuCriarSocket(base: string): Socket {
+  let entrada = socketsPorBase.get(base);
+  if (!entrada) {
+    const s = io(base, {
+      path: CAMINHO_REALTIME,
+      // O cookie httpOnly é o que autentica no handshake. Sem isto o navegador
+      // não o manda para outra origem, e o servidor recusa a conexão.
+      withCredentials: true,
+      transports: ['websocket', 'polling'],
+    });
+    entrada = { socket: s, assinantes: 0 };
+    socketsPorBase.set(base, entrada);
+  }
+  entrada.assinantes += 1;
+  return entrada.socket;
+}
+
+/** Desconta um assinante desta `base`; fecha o socket físico só quando o último sair. */
+function liberarSocket(base: string): void {
+  const entrada = socketsPorBase.get(base);
+  if (!entrada) return;
+  entrada.assinantes -= 1;
+  if (entrada.assinantes > 0) return;
+  entrada.socket.close();
+  socketsPorBase.delete(base);
+}
+
+/**
  * COALESCÊNCIA DE RECONEXÃO POR INSTÂNCIA DE COMPONENTE — fork já decidido
- * pelo humano na issue #104 (história #63): quando o MESMO componente Vue
- * chama `useRealtime`/`useLancamentos` mais de uma vez (ex.:
- * `pages/index.vue`, que ouve `lancamentos` via `useLancamentos` e
- * `orcamento`/`contas` via `useRealtime` direto), uma única reconexão não
- * deve disparar um resync POR CHAMADA — só UM por componente.
+ * pelo humano na issue #104 (história #63). Com o socket já singleton por
+ * aba (acima), uma reconexão física dispara UM `connect` só — mas cada
+ * chamada de `useRealtime` registra seu PRÓPRIO listener nesse mesmo socket.
+ * Um componente que chama `useRealtime`/`useLancamentos` mais de uma vez
+ * (ex.: `pages/index.vue`, que ouve `lancamentos` via `useLancamentos` e
+ * `orcamento`/`contas` via `useRealtime` direto) ainda receberia um resync
+ * POR CHAMADA nessa única reconexão física.
  *
  * A chave é a INSTÂNCIA DO COMPONENTE (`getCurrentInstance()`), não o socket
- * físico e não uma dedupe global: componentes DIFERENTES continuam cada um
- * com seu próprio resync. Funciona porque as chamadas do MESMO componente,
- * feitas com a mesma URL/path/opções (sem `forceNew`), compartilham o mesmo
- * `Manager` do socket.io-client — os eventos `connect` de todas elas disparam
- * no MESMO turno síncrono quando a conexão cai e volta. É essa
- * simultaneidade que a janela de microtarefa abaixo coalesce.
+ * físico e não uma dedupe global: quando duas ou mais chamadas de
+ * `useRealtime` pertencem ao MESMO componente, o `connect` físico dispara só
+ * UM dos resyncs registrados, não os N. Componentes diferentes continuam
+ * cada um com seu próprio resync.
  */
 interface GrupoDeReconexao {
   /** `true` enquanto o resync desta rodada de reconexão já foi disparado. */
@@ -206,54 +262,64 @@ export function useRealtime(opcoes: OpcoesDeRealtime) {
     void opcoes.aoInvalidar(evento);
   }
 
+  // R4 — RESSINCRONIZAÇÃO, incondicional, em toda conexão estabelecida.
+  //
+  // Inclusive a primeira: o intervalo entre o render do servidor e a
+  // hidratação já é tempo suficiente para outra pessoa da família ter
+  // lançado alguma coisa. E, no reconectar, é o único jeito de saber o que se
+  // perdeu — os eventos que passaram enquanto o socket estava fora não
+  // voltam. Relê a competência ativa e pronto.
+  //
+  // Coalescida por COMPONENTE (issue #104): se este `useRealtime` é uma de
+  // várias chamadas do mesmo componente, só a primeira desta rodada de
+  // reconexão efetivamente relê — ver `resincronizarUmaVezPorGrupo`.
+  function aoConectar(): void {
+    conectado.value = true;
+    resincronizarUmaVezPorGrupo(grupoDeReconexao, () => opcoes.aoInvalidar(null));
+  }
+
+  function aoDesconectar(): void {
+    conectado.value = false;
+  }
+
+  function aoReceberEventoDeInvalidacao(evento: Invalidacao): void {
+    // R5 — descarta o próprio eco. Quem agiu já se avisou localmente
+    // (`notificarInvalidacaoLocal`) ou já releu por conta própria.
+    if (evento.origemClienteId && evento.origemClienteId === origemClienteId) return;
+
+    tratarInvalidacao(evento);
+  }
+
   onMounted(() => {
     // SSR não abre socket. `onMounted` só roda no cliente, e é o ponto exato
-    // depois da hidratação.
-    const s = io(base, {
-      path: CAMINHO_REALTIME,
-      // O cookie httpOnly é o que autentica no handshake. Sem isto o navegador
-      // não o manda para outra origem, e o servidor recusa a conexão.
-      withCredentials: true,
-      transports: ['websocket', 'polling'],
-    });
-
+    // depois da hidratação. `obterOuCriarSocket` reaproveita o socket físico
+    // desta aba se outra assinatura já o abriu (ver comentário acima).
+    const s = obterOuCriarSocket(base);
     socket.value = s;
+    // O socket pode já estar conectado — reaproveitado de outra assinatura
+    // desta aba — então reflete o estado real dele, não assume `false`.
+    conectado.value = s.connected;
 
-    s.on('connect', () => {
-      conectado.value = true;
-
-      // R4 — RESSINCRONIZAÇÃO, incondicional, em toda conexão estabelecida.
-      //
-      // Inclusive a primeira: o intervalo entre o render do servidor e a
-      // hidratação já é tempo suficiente para outra pessoa da família ter
-      // lançado alguma coisa. E, no reconectar, é o único jeito de saber o que
-      // se perdeu — os eventos que passaram enquanto o socket estava fora não
-      // voltam. Relê a competência ativa e pronto.
-      //
-      // Coalescida por COMPONENTE (issue #104): se este `useRealtime` é uma
-      // de várias chamadas do mesmo componente, só a primeira desta rodada
-      // de reconexão efetivamente relê — ver `resincronizarUmaVezPorGrupo`.
-      resincronizarUmaVezPorGrupo(grupoDeReconexao, () => opcoes.aoInvalidar(null));
-    });
-
-    s.on('disconnect', () => {
-      conectado.value = false;
-    });
-
-    s.on(EVENTO_INVALIDACAO, (evento: Invalidacao) => {
-      // R5 — descarta o próprio eco. Quem agiu já se avisou localmente
-      // (`notificarInvalidacaoLocal`) ou já releu por conta própria.
-      if (evento.origemClienteId && evento.origemClienteId === origemClienteId) return;
-
-      tratarInvalidacao(evento);
-    });
+    s.on('connect', aoConectar);
+    s.on('disconnect', aoDesconectar);
+    s.on(EVENTO_INVALIDACAO, aoReceberEventoDeInvalidacao);
 
     assinantesLocais.add(tratarInvalidacao);
   });
 
   onBeforeUnmount(() => {
     assinantesLocais.delete(tratarInvalidacao);
-    socket.value?.close();
+
+    const s = socket.value;
+    if (s) {
+      // Remove SÓ os listeners desta chamada — o socket é compartilhado, e
+      // `close()` incondicional aqui derrubaria a conexão de outra
+      // assinatura ainda montada. `liberarSocket` decide se fecha de verdade.
+      s.off('connect', aoConectar);
+      s.off('disconnect', aoDesconectar);
+      s.off(EVENTO_INVALIDACAO, aoReceberEventoDeInvalidacao);
+      liberarSocket(base);
+    }
     socket.value = null;
     conectado.value = false;
   });
