@@ -1,5 +1,15 @@
 {
   // Estende o tsconfig que o `nuxt prepare` gera em `.nuxt/` — é ele que
   // conhece os auto-imports, os aliases e os tipos das páginas.
+  //
+  // `.nuxt/` é gerado e gitignored: um worktree novo (`git worktree add` +
+  // `submodule update --init --recursive`) nasce sem ele. `preator-perfil.sh`
+  // (bootstrap #106, história #63) já roda `nuxt prepare` uma vez, sem
+  // override, sempre que é carregado (todo gate, e todo
+  // `. ./preator-perfil.sh` do protocolo de testes) — então isto raramente
+  // deveria faltar. Se mesmo assim `pnpm run typecheck` (dentro de `web/`)
+  // reportar centenas de erros em arquivos que você nem tocou, é este
+  // arquivo ausente: rode `pnpm run typecheck` (ou `pnpm exec nuxt prepare`)
+  // uma vez, SEM `NUXT_BUILD_DIR` — ele se autocura na própria chamada.
   "extends": "./.nuxt/tsconfig.json"
 }
