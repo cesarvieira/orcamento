@@ -53,6 +53,13 @@ credentials.*
 # Agora a fonte da fila é o GitHub Issues e nada aqui precisa de exceção.
 /.preator/tmp/
 
+# O pool de worktrees do Claude Code — mesmo motivo do `/.preator/tmp/` acima:
+# worktree git aninhado, não é conteúdo de projeto. Sem isto, um worktree de
+# OUTRA sessão nesta pasta confunde o eslint (dois tsconfig.json candidatos no
+# mesmo scan) e derruba o `pre-push`/`gate-motor.sh` com ruído de arquivo que
+# ninguém tocou.
+/.claude/worktrees/
+
 # Os DOIS carimbos do ciclo: são por execução, e valem só na máquina que os
 # produziu. Versioná-los seria transformar um veredito local em declaração de
 # "pronto" — exatamente o que o Preator existe para impedir.
@@ -121,6 +128,7 @@ npm-debug.log*
 
 # Saída da suíte — o gate conta os testes a partir dela, não se versiona.
 api/relatorio-testes.json
+web/relatorio-testes.json
 
 # Playwright: navegadores e vestígios do crawler de navegação.
 playwright-report/
