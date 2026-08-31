@@ -2,12 +2,11 @@
  * Integração de fechamento (EF-08) — Postgres de verdade, HTTP real.
  * Prova RN-36, RN-37, RN-38.
  */
-import { and, eq } from 'drizzle-orm';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { db, fecharBanco } from '../src/db';
-import { categorias, contas, fechamentosMes, orcamentosMes } from '../src/db/schema';
+import { categorias, contas } from '../src/db/schema';
 import { abrirApp, cookieDeSessao, criarFamiliaComMembro, limparBanco, subirServidorComRealtime, type FamiliaDeTeste, type StackDeTempoReal } from './apoio';
 
 const app = abrirApp();
@@ -32,13 +31,13 @@ beforeAll(async () => {
     nome: 'Conta Corrente',
     icone: 'bank',
     cor: '#000000',
-    saldoInicialCentavos: 10000 // R$ 100,00
+    saldoInicialCentavos: 10000, // R$ 100,00
   }).returning();
   contaAId = conta.id;
 
   const [cat1, cat2] = await db.insert(categorias).values([
     { familiaId: familiaA.familiaId, nome: 'Mercado', icone: 'cart', cor: '#ff0000' },
-    { familiaId: familiaA.familiaId, nome: 'Lazer', icone: 'game', cor: '#00ff00' }
+    { familiaId: familiaA.familiaId, nome: 'Lazer', icone: 'game', cor: '#00ff00' },
   ]).returning();
   categoriaAId = cat1.id;
   categoriaBId = cat2.id;
@@ -72,7 +71,7 @@ describe('EF-08: Resumo e Fechamento', () => {
         valorCentavos: 3000,
         data: '2026-08-10',
         contaId: contaAId,
-        categoriaId: categoriaBId
+        categoriaId: categoriaBId,
       });
 
     // Receita de 100
@@ -84,13 +83,13 @@ describe('EF-08: Resumo e Fechamento', () => {
         descricao: 'Salario',
         valorCentavos: 10000, // R$ 100
         data: '2026-08-05',
-        contaId: contaAId
+        contaId: contaAId,
       });
 
     const res = await request(app)
       .get('/competencias/2026-08/fechamento')
       .set('Cookie', cookieA);
-    
+
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('aberto');
     expect(res.body.recebidoCentavos).toBe(10000);
@@ -105,7 +104,7 @@ describe('EF-08: Resumo e Fechamento', () => {
     const res = await request(app)
       .post('/competencias/2026-08/fechar')
       .set('Cookie', cookieA);
-    
+
     expect(res.status).toBe(200);
     expect(res.body.competencia).toBe('2026-08');
     expect(res.body.sobraCentavos).toBe(7000);
@@ -113,7 +112,7 @@ describe('EF-08: Resumo e Fechamento', () => {
     const checkResumo = await request(app)
       .get('/competencias/2026-08/fechamento')
       .set('Cookie', cookieA);
-    
+
     expect(checkResumo.body.status).toBe('fechado');
     expect(checkResumo.body.fechadoEm).toBeTypeOf('string');
     expect(checkResumo.body.autorMembroId).toBe(familiaA.membroId);
@@ -129,9 +128,9 @@ describe('EF-08: Resumo e Fechamento', () => {
         valorCentavos: 1000,
         data: '2026-08-15',
         contaId: contaAId,
-        categoriaId: categoriaAId
+        categoriaId: categoriaAId,
       });
-    
+
     expect(res.status).toBe(409);
     expect(res.body.erro).toBe('competencia_selada');
   });
@@ -146,9 +145,9 @@ describe('EF-08: Resumo e Fechamento', () => {
         valorCentavos: 1000,
         data: '2026-09-01',
         contaId: contaAId,
-        categoriaId: categoriaAId
+        categoriaId: categoriaAId,
       });
-    
+
     expect(res.status).toBe(201);
   });
 
@@ -164,7 +163,7 @@ describe('EF-08: Resumo e Fechamento', () => {
     const res = await request(app)
       .get('/competencias/2026-09')
       .set('Cookie', cookieA);
-    
+
     expect(res.status).toBe(200);
     expect(res.body.lastroCentavos).toBe(16000);
   });

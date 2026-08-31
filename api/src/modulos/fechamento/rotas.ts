@@ -29,7 +29,7 @@ registrarRota({
 
 rotasDeFechamento.get('/competencias/:competencia/fechamento', exigirSessao, async (req, res, _next) => {
   const competencia = req.params.competencia as string;
-  
+
   if (!PADRAO_COMPETENCIA.test(competencia)) {
     return res.status(422).json({ erro: 'parametros_invalidos', mensagem: 'Competência fora do formato AAAA-MM' });
   }
@@ -59,7 +59,7 @@ registrarRota({
 
 rotasDeFechamento.post('/competencias/:competencia/fechar', exigirSessao, async (req, res, _next) => {
   const competencia = req.params.competencia as string;
-  
+
   if (!PADRAO_COMPETENCIA.test(competencia)) {
     return res.status(422).json({ erro: 'parametros_invalidos', mensagem: 'Competência fora do formato AAAA-MM' });
   }
@@ -67,10 +67,10 @@ rotasDeFechamento.post('/competencias/:competencia/fechar', exigirSessao, async 
   const familiaId = familiaDaRequisicao(req);
   const membroId = membroDaRequisicao(req);
   const resultado = await fecharCompetencia(db, familiaId, membroId, competencia);
-  
+
   if (resultado.tipo === 'ja_fechado') {
     return res.status(400).json({ erro: 'regra_de_negocio', mensagem: 'Competência já se encontra fechada' });
   }
-  
+
   res.status(200).json(resultado.fechamento);
 });
