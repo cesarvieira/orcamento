@@ -27,6 +27,7 @@ import '../modulos/orcamento/rotas';
 import '../modulos/lancamentos/rotas';
 import '../modulos/faturas/rotas';
 import '../modulos/metas/rotas';
+import '../modulos/fechamento/rotas';
 
 const destino = path.resolve(__dirname, '..', '..', '..', 'packages', 'contrato', 'openapi.json');
 

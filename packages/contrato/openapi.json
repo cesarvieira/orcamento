@@ -2126,6 +2126,138 @@
           "data"
         ],
         "additionalProperties": false
+      },
+      "CategoriaEstourada": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "disponivelCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "disponivelCentavos"
+        ],
+        "additionalProperties": false
+      },
+      "ResumoFechamento": {
+        "type": "object",
+        "properties": {
+          "competencia": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}$"
+          },
+          "recebidoCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "planejadoCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "gastoCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "sobraProjetadaCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "categoriasEstouradas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "nome": {
+                  "type": "string"
+                },
+                "disponivelCentavos": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "id",
+                "nome",
+                "disponivelCentavos"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "aberto",
+              "fechado"
+            ]
+          },
+          "fechadoEm": {
+            "nullable": true,
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "autorMembroId": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "competencia",
+          "recebidoCentavos",
+          "planejadoCentavos",
+          "gastoCentavos",
+          "sobraProjetadaCentavos",
+          "categoriasEstouradas",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "FechamentoMes": {
+        "type": "object",
+        "properties": {
+          "competencia": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}$"
+          },
+          "sobraCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "fechadoEm": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "autorMembroId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "competencia",
+          "sobraCentavos",
+          "fechadoEm",
+          "autorMembroId"
+        ],
+        "additionalProperties": false
       }
     },
     "securitySchemes": {
@@ -4376,6 +4508,128 @@
           },
           "422": {
             "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/competencias/{competencia}/fechamento": {
+      "get": {
+        "summary": "Resumo da competência para o fechamento (recebido, planejado, gasto, sobra projetada, categorias estouradas e status)",
+        "tags": [
+          "fechamento"
+        ],
+        "operationId": "get_competencias__competencia__fechamento",
+        "parameters": [
+          {
+            "name": "competencia",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resumo do fechamento da competência",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumoFechamento"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Competência fora do formato AAAA-MM",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/competencias/{competencia}/fechar": {
+      "post": {
+        "summary": "Realiza o fechamento da competência, selando-a e apurando a sobra que vai para o lastro do próximo mês.",
+        "tags": [
+          "fechamento"
+        ],
+        "operationId": "post_competencias__competencia__fechar",
+        "parameters": [
+          {
+            "name": "competencia",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Competência fechada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FechamentoMes"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Competência já se encontra fechada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Competência fora do formato AAAA-MM",
             "content": {
               "application/json": {
                 "schema": {
