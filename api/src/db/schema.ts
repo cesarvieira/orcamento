@@ -468,6 +468,30 @@ export const competencias = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// FechamentoMes — competência selada (EF-08 §1).
+// ---------------------------------------------------------------------------
+
+export const fechamentosMes = pgTable(
+  'fechamentos_mes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    familiaId: uuid('familia_id')
+      .notNull()
+      .references(() => familias.id, { onDelete: 'cascade' }),
+    competencia: colunaCompetencia('competencia').notNull(),
+    sobraCentavos: dinheiroCentavos('sobra_centavos').notNull(),
+    fechadoEm: timestamp('fechado_em', { withTimezone: true }).notNull().defaultNow(),
+    autorMembroId: uuid('autor_membro_id')
+      .notNull()
+      .references(() => membros.id),
+    criadoEm: criadoEm(),
+  },
+  t => [
+    uniqueIndex('fechamentos_mes_familia_competencia_unico').on(t.familiaId, t.competencia),
+  ],
+);
+
+// ---------------------------------------------------------------------------
 // SerieParcelas — agrupa as N parcelas de uma compra parcelada (EF-04 §1).
 // Guarda `totalCentavos`/`quantidade` da COMPRA ORIGINAL.
 // ---------------------------------------------------------------------------
@@ -709,6 +733,7 @@ export const familiasRelacoes = relations(familias, ({ many }) => ({
   convites: many(convites),
   contas: many(contas),
   categorias: many(categorias),
+  fechamentosMes: many(fechamentosMes),
 }));
 
 export const categoriasRelacoes = relations(categorias, ({ one, many }) => ({
@@ -753,6 +778,17 @@ export const competenciasRelacoes = relations(competencias, ({ one }) => ({
   familia: one(familias, {
     fields: [competencias.familiaId],
     references: [familias.id],
+  }),
+}));
+
+export const fechamentosMesRelacoes = relations(fechamentosMes, ({ one }) => ({
+  familia: one(familias, {
+    fields: [fechamentosMes.familiaId],
+    references: [familias.id],
+  }),
+  autor: one(membros, {
+    fields: [fechamentosMes.autorMembroId],
+    references: [membros.id],
   }),
 }));
 
