@@ -1,5 +1,5 @@
 /**
- * RN-01, RN-02, RN-03 e RN-05 (EF-01) — convite: criar, persistir, validar
+ * RN-41, RN-42, RN-43 e RN-45 (EF-01) — convite: criar, persistir, validar
  * token, expirar, recusar email divergente, e a ausência de hierarquia.
  *
  * O driver de email é `log` (default do ambiente de teste — D-07): nenhum
@@ -68,7 +68,7 @@ describe('criar convite', () => {
     expect(resposta.status).toBe(401);
   });
 
-  it('RN-01: persiste na família da SESSÃO, mesmo que o corpo tente outra', async () => {
+  it('RN-41: persiste na família da SESSÃO, mesmo que o corpo tente outra', async () => {
     const resposta = await request(app)
       .post('/convites')
       .set('Cookie', cookieA)
@@ -84,7 +84,7 @@ describe('criar convite', () => {
     expect(linha?.familiaId).not.toBe(familiaB.familiaId);
   });
 
-  it('RN-03: expira em CONVITE_TTL_HORAS a partir de agora', async () => {
+  it('RN-43: expira em CONVITE_TTL_HORAS a partir de agora', async () => {
     const antes = Date.now();
     const resposta = await request(app)
       .post('/convites')
@@ -106,7 +106,7 @@ describe('criar convite', () => {
 
       expect(resposta.status).toBe(201);
       const chamadas = espiao.mock.calls.map(args => String(args[0]));
-      // O que o email carrega agora é o CÓDIGO (RN-10), não um link com
+      // O que o email carrega agora é o CÓDIGO (RN-50), não um link com
       // segredo dentro — é por ele que a linha de log se prova.
       expect(
         chamadas.some(linha => linha.includes('convidada-log@exemplo.test') && /código \d{6}/.test(linha)),
@@ -174,7 +174,7 @@ describe('aceitar convite', () => {
     expect((familia.body.membros as { email: string }[]).map(m => m.email)).toContain(email);
   });
 
-  it('RN-03: recusa email que não tem convite nenhum', async () => {
+  it('RN-43: recusa email que não tem convite nenhum', async () => {
     const resposta = await request(app).post('/convites/aceitar').send({
       metodo: 'senha',
       codigo: '000000',
@@ -186,7 +186,7 @@ describe('aceitar convite', () => {
     expect(resposta.body.erro).toBe('convite_nao_encontrado');
   });
 
-  it('RN-10: código errado é recusado sem consumir o convite', async () => {
+  it('RN-50: código errado é recusado sem consumir o convite', async () => {
     const email = 'codigo-errado@exemplo.test';
     await request(app).post('/convites').set('Cookie', cookieA).send({ email });
     const convite = await convitePorEmail(email);
@@ -207,7 +207,7 @@ describe('aceitar convite', () => {
     expect(aindaPendente?.tentativas).toBe(1);
   });
 
-  it('RN-11: na quinta tentativa errada o código é invalidado, e o certo já não vale', async () => {
+  it('RN-51: na quinta tentativa errada o código é invalidado, e o certo já não vale', async () => {
     const email = 'forca-bruta@exemplo.test';
     await request(app).post('/convites').set('Cookie', cookieA).send({ email });
     const convite = await convitePorEmail(email);
@@ -234,7 +234,7 @@ describe('aceitar convite', () => {
     expect(comOCerto.body.erro).toBe('convite_bloqueado');
   });
 
-  it('RN-03: convite de uso único — o segundo aceite do MESMO código é recusado', async () => {
+  it('RN-43: convite de uso único — o segundo aceite do MESMO código é recusado', async () => {
     const email = 'uso-unico@exemplo.test';
     await request(app).post('/convites').set('Cookie', cookieA).send({ email });
     const convite = await convitePorEmail(email);
@@ -255,7 +255,7 @@ describe('aceitar convite', () => {
     expect(segundo.body.erro).toBe('convite_usado');
   });
 
-  it('RN-03: convite expirado é recusado', async () => {
+  it('RN-43: convite expirado é recusado', async () => {
     const email = 'expirado@exemplo.test';
     const [linha] = await db
       .insert(convites)
@@ -276,7 +276,7 @@ describe('aceitar convite', () => {
     expect(resposta.body.erro).toBe('convite_expirado');
   });
 
-  it('RN-02: o email de outra pessoa não acha o convite — nem com o código certo', async () => {
+  it('RN-42: o email de outra pessoa não acha o convite — nem com o código certo', async () => {
     const emailConvidado = 'convidada-certa@exemplo.test';
     await request(app).post('/convites').set('Cookie', cookieA).send({ email: emailConvidado });
     const convite = await convitePorEmail(emailConvidado);
@@ -292,7 +292,7 @@ describe('aceitar convite', () => {
         senha: SENHA_DE_TESTE,
       });
 
-    // Desde RN-10 a busca é pelo par email + código: com o email errado não há
+    // Desde RN-50 a busca é pelo par email + código: com o email errado não há
     // o que comparar, o convite simplesmente não existe para quem tenta.
     expect(resposta.status).toBe(404);
     expect(resposta.body.erro).toBe('convite_nao_encontrado');
@@ -302,7 +302,7 @@ describe('aceitar convite', () => {
     expect(aindaPendente?.usadoEm).toBeNull();
   });
 
-  it('RN-05: quem entrou por convite tem o MESMO poder — também convida', async () => {
+  it('RN-45: quem entrou por convite tem o MESMO poder — também convida', async () => {
     const email = 'convida-de-novo@exemplo.test';
     await request(app).post('/convites').set('Cookie', cookieA).send({ email });
     const convite = await convitePorEmail(email);
@@ -316,7 +316,7 @@ describe('aceitar convite', () => {
     ) as string;
 
     // Nenhum código de papel/hierarquia existe — o novo membro convida como
-    // qualquer outro. É a AUSÊNCIA de checagem de papel que prova RN-05.
+    // qualquer outro. É a AUSÊNCIA de checagem de papel que prova RN-45.
     const proximoConvite = await request(app)
       .post('/convites')
       .set('Cookie', cookieDoNovo)
@@ -334,7 +334,7 @@ describe('listar convites pendentes', () => {
     expect(resposta.status).toBe(401);
   });
 
-  it('EF01-MC-001/RN-01: só lista os pendentes da família da SESSÃO, isolado da outra família', async () => {
+  it('EF01-MC-001/RN-41: só lista os pendentes da família da SESSÃO, isolado da outra família', async () => {
     const emailPendenteA = 'pendente-a@exemplo.test';
     const emailPendenteB = 'pendente-b@exemplo.test';
     await request(app).post('/convites').set('Cookie', cookieA).send({ email: emailPendenteA });

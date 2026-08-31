@@ -2,7 +2,7 @@
  * A FRONTEIRA COM O GOOGLE — onde um código de autorização vira uma pessoa.
  *
  * O que importa não é o email que chega solto: é o email VERIFICADO pelo
- * provedor (RN-02/RN-04 · EF-01) — o campo `email_verified` de um payload
+ * provedor (RN-42/RN-44 · EF-01) — o campo `email_verified` de um payload
  * ASSINADO, nunca uma alegação sem prova.
  *
  * ## Por que código de autorização, e não ID token direto

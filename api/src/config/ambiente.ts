@@ -50,13 +50,13 @@ const esquema = z.object({
   SMTP_USER: z.string().default(''),
   SMTP_PASS: z.string().default(''),
   CONVITE_TTL_HORAS: z.coerce.number().int().positive().default(72),
-  // Prazo do link que confirma o email de quem criou a família (RN-09).
+  // Prazo do link que confirma o email de quem criou a família (RN-49).
   // Menor que o do convite de propósito: quem acabou de se cadastrar está com
   // a caixa de entrada aberta; convite espera a agenda de outra pessoa.
   CADASTRO_TTL_HORAS: z.coerce.number().int().positive().default(24),
-  // Prazo do código que troca a senha esquecida (RN-12). O MENOR dos três de
+  // Prazo do código que troca a senha esquecida (RN-52). O MENOR dos três de
   // propósito: é o código mais perigoso — quem o tem troca a senha e, por
-  // RN-14, derruba todas as sessões da dona da conta. Quem pediu está com a
+  // RN-54, derruba todas as sessões da dona da conta. Quem pediu está com a
   // caixa de entrada aberta agora; não há motivo para ele sobreviver ao dia.
   RECUPERACAO_TTL_HORAS: z.coerce.number().int().positive().default(1),
 

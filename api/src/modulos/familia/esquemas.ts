@@ -36,7 +36,7 @@ export const EsquemaCriarConta = registrarEsquema(
   }),
 );
 
-/** Confirmar o cadastro: email + código digitado (RN-10). */
+/** Confirmar o cadastro: email + código digitado (RN-50). */
 export const EsquemaConfirmarConta = registrarEsquema(
   'ConfirmarConta',
   z.object({
@@ -45,7 +45,7 @@ export const EsquemaConfirmarConta = registrarEsquema(
   }),
 );
 
-/** Pedir recuperação de senha (RN-12). Só o email — o resto vem depois do código. */
+/** Pedir recuperação de senha (RN-52). Só o email — o resto vem depois do código. */
 export const EsquemaPedirRecuperacao = registrarEsquema(
   'PedirRecuperacao',
   z.object({
@@ -53,7 +53,7 @@ export const EsquemaPedirRecuperacao = registrarEsquema(
   }),
 );
 
-/** Concluir a recuperação: email + código + a senha nova (RN-12). */
+/** Concluir a recuperação: email + código + a senha nova (RN-52). */
 export const EsquemaConcluirRecuperacao = registrarEsquema(
   'ConcluirRecuperacao',
   z.object({
@@ -65,7 +65,7 @@ export const EsquemaConcluirRecuperacao = registrarEsquema(
 
 /**
  * A resposta do PEDIDO de recuperação. Não leva dado nenhum de propósito
- * (RN-13): qualquer campo que variasse com a existência da conta seria o
+ * (RN-53): qualquer campo que variasse com a existência da conta seria o
  * oráculo que a regra existe para fechar.
  *
  * @fundacao consumido pelo contrato gerado (front), não por import dentro deste repo.
@@ -77,7 +77,7 @@ export const EsquemaRecuperacaoPedida = registrarEsquema(
   }),
 );
 
-/** Recusar um convite: mesma dupla email + código (RN-08/RN-10). */
+/** Recusar um convite: mesma dupla email + código (RN-48/RN-50). */
 export const EsquemaRecusarConvite = registrarEsquema(
   'RecusarConvite',
   z.object({
@@ -104,7 +104,7 @@ export const EsquemaConviteCriado = registrarEsquema(
   z.object({
     id: z.string(),
     email: z.string(),
-    expiraEm: z.string().meta({ description: 'ISO 8601 — quando o convite deixa de valer (RN-03).' }),
+    expiraEm: z.string().meta({ description: 'ISO 8601 — quando o convite deixa de valer (RN-43).' }),
   }),
 );
 
@@ -120,7 +120,7 @@ export const EsquemaConvitePendente = registrarEsquema(
   z.object({
     id: z.string(),
     email: z.string(),
-    expiraEm: z.string().meta({ description: 'ISO 8601 — quando o convite deixa de valer (RN-03).' }),
+    expiraEm: z.string().meta({ description: 'ISO 8601 — quando o convite deixa de valer (RN-43).' }),
   }),
 );
 
@@ -137,13 +137,13 @@ export const EsquemaConvitesPendentes = registrarEsquema(
   }),
 );
 
-/** O código de 6 dígitos que chegou por email (RN-10). */
+/** O código de 6 dígitos que chegou por email (RN-50). */
 const EsquemaCodigo = z.string().trim().regex(/^\d{6}$/, 'O código tem 6 dígitos.');
 
 /**
  * Aceite por senha: o email vem do CORPO porque, ao contrário do login, não há
  * sessão ainda para derivá-lo — e agora ele é também a CHAVE DE BUSCA do
- * convite (RN-10: o código de 6 dígitos não é único sozinho). Com isso RN-02
+ * convite (RN-50: o código de 6 dígitos não é único sozinho). Com isso RN-42
  * deixa de ser uma comparação depois do fato: procura-se o convite DAQUELE
  * email, então não há como aceitar o de outra pessoa.
  *
@@ -158,11 +158,11 @@ const EsquemaAceitarConvitePorSenha = z.object({
   senha: z.string().min(8),
 });
 
-// No Google o email não vem do corpo: vem VERIFICADO do provedor (RN-02), e é
+// No Google o email não vem do corpo: vem VERIFICADO do provedor (RN-42), e é
 // com ele que o convite é procurado.
 //
 // ⚠️ Os dois campos aqui são "códigos", e são coisas OPOSTAS: `codigo` é o de
-// 6 dígitos do convite, que a pessoa DIGITA (RN-10); `codigoAutorizacao` é o
+// 6 dígitos do convite, que a pessoa DIGITA (RN-50); `codigoAutorizacao` é o
 // do OAuth, que o navegador recebe do Google e nunca é visto por ninguém. Os
 // nomes ficam distintos de propósito — confundi-los seria trocar a prova de
 // "fui convidado" pela de "sou dono deste email".

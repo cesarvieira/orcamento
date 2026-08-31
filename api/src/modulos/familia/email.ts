@@ -22,7 +22,7 @@ export interface ConviteParaEnviar {
   para: string;
   familiaNome: string;
   /**
-   * O código de 6 dígitos que a pessoa vai DIGITAR (RN-10). O email não leva
+   * O código de 6 dígitos que a pessoa vai DIGITAR (RN-50). O email não leva
    * mais o segredo dentro do link: `link` agora só abre a tela, e sozinho não
    * autoriza nada.
    */
@@ -30,10 +30,10 @@ export interface ConviteParaEnviar {
   link: string;
 }
 
-/** Confirmação do email de quem criou a própria família (RN-06). */
+/** Confirmação do email de quem criou a própria família (RN-46). */
 export type ConfirmacaoParaEnviar = ConviteParaEnviar;
 
-/** Código que troca a senha esquecida (RN-12). */
+/** Código que troca a senha esquecida (RN-52). */
 export type RecuperacaoParaEnviar = ConviteParaEnviar;
 
 interface DriverDeEmail {

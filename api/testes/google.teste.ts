@@ -1,12 +1,12 @@
 /**
- * RN-04 (EF-01) — mesmo email por Google e por senha resolve para a MESMA
+ * RN-44 (EF-01) — mesmo email por Google e por senha resolve para a MESMA
  * pessoa. E o que cerca o login por Google: só o email VERIFICADO conta
- * (RN-02), e não há autocadastro por Google (D-05) — sem conta prévia, sem
+ * (RN-42), e não há autocadastro por Google (D-05) — sem conta prévia, sem
  * convite, a resposta é "conta não encontrada".
  *
  * A fronteira mockada é só a rede com o Google (`definirResolvedorDeGoogle`
  * — ver comentário em `src/modulos/familia/google.ts`). Rota, banco, sessão e
- * a resolução de identidade (RN-04) são reais.
+ * a resolução de identidade (RN-44) são reais.
  */
 import { and, eq } from 'drizzle-orm';
 import request from 'supertest';
@@ -44,7 +44,7 @@ afterEach(() => {
 });
 
 describe('login por Google', () => {
-  it('RN-04: o mesmo email por senha e por Google resolve para o MESMO Membro', async () => {
+  it('RN-44: o mesmo email por senha e por Google resolve para o MESMO Membro', async () => {
     definirResolvedorDeGoogle(async () => ({
       email: familia.email,
       emailVerificado: true,
@@ -142,7 +142,7 @@ describe('login por Google', () => {
   });
 });
 
-describe('RN-04 pelo aceite de convite: aceitar por Google vincula à mesma pessoa da senha', () => {
+describe('RN-44 pelo aceite de convite: aceitar por Google vincula à mesma pessoa da senha', () => {
   it('convite aceito por Google, quando o email já tinha conta por senha, entra na conta existente', async () => {
     const outraFamilia = await criarFamiliaComMembro('Família que convida por engano');
     const email = familia.email; // já existe por senha, em OUTRA família

@@ -1,13 +1,13 @@
 /**
- * RN-12 a RN-16 (EF-01) — recuperar a senha esquecida.
+ * RN-52 a RN-56 (EF-01) — recuperar a senha esquecida.
  *
  * Dois destes testes provam coisas que só existem porque a decisão do humano
  * as pediu, e que seriam fáceis de perder numa refatoração distraída:
  *
- *   RN-13  o pedido responde IGUAL para email que existe e email que não
+ *   RN-53  o pedido responde IGUAL para email que existe e email que não
  *          existe. Um `if` a mais no handler transforma a rota num oráculo de
  *          quem tem conta.
- *   RN-14  trocar a senha derruba as sessões antigas. Sem isto, quem invadiu
+ *   RN-54  trocar a senha derruba as sessões antigas. Sem isto, quem invadiu
  *          continua dentro depois da troca — a recuperação vira teatro.
  */
 import { and, eq } from 'drizzle-orm';
@@ -78,7 +78,7 @@ afterAll(async () => {
 });
 
 describe('pedir recuperação', () => {
-  it('RN-12: guarda um código de 6 dígitos para quem tem conta', async () => {
+  it('RN-52: guarda um código de 6 dígitos para quem tem conta', async () => {
     const familia = await criarFamiliaComMembro('Família que esqueceu', SENHA_ANTIGA);
 
     const resposta = await request(app).post('/recuperacoes').send({ email: familia.email });
@@ -87,7 +87,7 @@ describe('pedir recuperação', () => {
     expect(await codigoDeRecuperacao(familia.email)).toMatch(/^\d{6}$/);
   });
 
-  it('RN-13: email inexistente responde EXATAMENTE o mesmo, e não cria nada', async () => {
+  it('RN-53: email inexistente responde EXATAMENTE o mesmo, e não cria nada', async () => {
     const familia = await criarFamiliaComMembro('Família que existe', SENHA_ANTIGA);
 
     const comConta = await request(app).post('/recuperacoes').send({ email: familia.email });
@@ -153,7 +153,7 @@ describe('concluir recuperação', () => {
     expect(comAAntiga.status).toBe(401);
   });
 
-  it('RN-14: as sessões abertas ANTES da troca morrem', async () => {
+  it('RN-54: as sessões abertas ANTES da troca morrem', async () => {
     const familia = await criarFamiliaComMembro('Família invadida', SENHA_ANTIGA);
     const cookieAntigo = await cookieDeSessao(familia.membroId);
 
@@ -171,7 +171,7 @@ describe('concluir recuperação', () => {
     expect(depois.status).toBe(401);
   });
 
-  it('RN-15: quem só tinha Google ganha senha, e passa a entrar pelos dois caminhos', async () => {
+  it('RN-55: quem só tinha Google ganha senha, e passa a entrar pelos dois caminhos', async () => {
     const email = 'so-google@exemplo.test';
     await criarPessoaSoComGoogle(email);
 
@@ -184,14 +184,14 @@ describe('concluir recuperação', () => {
       .send({ email, codigo, senha: SENHA_NOVA })
       .expect(201);
 
-    // A identidade do Google continua lá — não foi substituída, RN-04.
+    // A identidade do Google continua lá — não foi substituída, RN-44.
     const todas = await db.select().from(identidades).where(eq(identidades.email, email));
     expect(todas.map(i => i.provedor).sort()).toEqual(['google', 'senha']);
 
     await request(app).post('/sessoes').send({ email, senha: SENHA_NOVA }).expect(201);
   });
 
-  it('RN-16: conta ainda não confirmada sai confirmada e entra', async () => {
+  it('RN-56: conta ainda não confirmada sai confirmada e entra', async () => {
     const cadastro = {
       familiaNome: 'Família sem confirmar',
       nome: 'Quem perdeu o email',
@@ -200,7 +200,7 @@ describe('concluir recuperação', () => {
     };
     await request(app).post('/cadastros').send(cadastro).expect(201);
 
-    // RN-06 em pé: o login está bloqueado antes da recuperação.
+    // RN-46 em pé: o login está bloqueado antes da recuperação.
     const antes = await request(app)
       .post('/sessoes')
       .send({ email: cadastro.email, senha: cadastro.senha });
@@ -219,7 +219,7 @@ describe('concluir recuperação', () => {
       .expect(201);
   });
 
-  it('RN-12: código errado é 401 e não troca a senha', async () => {
+  it('RN-52: código errado é 401 e não troca a senha', async () => {
     const familia = await criarFamiliaComMembro('Família chutada', SENHA_ANTIGA);
     await request(app).post('/recuperacoes').send({ email: familia.email }).expect(202);
     const codigo = await codigoDeRecuperacao(familia.email);
