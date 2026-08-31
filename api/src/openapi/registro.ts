@@ -15,6 +15,8 @@
  */
 import { z } from 'zod';
 
+import { ehNomeDeFamiliaId } from '../http/middleware/tenant';
+
 type Metodo = 'get' | 'post' | 'put' | 'patch' | 'delete';
 
 interface Resposta {
@@ -64,6 +66,11 @@ export function registrarEsquema<T extends z.ZodType>(nome: string, esquema: T):
   return esquema;
 }
 
+/** Os nomes de parâmetro num caminho Express (`/contas/:id` → `['id']`). */
+function nomesDeParametrosNoCaminho(caminho: string): string[] {
+  return [...caminho.matchAll(/:([A-Za-z0-9_]+)/g)].map(m => m[1] as string);
+}
+
 export function registrarRota(rota: Rota): void {
   const chave = `${rota.metodo} ${rota.caminho}`;
   if (rotas.some(r => `${r.metodo} ${r.caminho}` === chave)) {
@@ -74,7 +81,12 @@ export function registrarRota(rota: Rota): void {
   // roteador DEPOIS dos middlewares de aplicação — o middleware de tenant não
   // teria como limpá-lo. Então a rota simplesmente não pode existir: quem
   // precisa do id da família o pega do token.
-  if (/[:{]familia_?[Ii]d\b/.test(rota.caminho)) {
+  //
+  // `ehNomeDeFamiliaId` (dona em `http/middleware/tenant.ts`, issue #102) é
+  // quem decide o que conta como familiaId — este guarda só extrai os nomes
+  // de parâmetro do caminho e pergunta a ela, não reimplementa a comparação.
+  const paramDeFamiliaNoCaminho = nomesDeParametrosNoCaminho(rota.caminho).find(ehNomeDeFamiliaId);
+  if (paramDeFamiliaNoCaminho) {
     throw new Error(
       `rota com familiaId no caminho: ${chave} — o familiaId vem do token, nunca do request (R1 · D-05)`,
     );
@@ -82,11 +94,11 @@ export function registrarRota(rota: Rota): void {
 
   // R1 também cobre QUERY, não só caminho. #60 abriu esta superfície ao dar
   // à rota um jeito de declarar parâmetro de query — o middleware de tenant
-  // já descarta `familiaId`/`familia_id` de `req.query` em runtime (defesa em
+  // já descarta variantes de familiaId de `req.query` em runtime (defesa em
   // profundidade), mas a guarda do CONTRATO só olhava o caminho, e um
-  // contrato que anuncia `familiaId` como query é imprecisão que convida ao
+  // contrato que anuncia familiaId como query é imprecisão que convida ao
   // mesmo erro amanhã, independente de o middleware barrar hoje.
-  const paramDeFamiliaNaQuery = (rota.query ?? []).find(p => /^familia_?[Ii]d$/.test(p.nome));
+  const paramDeFamiliaNaQuery = (rota.query ?? []).find(p => ehNomeDeFamiliaId(p.nome));
   if (paramDeFamiliaNaQuery) {
     throw new Error(
       `rota com familiaId na query: ${chave} — o familiaId vem do token, nunca do request (R1 · D-05)`,
@@ -109,7 +121,7 @@ function caminhoOpenApi(caminho: string): string {
 }
 
 function parametrosDeCaminho(caminho: string) {
-  const nomes = [...caminho.matchAll(/:([A-Za-z0-9_]+)/g)].map(m => m[1]);
+  const nomes = nomesDeParametrosNoCaminho(caminho);
   return nomes.map(nome => ({
     name: nome as string,
     in: 'path' as const,
