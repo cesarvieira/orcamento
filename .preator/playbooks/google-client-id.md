@@ -182,7 +182,7 @@ lacuna `EF01-MC-002` em [MC-01](../../docs/especificacoes/MC-01-familia-e-acesso
 | API responde `codigo_google_invalido`                        | A troca do código falhou na API: `GOOGLE_CLIENT_SECRET` ausente ou errado, ou o código já foi usado (é de uso único)                   |
 | Login do Google conclui, mas a API responde 401              | Audiência divergente: o client id do front não é o mesmo que a API está usando. É uma variável só — reinicie os dois depois de mudá-la |
 | `access_blocked` / "app não verificado"                      | O app está em `Testing` e o email não está em **Usuários de teste**                                                                    |
-| Entrou com Google e caiu numa conta diferente da de senha    | Não é bug: pelo RN-04 (EF-01), **mesmo email** resolve para o mesmo `Membro`. Emails diferentes são pessoas diferentes, por definição  |
+| Entrou com Google e caiu numa conta diferente da de senha    | Não é bug: pelo RN-44 (EF-01), **mesmo email** resolve para o mesmo `Membro`. Emails diferentes são pessoas diferentes, por definição  |
 
 ---
 
