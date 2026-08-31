@@ -2,8 +2,9 @@
  * O SEMEADOR de `contas` (EF-02) — o ponto de extensão que `db/semear.ts`
  * abriu em `SEMEADORES_DE_MODULO`.
  *
- * Semeia as TRÊS contas (uma de cada tipo): sem isto o gate de navegação abre
- * a tela `/contas` vazia, e tela vazia não prova render.
+ * Semeia um ambiente de contas realista: 2 débitos, 2 créditos (o seletor de
+ * cartão em `/faturas` só aparece com 2+) e 1 reserva de emergência. Sem isto
+ * o gate de navegação abre `/contas` vazio, e tela vazia não prova render.
  */
 import { eq } from 'drizzle-orm';
 
@@ -27,18 +28,36 @@ export const semeadorDeContas: SemeadorDeModulo = {
         {
           familiaId: contexto.familiaId,
           tipo: 'DEBITO',
-          nome: 'Conta corrente',
+          nome: 'Itaú',
           icone: 'banco',
           cor: '#2563eb',
-          saldoInicialCentavos: 250000,
+          saldoInicialCentavos: 450000,
+        },
+        {
+          familiaId: contexto.familiaId,
+          tipo: 'DEBITO',
+          nome: 'Nubank',
+          icone: 'carteira',
+          cor: '#8b5cf6',
+          saldoInicialCentavos: 120000,
         },
         {
           familiaId: contexto.familiaId,
           tipo: 'CREDITO',
-          nome: 'Cartão de crédito',
+          nome: 'Cartão Nubank',
           icone: 'cartao',
-          cor: '#dc2626',
+          cor: '#820ad1',
           limiteCentavos: 500000,
+          diaFechamento: 10,
+          diaVencimento: 17,
+        },
+        {
+          familiaId: contexto.familiaId,
+          tipo: 'CREDITO',
+          nome: 'Cartão Inter',
+          icone: 'cartao',
+          cor: '#ff7a00',
+          limiteCentavos: 300000,
           diaFechamento: 20,
           diaVencimento: 27,
         },

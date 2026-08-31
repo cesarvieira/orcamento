@@ -78,11 +78,48 @@ describe('seed', () => {
   it('cria a família de teste com um membro ACEITO', async () => {
     const resumo = await semear(db);
     expect(resumo).toContain('semeada@exemplo.test');
+    expect(resumo).toContain('Bruno');
+    expect(resumo).toMatch(/contas: \d+/);
+    expect(resumo).toMatch(/orcamento: \d+/);
+    expect(resumo).toMatch(/metas: \d+/);
+    expect(resumo).toMatch(/lancamentos: \d+/);
+    expect(resumo).toMatch(/faturas: \d+/);
+    expect(resumo).toMatch(/fechamento: \d+/);
 
     const contagem = await db.execute<{ quantos: string }>(
       sql`select count(*)::text as quantos from membros where email = 'semeada@exemplo.test'`,
     );
     expect(Number(contagem.rows[0]?.quantos)).toBe(1);
+  });
+
+  it('semeia lançamentos em competências passadas, atual e futuras', async () => {
+    await limparBanco();
+    process.env.PREATOR_TEST_USER = 'semeada@exemplo.test';
+    process.env.PREATOR_TEST_PASS = 'senha-da-semeada';
+    await semear(db);
+
+    const porCompetencia = await db.execute<{ competencia: string; quantos: string }>(
+      sql`select competencia, count(*)::text as quantos from lancamentos group by competencia order by competencia`,
+    );
+    expect(porCompetencia.rows.length).toBeGreaterThanOrEqual(4);
+
+    const tipos = await db.execute<{ tipo: string; quantos: string }>(
+      sql`select tipo, count(*)::text as quantos from lancamentos group by tipo`,
+    );
+    const mapa = Object.fromEntries(tipos.rows.map(r => [r.tipo, Number(r.quantos)]));
+    expect(mapa.RECEITA).toBeGreaterThan(0);
+    expect(mapa.DESPESA).toBeGreaterThan(0);
+    expect(mapa.TRANSFERENCIA).toBeGreaterThan(0);
+
+    const cartoes = await db.execute<{ quantos: string }>(
+      sql`select count(*)::text as quantos from contas where tipo = 'CREDITO'`,
+    );
+    expect(Number(cartoes.rows[0]?.quantos)).toBeGreaterThanOrEqual(2);
+
+    const fechados = await db.execute<{ quantos: string }>(
+      sql`select count(*)::text as quantos from fechamentos_mes`,
+    );
+    expect(Number(fechados.rows[0]?.quantos)).toBe(1);
   });
 
   it('é idempotente: rodar de novo não duplica a família', async () => {

@@ -7,6 +7,12 @@
  * imagem da API: o serviço `migrate` do compose semeia logo depois de migrar,
  * e o que não é compilado para `api/dist` não existe no container.
  *
+ * Gera um ambiente completo (2 meses passados + mês atual + futuros): contas,
+ * orçamento, lançamentos, faturas, metas e fechamento. Idempotente — se a
+ * família de teste já existir com dados antigos, não reconstrói; para forçar
+ * o ambiente novo, limpe o banco antes (`truncate` em cascata a partir de
+ * `familias`, ou `docker compose` down -v + up).
+ *
  * As credenciais da família de teste vêm de `PREATOR_TEST_USER` e
  * `PREATOR_TEST_PASS`, do ambiente.
  */

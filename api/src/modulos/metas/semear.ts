@@ -2,10 +2,10 @@
  * O SEMEADOR de `metas` (EF-07) — o ponto de extensão que `db/semear.ts`
  * abriu em `SEMEADORES_DE_MODULO`.
  *
- * Semeia DOIS cofrinhos: sem isto o gate de navegação abre `/metas` vazio, e
- * tela vazia não prova render — mesmo raciocínio de `modulos/contas/semear.ts`
- * e `modulos/orcamento/semear.ts`. Reaproveita `criarMeta` (o mesmo caminho da
- * API) em vez de duplicar a criação da conta RESERVA aqui.
+ * Semeia DOIS cofrinhos vazios: os aportes (`guardar`) ficam no semeador de
+ * `lancamentos`, depois da receita do mês — RN-34 exige `naoAlocado > 0`.
+ * Reaproveita `criarMeta` (o mesmo caminho da API) em vez de duplicar a
+ * criação da conta RESERVA aqui.
  */
 import { eq } from 'drizzle-orm';
 
