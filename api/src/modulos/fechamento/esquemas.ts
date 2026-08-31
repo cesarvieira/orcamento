@@ -9,7 +9,7 @@ export const EsquemaCategoriaEstourada = registrarEsquema(
     id: z.string(),
     nome: z.string(),
     disponivelCentavos: z.number().int(),
-  })
+  }),
 );
 
 export const EsquemaResumoFechamento = registrarEsquema(
@@ -24,7 +24,7 @@ export const EsquemaResumoFechamento = registrarEsquema(
     status: z.enum(['aberto', 'fechado']),
     fechadoEm: z.string().datetime().nullable().optional(),
     autorMembroId: z.string().nullable().optional(),
-  })
+  }),
 );
 
 export const EsquemaFechamentoMes = registrarEsquema(
@@ -34,5 +34,5 @@ export const EsquemaFechamentoMes = registrarEsquema(
     sobraCentavos: z.number().int(),
     fechadoEm: z.string().datetime(),
     autorMembroId: z.string(),
-  })
+  }),
 );

@@ -24,7 +24,7 @@ registrarRota({
   ],
 });
 
-rotasDeFechamento.get('/competencias/:competencia/fechamento', exigirSessao, async (req, res, next) => {
+rotasDeFechamento.get('/competencias/:competencia/fechamento', exigirSessao, async (req, res, _next) => {
   // Stub - a implementação virá em outra tarefa (provavelmente frontend precisa dos DTOs antes).
   res.status(501).json({ erro: 'nao_implementado', mensagem: 'Em construção.' });
 });
@@ -47,7 +47,7 @@ registrarRota({
   ],
 });
 
-rotasDeFechamento.post('/competencias/:competencia/fechar', exigirSessao, async (req, res, next) => {
+rotasDeFechamento.post('/competencias/:competencia/fechar', exigirSessao, async (req, res, _next) => {
   // Stub - a implementação virá em outra tarefa.
   res.status(501).json({ erro: 'nao_implementado', mensagem: 'Em construção.' });
 });
