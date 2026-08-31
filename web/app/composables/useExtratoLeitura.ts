@@ -16,12 +16,11 @@
  * carimbar `minhaOrdem` e descartar se `leituraEmOrdem` já mudou.
  */
 import { ref } from 'vue';
-import type { Lancamento } from '@orcamento/contrato';
+import type { Lancamento, LancamentosListados } from '@orcamento/contrato';
 import { mensagemDoErro } from './useApi.ts';
 
-export interface RespostaDeLancamentos {
-  lancamentos: Lancamento[];
-}
+/** O contrato gerado já tem esta forma (regra inviolável #4: não redeclarar o modelo do back). */
+export type RespostaDeLancamentos = LancamentosListados;
 
 export interface ParametrosDeLeitura {
   competencia?: string;
