@@ -1,10 +1,10 @@
 /**
- * RN-04 (EF-01) — mesmo email via Google e via senha é a MESMA pessoa.
+ * RN-44 (EF-01) — mesmo email via Google e via senha é a MESMA pessoa.
  *
  * `Identidade` é separada de `Membro` de propósito (ver comentário do schema):
  * o mesmo email pode chegar por dois provedores, e os dois precisam resolver
  * para UM SÓ `Membro`. Este arquivo é o único lugar que decide isso — quem
- * cria `Identidade` fora daqui reabre o furo que RN-04 fecha.
+ * cria `Identidade` fora daqui reabre o furo que RN-44 fecha.
  *
  * Uma função só, duas fachadas com escopo deliberadamente diferente:
  *   - `resolverMembroExistente` — login. NUNCA cria família nem pessoa. Sem
@@ -68,7 +68,7 @@ async function vincularIdentidade(db: Db, membroId: string, dados: DadosDeIdenti
 }
 
 /**
- * O núcleo de RN-04. `familiaIdParaCriar` decide se um `Membro` novo pode
+ * O núcleo de RN-44. `familiaIdParaCriar` decide se um `Membro` novo pode
  * nascer aqui: `null` para login (nunca cria), um id para aceite de convite
  * (cria dentro DAQUELA família quando ninguém com o email existia).
  */
@@ -90,7 +90,7 @@ async function resolver(
         'Este email já pertence a uma pessoa de outra família.',
       );
     }
-    // RN-04: o provedor É NOVO para esta pessoa (achamos o Membro por outro
+    // RN-44: o provedor É NOVO para esta pessoa (achamos o Membro por outro
     // caminho) — vincula em vez de duplicar.
     if (!identidadeExistente) {
       await vincularIdentidade(db, membroExistente.id, dados);
