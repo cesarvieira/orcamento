@@ -75,11 +75,13 @@ Achados durante a história #18, deliberadamente **não corrigidos no lugar onde
 conserto certo ficava fora do escopo de arquivo da tarefa que os achou) e por isso viraram issues
 próprias, já abertas antes desta MC:
 
-- **[#61](https://github.com/cesarvieira/orcamento/issues/61)** — a regra "o que conta como nome
-  de `familiaId`" vive em três lugares independentes (`registro.ts` guarda de caminho,
+- **[#61](https://github.com/cesarvieira/orcamento/issues/61)** — **Fechada.** A regra "o que conta
+  como nome de `familiaId`" vivia em três lugares independentes (`registro.ts` guarda de caminho,
   `registro.ts` guarda de query — criada pela #60 —, `tenant.ts#CAMPOS_PROIBIDOS`), com frestas
-  medidas e sem explorador hoje (case-sensitivity, `familia` sem sufixo). Achado na revisão da
-  segunda rodada de #60.
+  medidas e sem explorador (case-sensitivity, `familia` sem sufixo). Achado na revisão da segunda
+  rodada de #60. Unificada pela tarefa [#102](https://github.com/cesarvieira/orcamento/issues/102)
+  num único predicado `ehNomeDeFamiliaId`, dono em `tenant.ts`, consumido pelos outros dois pontos
+  — as duas frestas fechadas. PR [#103](https://github.com/cesarvieira/orcamento/pull/103).
 - **[#63](https://github.com/cesarvieira/orcamento/issues/63)** — três sobras não-bloqueantes: (a)
   a home dispara `carregar()` duas vezes por conexão/reconexão do socket, porque assina
   `lancamentos` e `orcamento` em duas chamadas separadas de `useRealtime`, cada uma com seu próprio

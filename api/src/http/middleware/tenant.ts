@@ -19,7 +19,13 @@
  * no CAMINHO — não é tratado aqui, e não por esquecimento: o roteador atribui
  * `req.params` depois dos middlewares de aplicação, então limpá-lo aqui seria
  * teatro. Essa porta é fechada em `openapi/registro.ts`, que RECUSA registrar
- * uma rota com `familiaId` no caminho.
+ * uma rota com `familiaId` no caminho — usando `ehNomeDeFamiliaId`, exportado
+ * ABAIXO, o mesmo predicado que esta camada 2 usa.
+ *
+ * `ehNomeDeFamiliaId` é o ÚNICO dono da pergunta "este nome é um familiaId?"
+ * (issue #102 — a pergunta já foi respondida três vezes, com regexes que
+ * podiam divergir). `openapi/registro.ts` REFERENCIA esta função para os
+ * seus dois guardas (caminho e query); não a reimplementa.
  */
 import type { NextFunction, Request, Response } from 'express';
 
@@ -41,22 +47,50 @@ declare global {
 }
 
 /**
- * Os nomes que o cliente NÃO pode usar para escolher tenant.
- * @fundacao exportado para um futuro teste de segurança iterar sobre a lista.
+ * O PREDICADO — a única resposta a "este nome é um familiaId vindo do
+ * cliente?". Compara por forma normalizada (minúsculo, sem `_`), então
+ * `familiaId`, `familia_id`, `FamiliaId`, `FAMILIA_ID` e `familia` caem
+ * todas na mesma comparação.
+ *
+ * Cobre `familia` sozinho (sem sufixo `Id`/`id`) de propósito: medido antes
+ * de fechar a issue #102 (grep por `familia` como identificador de rota,
+ * query ou campo em `api/src`) — nenhum parâmetro de caminho, parâmetro de
+ * query ou campo de corpo LEGÍTIMO deste projeto se chama só `familia` hoje
+ * (o `db/schema.ts` usa `familia:` como nome de RELAÇÃO do Drizzle, não como
+ * nome de campo vindo do cliente — fora do alcance deste predicado). Se um
+ * dia isso deixar de valer, é este comentário — e a medição que ele descreve
+ * — que precisa mudar, não o predicado às cegas.
+ *
+ * NÃO cobre o nome aparecer como SUBSTRING de um identificador maior (ex.:
+ * `outraFamiliaReferencia`) — o predicado responde "é ESTE o nome inteiro",
+ * não "contém a palavra familia". Isso é limite deliberado, não fresta: um
+ * campo assim não é um jeito de escolher tenant, é coincidência de nome.
  */
-export const CAMPOS_PROIBIDOS = ['familiaId', 'familia_id'] as const;
+function normalizarNomeDeIdentificador(nome: string): string {
+  return nome.toLowerCase().replace(/_/g, '');
+}
+
+const NOMES_DE_FAMILIA_ID = new Set(['familiaid', 'familia']);
+
+/**
+ * O ÚNICO lugar que decide se um NOME — de parâmetro de caminho, de query ou
+ * de campo de corpo — é candidato a `familiaId` vindo do cliente.
+ * `openapi/registro.ts` importa e usa esta função nos seus dois guardas
+ * (caminho e query); não reimplementa a comparação.
+ */
+export function ehNomeDeFamiliaId(nome: string): boolean {
+  return NOMES_DE_FAMILIA_ID.has(normalizarNomeDeIdentificador(nome));
+}
 
 function temProibido(alvo: unknown): string[] {
   if (!alvo || typeof alvo !== 'object') return [];
-  return CAMPOS_PROIBIDOS.filter(campo =>
-    Object.prototype.hasOwnProperty.call(alvo, campo),
-  );
+  return Object.keys(alvo as Record<string, unknown>).filter(ehNomeDeFamiliaId);
 }
 
 function semProibidos(alvo: Record<string, unknown>): Record<string, unknown> {
   const limpo: Record<string, unknown> = {};
   for (const [chave, valor] of Object.entries(alvo)) {
-    if ((CAMPOS_PROIBIDOS as readonly string[]).includes(chave)) continue;
+    if (ehNomeDeFamiliaId(chave)) continue;
     limpo[chave] = valor;
   }
   return limpo;
