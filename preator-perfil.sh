@@ -39,10 +39,18 @@ OVERLAY=".preator"
 BUILD_CMD="pnpm run build"
 
 # ---------------------------------------------------------------------------
-# TESTE  —  integração, com Postgres de verdade. O gate EXIGE N>0 executados.
+# TESTE  —  integração (API, com Postgres de verdade) + unidade (web). O gate
+# EXIGE N>0 executados.
 # ---------------------------------------------------------------------------
-# Handler com fake não prova fiação. Aqui há banco, migration e HTTP reais.
-# Precisa de DATABASE_URL_TESTE no ambiente (ver .env.example).
+# Handler com fake não prova fiação. Aqui há banco, migration e HTTP reais
+# para @orcamento/api. Precisa de DATABASE_URL_TESTE no ambiente (ver
+# .env.example).
+#
+# O script `teste` da raiz (`package.json`) roda OS DOIS workspaces —
+# `@orcamento/api` e `@orcamento/web` — em sequência: primeiro a suíte de
+# integração da API, depois a suíte de composables do front (vitest+jsdom,
+# tarefa #107, história #63). Antes desta tarefa, `TEST_CMD` só via a API;
+# os 304 testes de então eram TODO o `GATE_TEST_EXECUTADOS`.
 TEST_CMD="pnpm run teste"
 
 # O vitest não imprime o resumo em nenhum dos formatos que o gate reconhece —
