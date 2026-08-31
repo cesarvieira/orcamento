@@ -25,7 +25,7 @@ beforeAll(async () => {
   await limparBanco();
   familiaA = await criarFamiliaComMembro('Família Fechamento A');
   cookieA = await cookieDeSessao(familiaA.membroId);
-  
+
   familiaB = await criarFamiliaComMembro('Família Fechamento B');
   cookieB = await cookieDeSessao(familiaB.membroId);
 
@@ -99,7 +99,7 @@ describe('EF-08: Fechamento do Mês (DoD)', () => {
     const resGet = await request(app)
       .get('/competencias/2026-08/fechamento?familiaId=' + familiaA.familiaId)
       .set('Cookie', cookieB);
-    
+
     // Deve retornar o fechamento de B (que está vazio/zerado), não de A
     expect(resGet.status).toBe(200);
     expect(resGet.body.recebidoCentavos).toBe(0);
@@ -112,7 +112,7 @@ describe('EF-08: Fechamento do Mês (DoD)', () => {
       .post('/competencias/2026-08/fechar')
       .set('Cookie', cookieB)
       .send({ familiaId: familiaA.familiaId });
-    
+
     // Isso deve fechar a competência 2026-08 da familia B, não da A
     expect(resPost.status).toBe(200);
 
@@ -127,7 +127,7 @@ describe('EF-08: Fechamento do Mês (DoD)', () => {
     // Assinar canal da família A
     const { io: conectarCliente } = await import('socket.io-client');
     const { CAMINHO_REALTIME } = await import('../src/realtime/servidor');
-    
+
     const socket = conectarCliente(stack.url, {
       path: CAMINHO_REALTIME,
       transports: ['websocket'],
@@ -137,10 +137,10 @@ describe('EF-08: Fechamento do Mês (DoD)', () => {
 
     await new Promise<void>((resolver, rejeitar) => {
       socket.once('connect', () => resolver());
-      socket.once('connect_error', (erro) => rejeitar(erro));
+      socket.once('connect_error', erro => rejeitar(erro));
     });
 
-    const eventos: any[] = [];
+    const eventos: unknown[] = [];
     socket.on('recurso.alterado', (data) => {
       eventos.push(data);
     });
@@ -166,7 +166,7 @@ describe('EF-08: Fechamento do Mês (DoD)', () => {
     socket.close();
 
     const chavesValidadas = eventos.map(e => `${e.recurso}:${e.competencia || 'geral'}`);
-    
+
     const hasFechamento = chavesValidadas.some(c => c.startsWith('fechamento'));
     const hasOrcamento = chavesValidadas.some(c => c.startsWith('orcamento'));
     const hasLancamento = chavesValidadas.some(c => c.startsWith('lancamento'));
@@ -197,7 +197,7 @@ describe('EF-08: Fechamento do Mês (DoD)', () => {
       .patch('/lancamentos/' + lancamentoId)
       .set('Cookie', cookieA)
       .send({
-        valorCentavos: 5000
+        valorCentavos: 5000,
       });
 
     expect(res.status).toBe(409);
