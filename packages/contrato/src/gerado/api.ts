@@ -605,20 +605,20 @@ export interface components {
         ConviteCriado: {
             id: string;
             email: string;
-            /** @description ISO 8601 — quando o convite deixa de valer (RN-03). */
+            /** @description ISO 8601 — quando o convite deixa de valer (RN-43). */
             expiraEm: string;
         };
         ConvitePendente: {
             id: string;
             email: string;
-            /** @description ISO 8601 — quando o convite deixa de valer (RN-03). */
+            /** @description ISO 8601 — quando o convite deixa de valer (RN-43). */
             expiraEm: string;
         };
         ConvitesPendentes: {
             convites: {
                 id: string;
                 email: string;
-                /** @description ISO 8601 — quando o convite deixa de valer (RN-03). */
+                /** @description ISO 8601 — quando o convite deixa de valer (RN-43). */
                 expiraEm: string;
             }[];
         };
@@ -1405,7 +1405,7 @@ export interface operations {
                     "application/json": components["schemas"]["SessaoAtual"];
                 };
             };
-            /** @description Código do convite incorreto (RN-10), código do Google inválido ou email não verificado */
+            /** @description Código do convite incorreto (RN-50), código do Google inválido ou email não verificado */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -1432,7 +1432,7 @@ export interface operations {
                     "application/json": components["schemas"]["Erro"];
                 };
             };
-            /** @description Convite expirado (RN-03) */
+            /** @description Convite expirado (RN-43) */
             410: {
                 headers: {
                     [name: string]: unknown;
@@ -1450,7 +1450,7 @@ export interface operations {
                     "application/json": components["schemas"]["Erro"];
                 };
             };
-            /** @description Código invalidado por excesso de tentativas (RN-11) */
+            /** @description Código invalidado por excesso de tentativas (RN-51) */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -1525,7 +1525,7 @@ export interface operations {
                     "application/json": components["schemas"]["SessaoAtual"];
                 };
             };
-            /** @description Código incorreto (RN-10) */
+            /** @description Código incorreto (RN-50) */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -1543,7 +1543,7 @@ export interface operations {
                     "application/json": components["schemas"]["Erro"];
                 };
             };
-            /** @description Código expirado (RN-09) */
+            /** @description Código expirado (RN-49) */
             410: {
                 headers: {
                     [name: string]: unknown;
@@ -1561,7 +1561,7 @@ export interface operations {
                     "application/json": components["schemas"]["Erro"];
                 };
             };
-            /** @description Código invalidado por excesso de tentativas (RN-11) */
+            /** @description Código invalidado por excesso de tentativas (RN-51) */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -1592,7 +1592,7 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Código incorreto (RN-10) */
+            /** @description Código incorreto (RN-50) */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -1619,7 +1619,7 @@ export interface operations {
                     "application/json": components["schemas"]["Erro"];
                 };
             };
-            /** @description Convite expirado (RN-03) */
+            /** @description Convite expirado (RN-43) */
             410: {
                 headers: {
                     [name: string]: unknown;
@@ -1637,7 +1637,7 @@ export interface operations {
                     "application/json": components["schemas"]["Erro"];
                 };
             };
-            /** @description Código invalidado por excesso de tentativas (RN-11) */
+            /** @description Código invalidado por excesso de tentativas (RN-51) */
             429: {
                 headers: {
                     [name: string]: unknown;
@@ -1661,7 +1661,7 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Pedido aceito — resposta idêntica exista ou não a conta (RN-13) */
+            /** @description Pedido aceito — resposta idêntica exista ou não a conta (RN-53) */
             202: {
                 headers: {
                     [name: string]: unknown;
@@ -1703,7 +1703,7 @@ export interface operations {
                     "application/json": components["schemas"]["SessaoAtual"];
                 };
             };
-            /** @description Código incorreto (RN-12) */
+            /** @description Código incorreto (RN-52) */
             401: {
                 headers: {
                     [name: string]: unknown;
@@ -1739,7 +1739,7 @@ export interface operations {
                     "application/json": components["schemas"]["Erro"];
                 };
             };
-            /** @description Código invalidado por excesso de tentativas (RN-11) */
+            /** @description Código invalidado por excesso de tentativas (RN-51) */
             429: {
                 headers: {
                     [name: string]: unknown;

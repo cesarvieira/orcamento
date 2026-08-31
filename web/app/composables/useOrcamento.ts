@@ -86,10 +86,8 @@ const ICONE_PADRAO = 'ti-tag';
 
 /**
  * A classe Tabler exibida para um `icone` persistido. Cai no ícone neutro
- * quando o valor não é um dos 18 do seletor — por exemplo as categorias que
- * `api/src/modulos/orcamento/semear.ts` semeia com `'carrinho'`/`'estrela'`
- * (fora deste escopo, não tocado aqui): a tela renderiza mesmo assim, em vez
- * de quebrar por causa de um dado que ela não escreveu.
+ * quando o valor não é um dos 18 do seletor — a tela renderiza mesmo assim,
+ * em vez de quebrar por causa de um dado que ela não escreveu.
  */
 export function classeDoIconeCategoria(icone: string): string {
   return CONJUNTO_ICONES_CATEGORIA.has(icone) ? icone : ICONE_PADRAO;
