@@ -14,15 +14,22 @@
  * As datas de teste ficam DELIBERADAMENTE no passado (agosto/2026, com o
  * relógio real do ambiente em 2026-08-28) para que "compra no dia do
  * fechamento"/"dia seguinte" caiam em ciclos JÁ FECHADOS, e o ciclo CORRENTE
- * seja calculado com as mesmas funções puras do domínio
- * (`fechaEmDoCiclo`/`hojeIso`) em vez de uma data futura hardcoded — a
- * suíte fica correta não importa em que dia real ela rodar.
+ * seja calculado com a mesma função pura do domínio (`fechaEmDoCiclo`) em
+ * vez de uma data futura hardcoded — a suíte fica correta não importa em que
+ * dia real ela rodar.
+ *
+ * D6 (2026-08-29, tarefa #91) — `hoje` deixou de ser calculado pelo SERVIDOR
+ * (`hojeIso()` saiu de `modulos/faturas/dominio.ts`, era a fonte do defeito
+ * corrigido nesta tarefa): agora é o CLIENTE quem informa. Este arquivo
+ * mantém sua PRÓPRIA cópia de `hojeIso()` — mesma forma da que foi removida
+ * — só para montar `HOJE`, o valor que os testes passam explicitamente como
+ * `?hoje=`/`data`, no papel de "o cliente".
  */
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { fecharBanco } from '../src/db';
-import { fechaEmDoCiclo, hojeIso } from '../src/modulos/faturas/dominio';
+import { fechaEmDoCiclo } from '../src/modulos/faturas/dominio';
 import { emitirInvalidacao } from '../src/realtime/emissor';
 import {
   abrirApp,
@@ -60,6 +67,19 @@ afterAll(async () => {
 
 const DIA_FECHAMENTO = 5;
 const DIA_VENCIMENTO = 15; // 15 > 5 ⇒ venceEm cai no MESMO mês de fechaEm.
+
+/**
+ * Cópia LOCAL — a produção não tem mais `hojeIso()` (D6, tarefa #91: o
+ * cliente informa `hoje`/`data`, nunca o servidor calcula). Aqui ela faz o
+ * papel do "relógio do cliente" só para montar `HOJE`, determinístico o
+ * bastante para os testes que dependem do dia real do ambiente.
+ */
+function hojeIso(): string {
+  const agora = new Date();
+  const mes = String(agora.getUTCMonth() + 1).padStart(2, '0');
+  const dia = String(agora.getUTCDate()).padStart(2, '0');
+  return `${agora.getUTCFullYear()}-${mes}-${dia}`;
+}
 
 const HOJE = hojeIso();
 /** O ciclo CORRENTE, calculado — nunca hardcoded — a partir do relógio real. */
@@ -185,7 +205,7 @@ describe('RN-23 — a compra entra na fatura cujo ciclo de fechamento contém a 
       descricao: 'Dia seguinte',
     });
 
-    const resposta = await request(app).get('/faturas').query({ contaId: cartaoId }).set('Cookie', cookie);
+    const resposta = await request(app).get('/faturas').query({ contaId: cartaoId, hoje: HOJE }).set('Cookie', cookie);
     expect(resposta.status).toBe(200);
 
     const faturas = resposta.body.faturas as Fatura[];
@@ -239,7 +259,7 @@ describe('parcela que atravessa ciclos', () => {
       'parcela 2 não veio na resposta',
     );
 
-    const leitura = await request(app).get('/faturas').query({ contaId: cartaoId }).set('Cookie', cookie);
+    const leitura = await request(app).get('/faturas').query({ contaId: cartaoId, hoje: HOJE }).set('Cookie', cookie);
     const faturas = leitura.body.faturas as Fatura[];
 
     const faturaDaParcela1 = faturaDoCiclo(faturas, fechaEmDoCiclo(DIA_FECHAMENTO, parcela1.data));
@@ -277,14 +297,14 @@ describe('RN-24 — pagar é transferência; os lançamentos originais mantêm s
     const antesDoPagamento = await request(app).get('/lancamentos').set('Cookie', cookie).query({ contaId: cartaoId });
     expect((antesDoPagamento.body.lancamentos as { id: string }[]).map(l => l.id)).toContain(idDaCompra);
 
-    const leitura = await request(app).get('/faturas').query({ contaId: cartaoId }).set('Cookie', cookie);
+    const leitura = await request(app).get('/faturas').query({ contaId: cartaoId, hoje: HOJE }).set('Cookie', cookie);
     const faturaFechada = faturaDoCiclo(leitura.body.faturas as Fatura[], '2026-08-05');
     expect(faturaFechada.totalCentavos).toBe(20000);
 
     const pagamento = await request(app)
       .post(`/faturas/${faturaFechada.id}/pagar`)
       .set('Cookie', cookie)
-      .send({ pagaComContaId: contaCorrenteId });
+      .send({ pagaComContaId: contaCorrenteId, data: HOJE });
     expect(pagamento.status).toBe(200);
     expect(pagamento.body.status).toBe('PAGA');
     expect(pagamento.body.pagaComContaId).toBe(contaCorrenteId);
@@ -325,14 +345,14 @@ describe('RN-24 — pagar é transferência; os lançamentos originais mantêm s
     expect(linhaCartao?.saldoCentavos).toBe(0); // quitado — sem outras compras neste cartão.
 
     // A fatura paga some da lista "em aberto" (D1) — só ABERTA/FECHADA aparecem.
-    const leituraDepois = await request(app).get('/faturas').query({ contaId: cartaoId }).set('Cookie', cookie);
+    const leituraDepois = await request(app).get('/faturas').query({ contaId: cartaoId, hoje: HOJE }).set('Cookie', cookie);
     expect((leituraDepois.body.faturas as { id: string }[]).map(f => f.id)).not.toContain(faturaFechada.id);
 
     // Pagar de novo é 409 — nunca paga duas vezes.
     const segundoPagamento = await request(app)
       .post(`/faturas/${faturaFechada.id}/pagar`)
       .set('Cookie', cookie)
-      .send({ pagaComContaId: contaCorrenteId });
+      .send({ pagaComContaId: contaCorrenteId, data: HOJE });
     expect(segundoPagamento.status).toBe(409);
     expect(segundoPagamento.body.erro).toBe('fatura_ja_paga');
   });
@@ -354,13 +374,13 @@ describe('RN-24 — pagar é transferência; os lançamentos originais mantêm s
       valorCentavos: 15000,
       descricao: 'D3 compra',
     });
-    const leitura = await request(app).get('/faturas').query({ contaId: cartaoId }).set('Cookie', cookie);
+    const leitura = await request(app).get('/faturas').query({ contaId: cartaoId, hoje: HOJE }).set('Cookie', cookie);
     const fatura = faturaDoCiclo(leitura.body.faturas as Fatura[], '2026-08-05');
 
     const pagamento = await request(app)
       .post(`/faturas/${fatura.id}/pagar`)
       .set('Cookie', cookie)
-      .send({ pagaComContaId: segundaConta });
+      .send({ pagaComContaId: segundaConta, data: HOJE });
 
     expect(pagamento.status).toBe(200);
     expect(pagamento.body.pagaComContaId).toBe(segundaConta);
@@ -371,13 +391,13 @@ describe('RN-24 — pagar é transferência; os lançamentos originais mantêm s
     const categoriaId = await novaCategoria(cookie, 'auto-pagamento categoria');
     const cartaoId = await novoCartao(cookie, 'auto-pagamento cartão');
     await novaDespesa({ cookie, contaId: cartaoId, categoriaId, data: '2026-08-05', valorCentavos: 1000, descricao: 'auto' });
-    const leitura = await request(app).get('/faturas').query({ contaId: cartaoId }).set('Cookie', cookie);
+    const leitura = await request(app).get('/faturas').query({ contaId: cartaoId, hoje: HOJE }).set('Cookie', cookie);
     const fatura = faturaDoCiclo(leitura.body.faturas as Fatura[], '2026-08-05');
 
     const pagamento = await request(app)
       .post(`/faturas/${fatura.id}/pagar`)
       .set('Cookie', cookie)
-      .send({ pagaComContaId: cartaoId });
+      .send({ pagaComContaId: cartaoId, data: HOJE });
 
     expect(pagamento.status).toBe(400);
     expect(pagamento.body.erro).toBe('conta_pagadora_igual_ao_cartao');
@@ -387,7 +407,7 @@ describe('RN-24 — pagar é transferência; os lançamentos originais mantêm s
     const resposta = await request(app)
       .post('/faturas/00000000-0000-0000-0000-000000000000/pagar')
       .set('Cookie', cookieA)
-      .send({ pagaComContaId: '00000000-0000-0000-0000-000000000001' });
+      .send({ pagaComContaId: '00000000-0000-0000-0000-000000000001', data: HOJE });
     expect(resposta.status).toBe(404);
     expect(resposta.body.erro).toBe('fatura_nao_encontrada');
   });
@@ -425,7 +445,7 @@ describe('RN-25/RN-26 — D1: "fatura em aberto" é ABERTA + FECHADA, nunca só 
       descricao: 'D1 corrente',
     });
 
-    const leitura = await request(app).get('/faturas').query({ contaId: cartaoId }).set('Cookie', cookie);
+    const leitura = await request(app).get('/faturas').query({ contaId: cartaoId, hoje: HOJE }).set('Cookie', cookie);
     expect(leitura.status).toBe(200);
     expect(leitura.body.limiteCentavos).toBe(limite);
 
@@ -453,12 +473,114 @@ describe('RN-25/RN-26 — D1: "fatura em aberto" é ABERTA + FECHADA, nunca só 
     const cookie = cookieA;
     const limite = 200000;
     const cartaoId = await novoCartao(cookie, 'D1 cartão vazio', limite);
-    const leitura = await request(app).get('/faturas').query({ contaId: cartaoId }).set('Cookie', cookie);
+    const leitura = await request(app).get('/faturas').query({ contaId: cartaoId, hoje: HOJE }).set('Cookie', cookie);
     expect(leitura.body.limiteLivreCentavos).toBe(limite);
     // Mesmo sem compra, a fatura do ciclo CORRENTE aparece (a tela sempre tem "a fatura de agora").
     expect(leitura.body.faturas).toHaveLength(1);
     expect(leitura.body.faturas[0].status).toBe('ABERTA');
     expect(leitura.body.faturas[0].totalCentavos).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// D6 (2026-08-29, tarefa #91) — a data do fato vem do CLIENTE, nunca do
+// relógio do servidor. O defeito corrigido: `hojeIso()` calculava "hoje" com
+// getters UTC, e das 21h à meia-noite no fuso do Brasil isso devolvia o DIA
+// SEGUINTE. Aqui: (1) `pagar` — a competência da TRANSFERENCIA (RN-24) segue
+// a `data` informada; (2) `GET /faturas` — `?hoje=` (não o relógio do
+// servidor) decide ABERTA/FECHADA.
+// ---------------------------------------------------------------------------
+
+describe('D6 — a data do fato vem do CLIENTE, nunca do relógio do servidor', () => {
+  it('pagar com data RETROATIVA grava a TRANSFERENCIA na competência da DATA, não na do relógio', async () => {
+    const cookie = cookieA;
+    const categoriaId = await novaCategoria(cookie, 'D6 pagar retroativo categoria');
+    const cartaoId = await novoCartao(cookie, 'D6 pagar retroativo cartão');
+    const contaCorrenteId = await novaContaDebito(cookie, 'D6 pagar retroativo conta', 200000);
+
+    await novaDespesa({
+      cookie,
+      contaId: cartaoId,
+      categoriaId,
+      data: '2026-08-05',
+      valorCentavos: 30000,
+      descricao: 'D6 compra',
+    });
+    const leitura = await request(app).get('/faturas').query({ contaId: cartaoId, hoje: HOJE }).set('Cookie', cookie);
+    const fatura = faturaDoCiclo(leitura.body.faturas as Fatura[], '2026-08-05');
+
+    // Bem longe de HOJE (o relógio real do ambiente) de propósito: se a API
+    // ainda usasse o relógio do servidor para a competência (o defeito
+    // antigo), a competência gravada seria a de HOJE, nunca esta.
+    const dataDoPagamento = '2020-02-20';
+    const competenciaDoPagamento = '2020-02';
+    const pagamento = await request(app)
+      .post(`/faturas/${fatura.id}/pagar`)
+      .set('Cookie', cookie)
+      .send({ pagaComContaId: contaCorrenteId, data: dataDoPagamento });
+    expect(pagamento.status).toBe(200);
+
+    const extrato = await request(app)
+      .get('/lancamentos')
+      .set('Cookie', cookie)
+      .query({ contaId: contaCorrenteId });
+    interface LancamentoDoExtrato {
+      tipo: string;
+      contaDestinoId: string | null;
+      data: string;
+      competencia: string;
+    }
+    const transferencia = (extrato.body.lancamentos as LancamentoDoExtrato[]).find(
+      l => l.tipo === 'TRANSFERENCIA' && l.contaDestinoId === cartaoId,
+    );
+    expect(transferencia).toBeDefined();
+    // A data gravada é EXATAMENTE a informada — sem deslocamento de fuso.
+    expect(transferencia?.data).toBe(dataDoPagamento);
+    expect(transferencia?.competencia).toBe(competenciaDoPagamento);
+  });
+
+  it('GET /faturas: o `?hoje=` do CLIENTE decide ABERTA/FECHADA — nunca o relógio do servidor', async () => {
+    const cookie = cookieA;
+    const categoriaId = await novaCategoria(cookie, 'D6 hoje categoria');
+    const cartaoId = await novoCartao(cookie, 'D6 hoje cartão');
+    await novaDespesa({
+      cookie,
+      contaId: cartaoId,
+      categoriaId,
+      data: '2026-08-05',
+      valorCentavos: 5000,
+      descricao: 'D6 hoje compra',
+    });
+
+    // MESMO cartão, MESMA compra — só `hoje` muda entre as duas chamadas.
+    const antesDoFechamento = await request(app)
+      .get('/faturas')
+      .query({ contaId: cartaoId, hoje: '2026-08-04' }) // hoje < fechaEm (2026-08-05)
+      .set('Cookie', cookie);
+    const faturaAberta = faturaDoCiclo(antesDoFechamento.body.faturas as Fatura[], '2026-08-05');
+    expect(faturaAberta.status).toBe('ABERTA');
+
+    const noFechamento = await request(app)
+      .get('/faturas')
+      .query({ contaId: cartaoId, hoje: '2026-08-05' }) // hoje >= fechaEm
+      .set('Cookie', cookie);
+    const faturaFechada = faturaDoCiclo(noFechamento.body.faturas as Fatura[], '2026-08-05');
+    expect(faturaFechada.status).toBe('FECHADA');
+  });
+
+  it('GET /faturas sem `hoje`, ou com `hoje` fora do formato AAAA-MM-DD, responde 422', async () => {
+    const cartaoId = await novoCartao(cookieA, 'D6 hoje ausente cartão');
+
+    const semHoje = await request(app).get('/faturas').query({ contaId: cartaoId }).set('Cookie', cookieA);
+    expect(semHoje.status).toBe(422);
+    expect(semHoje.body.erro).toBe('hoje_invalido');
+
+    const hojeInvalido = await request(app)
+      .get('/faturas')
+      .query({ contaId: cartaoId, hoje: '29/08/2026' })
+      .set('Cookie', cookieA);
+    expect(hojeInvalido.status).toBe(422);
+    expect(hojeInvalido.body.erro).toBe('hoje_invalido');
   });
 });
 
@@ -474,12 +596,12 @@ describe('validações', () => {
 
   it('GET /faturas de uma conta que não é CREDITO responde 404', async () => {
     const contaId = await novaContaDebito(cookieA, 'Não é cartão');
-    const resposta = await request(app).get('/faturas').query({ contaId }).set('Cookie', cookieA);
+    const resposta = await request(app).get('/faturas').query({ contaId, hoje: HOJE }).set('Cookie', cookieA);
     expect(resposta.status).toBe(404);
   });
 
   it('sem sessão, GET /faturas responde 401', async () => {
-    const resposta = await request(app).get('/faturas').query({ contaId: 'qualquer' });
+    const resposta = await request(app).get('/faturas').query({ contaId: 'qualquer', hoje: HOJE });
     expect(resposta.status).toBe(401);
   });
 
@@ -498,7 +620,7 @@ describe('validações', () => {
 describe('isolamento entre famílias', () => {
   it('a família B não vê a fatura do cartão da família A (404, não 200 nem 403)', async () => {
     const cartaoDeA = await novoCartao(cookieA, 'Só de A');
-    const resposta = await request(app).get('/faturas').query({ contaId: cartaoDeA }).set('Cookie', cookieB);
+    const resposta = await request(app).get('/faturas').query({ contaId: cartaoDeA, hoje: HOJE }).set('Cookie', cookieB);
     expect(resposta.status).toBe(404);
   });
 
@@ -514,14 +636,14 @@ describe('isolamento entre famílias', () => {
       valorCentavos: 5000,
       descricao: 'Isolamento compra',
     });
-    const leitura = await request(app).get('/faturas').query({ contaId: cartaoId }).set('Cookie', cookieA);
+    const leitura = await request(app).get('/faturas').query({ contaId: cartaoId, hoje: HOJE }).set('Cookie', cookieA);
     const fatura = faturaDoCiclo(leitura.body.faturas as Fatura[], '2026-08-05');
 
     const contaDeB = await novaContaDebito(cookieB, 'Conta de B');
     const resposta = await request(app)
       .post(`/faturas/${fatura.id}/pagar`)
       .set('Cookie', cookieB)
-      .send({ pagaComContaId: contaDeB });
+      .send({ pagaComContaId: contaDeB, data: HOJE });
 
     expect(resposta.status).toBe(404);
     expect(resposta.body.erro).toBe('fatura_nao_encontrada');
@@ -601,7 +723,7 @@ describe('tempo real — o pagamento invalida sem refresh', () => {
       valorCentavos: 4000,
       descricao: 'Tempo real compra',
     });
-    const leitura = await request(app).get('/faturas').query({ contaId: cartaoId }).set('Cookie', cookie);
+    const leitura = await request(app).get('/faturas').query({ contaId: cartaoId, hoje: HOJE }).set('Cookie', cookie);
     const fatura = faturaDoCiclo(leitura.body.faturas as Fatura[], '2026-08-05');
 
     // Uma SEGUNDA sessão da MESMA família — "dois clientes veem sem refresh".
@@ -625,7 +747,7 @@ describe('tempo real — o pagamento invalida sem refresh', () => {
       const pagamento = await request(stack.http)
         .post(`/faturas/${fatura.id}/pagar`)
         .set('Cookie', cookie)
-        .send({ pagaComContaId: contaCorrenteId });
+        .send({ pagaComContaId: contaCorrenteId, data: HOJE });
       expect(pagamento.status).toBe(200);
 
       await new Promise(r => setTimeout(r, 400));

@@ -121,8 +121,3 @@ export function statusDoCiclo(
   if (pagaEm) return 'PAGA';
   return hoje >= fechaEm ? 'FECHADA' : 'ABERTA';
 }
-
-/** `AAAA-MM-DD` de hoje, em UTC — mesmo padrão de todo campo `dataDoFato` (D-06/`db/tipos.ts`). */
-export function hojeIso(agora: Date = new Date()): string {
-  return formatarData(agora.getUTCFullYear(), agora.getUTCMonth() + 1, agora.getUTCDate());
-}

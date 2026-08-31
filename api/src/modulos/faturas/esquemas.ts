@@ -11,6 +11,14 @@ import { z } from 'zod';
 
 import { registrarEsquema } from '../../openapi/registro';
 
+/**
+ * `AAAA-MM-DD` — mesmo padrão de `lancamentos/esquemas.ts#PADRAO_COMPETENCIA`,
+ * para validar o `?hoje=` de `GET /faturas` (D6, tarefa #91: o dia corrente
+ * também vem do CLIENTE, nunca do relógio do servidor — ver o cabeçalho de
+ * `servico.ts#listarFaturasDoCartao`).
+ */
+export const PADRAO_DATA = /^\d{4}-\d{2}-\d{2}$/;
+
 const EsquemaStatusFatura = z.enum(['ABERTA', 'FECHADA', 'PAGA']);
 
 /**
@@ -87,6 +95,12 @@ registrarEsquema(
  * O corpo de `POST /faturas/:id/pagar` — D3: a conta pagadora vem do
  * REQUEST, o usuário escolhe. NUNCA a primeira conta de débito (armadilha do
  * protótipo, EF-05 §4/recorte-desenho §5).
+ *
+ * `data` — D6 (2026-08-29, tarefa #91): a data do fato vem do CLIENTE, nunca
+ * do relógio do servidor. Mesmo defeito e mesmo remédio de `metas/esquemas.ts
+ * #EsquemaGuardar`: a `TRANSFERENCIA` de RN-24 e a competência do pagamento
+ * saem desta data (RN-15,
+ * `.preator/skills/negocio/lancamentos-e-parcelamento/SKILL.md`).
  */
 export const EsquemaPagarFatura = registrarEsquema(
   'PagarFatura',
@@ -94,5 +108,8 @@ export const EsquemaPagarFatura = registrarEsquema(
     pagaComContaId: z
       .string()
       .meta({ description: 'D3 — a conta escolhida pelo usuário para pagar esta fatura.' }),
+    data: z.iso.date().meta({
+      description: 'AAAA-MM-DD — quando o pagamento aconteceu, do CLIENTE (D6). Decide a competência (RN-15).',
+    }),
   }),
 );

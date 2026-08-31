@@ -28,6 +28,7 @@ import type { Db } from './index';
 import { familias, identidades, membros } from './schema';
 import { gerarHashDeSenha } from '../modulos/familia/senha';
 import { semeadorDeContas } from '../modulos/contas/semear';
+import { semeadorDeMetas } from '../modulos/metas/semear';
 import { semeadorDeOrcamento } from '../modulos/orcamento/semear';
 
 /**
@@ -57,7 +58,7 @@ export interface ContextoDoSeed {
  * seria pior que um seed honesto e curto. A EF-02 (contas) é a primeira a se
  * registrar.
  */
-const SEMEADORES_DE_MODULO: SemeadorDeModulo[] = [semeadorDeContas, semeadorDeOrcamento];
+const SEMEADORES_DE_MODULO: SemeadorDeModulo[] = [semeadorDeContas, semeadorDeOrcamento, semeadorDeMetas];
 
 const FAMILIA_DE_TESTE = 'Família de teste';
 
