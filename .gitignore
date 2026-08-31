@@ -121,6 +121,7 @@ npm-debug.log*
 
 # Saída da suíte — o gate conta os testes a partir dela, não se versiona.
 api/relatorio-testes.json
+web/relatorio-testes.json
 
 # Playwright: navegadores e vestígios do crawler de navegação.
 playwright-report/

@@ -10,7 +10,7 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "typecheck": "nuxt typecheck",
-    "teste": "vitest run"
+    "teste": "vitest run --reporter=default --reporter=json --outputFile.json=./relatorio-testes.json"
   },
   "dependencies": {
     "@fontsource/manrope": "^5.1.0",
