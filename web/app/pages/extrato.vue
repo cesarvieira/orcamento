@@ -48,6 +48,7 @@
  */
 import type { Categoria, Conta, Lancamento } from '@orcamento/contrato';
 import { classeDoIcone, useContas } from '~/composables/useContas';
+import { useExtratoLeitura } from '~/composables/useExtratoLeitura';
 import { TIPOS_LANCAMENTO, corDoTipo, useDetalheLancamento, useLancamentos } from '~/composables/useLancamentos';
 import { classeDoIconeCategoria } from '~/composables/useOrcamento';
 import { MESES_DO_ANO, partesDaCompetencia } from '~/utils/competencia';
@@ -57,14 +58,8 @@ const { competencia } = useCompetencia();
 const { abrir: abrirDetalhe } = useDetalheLancamento();
 const { listarContas } = useContas();
 
-const lancamentos = ref<Lancamento[]>([]);
 const categorias = ref<Categoria[]>([]);
 const contas = ref<Conta[]>([]);
-
-const carregando = ref(true);
-const erro = ref<string | null>(null);
-/** Distingue o vazio "por filtro/mês" (tem fonte) do vazio "família nova" (não tem) — ver ponto 4 do cabeçalho. */
-const familiaSemHistorico = ref(false);
 
 const contaFiltroId = ref<string | null>(null);
 const filtroAberto = ref(false);
@@ -76,47 +71,26 @@ const { listarLancamentos, listarCategorias } = useLancamentos({
   },
 });
 
-/** Só a leitura MAIS RECENTE grava a tela — mesmo padrão de `orcamento.vue`. */
-let leituraEmOrdem = 0;
-
-async function carregar(): Promise<void> {
-  const minhaOrdem = ++leituraEmOrdem;
-  try {
-    const resposta = await listarLancamentos({
-      competencia: competencia.value,
-      ...(contaFiltroId.value ? { contaId: contaFiltroId.value } : {}),
-    });
-    if (minhaOrdem !== leituraEmOrdem) return;
-
-    lancamentos.value = resposta.lancamentos;
-    erro.value = null;
-
-    if (resposta.lancamentos.length === 0) {
-      await verificarSeFamiliaTemHistorico();
-    } else {
-      familiaSemHistorico.value = false;
-    }
-  } catch (e) {
-    if (minhaOrdem !== leituraEmOrdem) return;
-    erro.value = mensagemDoErro(e, 'Não consegui carregar o extrato.');
-  } finally {
-    if (minhaOrdem === leituraEmOrdem) carregando.value = false;
-  }
-}
+/**
+ * O guarda de corrida (`leituraEmOrdem`/`minhaOrdem`, mesmo padrão de
+ * `orcamento.vue`) — inclusive para `verificarSeFamiliaTemHistorico` (#105) —
+ * vive dentro do composable, testado sem montar a SFC em
+ * `useExtratoLeitura.teste.ts`.
+ */
+const { lancamentos, carregando, erro, familiaSemHistorico, carregar: carregarLeitura } = useExtratoLeitura({
+  listar: listarLancamentos,
+});
 
 /**
- * Chamada só quando a leitura filtrada (competência + conta) veio vazia —
- * o custo extra de listar SEM filtro fica só no caminho vazio, não no
- * caminho comum. Ver ponto 4 do cabeçalho.
+ * O custo extra de listar SEM filtro (dentro do composable, só no caminho
+ * vazio) fica de fora daqui — esta função só passa os parâmetros do FILTRO
+ * ATUAL da tela. Ver ponto 4 do cabeçalho.
  */
-async function verificarSeFamiliaTemHistorico(): Promise<void> {
-  try {
-    const resposta = await listarLancamentos({});
-    familiaSemHistorico.value = resposta.lancamentos.length === 0;
-  } catch {
-    // Na dúvida, mostra o vazio "por filtro" — tem fonte no desenho, o outro não.
-    familiaSemHistorico.value = false;
-  }
+async function carregar(): Promise<void> {
+  await carregarLeitura({
+    competencia: competencia.value,
+    ...(contaFiltroId.value ? { contaId: contaFiltroId.value } : {}),
+  });
 }
 
 async function carregarApoio(): Promise<void> {
