@@ -14,7 +14,7 @@
       "entry": [
         "app/composables/useRealtime.ts",
         "app/components/MolduraDeModulo.vue",
-        "app/composables/**/*.teste.ts"
+        "app/**/*.teste.ts"
       ],
       "project": ["**/*.{ts,vue}"],
       "ignoreDependencies": [

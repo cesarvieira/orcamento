@@ -10,7 +10,7 @@
   "scripts": {
     "build": "pnpm --filter @orcamento/api run build && pnpm run contrato:gerar",
     "contrato:gerar": "pnpm --filter @orcamento/api run openapi:emitir && pnpm --filter @orcamento/contrato run gerar",
-    "teste": "pnpm --filter @orcamento/api run teste",
+    "teste": "pnpm --filter @orcamento/api run teste && pnpm --filter @orcamento/web run teste",
     "teste:contar": "node scripts/contar-testes.mjs",
     "dev": "pnpm run dev:banco && turbo run dev",
     "dev:banco": "docker compose -f docker-compose.dev.yml up -d",
