@@ -1,0 +1,121 @@
+.fechamento {
+  padding: 1.5rem;
+
+  &__subtitulo {
+    color: var(--cor-texto-secundario);
+    font-size: 0.9rem;
+    margin-bottom: 2rem;
+  }
+
+  &__vazio {
+    color: var(--cor-texto-secundario);
+    text-align: center;
+    padding: 3rem 1rem;
+    background: var(--cor-superficie);
+    border-radius: var(--raio-borda);
+
+    &--erro {
+      color: var(--cor-erro);
+      background: var(--cor-erro-fundo);
+    }
+  }
+
+  &__cartoes {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  &__cartao-resumo {
+    background: var(--cor-superficie);
+    padding: 1.5rem;
+    border-radius: var(--raio-borda);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+
+    &-rotulo {
+      font-size: 0.85rem;
+      color: var(--cor-texto-secundario);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    &-valor {
+      font-size: 1.5rem;
+      font-weight: 600;
+
+      &--sobra {
+        color: var(--cor-sucesso);
+      }
+    }
+  }
+
+  &__estouradas {
+    margin-bottom: 2rem;
+
+    &-titulo {
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    &-lista {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    &-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 1rem;
+      background: var(--cor-fundo);
+      border: 1px solid var(--cor-borda);
+      border-radius: var(--raio-borda);
+
+      &-nome {
+        font-weight: 500;
+      }
+
+      &-valor {
+        color: var(--cor-erro);
+        font-weight: 600;
+      }
+    }
+  }
+
+  &__aviso {
+    background: var(--cor-alerta-fundo);
+    color: var(--cor-alerta-texto);
+    padding: 1rem;
+    border-radius: var(--raio-borda);
+    margin-bottom: 2rem;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    border: 1px solid var(--cor-alerta-borda, transparent);
+
+    i {
+      font-size: 1.5rem;
+      margin-top: -2px;
+    }
+
+    p {
+      line-height: 1.5;
+    }
+  }
+
+  &__selo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--cor-sucesso-fundo);
+    color: var(--cor-sucesso-texto);
+    padding: 0.5rem 1rem;
+    border-radius: 2rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 2rem;
+  }
+}
