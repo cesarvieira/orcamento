@@ -177,8 +177,29 @@ diagnóstico pela metade. O custo está registrado abaixo.
   publica o código-fonte do front para quem adivinhar a URL. O risco está descrito em
   `web/nuxt.config.ts:117`; ligar o upload sem fechá-lo o concretiza.
 - **O compose deixa de ter defaults inocentes.** `SEMEAR` e `SESSAO_SEGREDO` passam a **derrubar** o
-  processo sob `NODE_ENV=production`. O preço é que uma stack de produção mal configurada não sobe —
-  e é precisamente o que se quer: subir errado em silêncio é o modo de falha caro.
+  processo. O preço é que uma stack de produção mal configurada não sobe — e é precisamente o que se
+  quer: subir errado em silêncio é o modo de falha caro.
+- **⚠️ O gatilho não é `NODE_ENV`, e a primeira redação desta decisão errou nisso.** Ela dizia
+  "derrubar sob `NODE_ENV=production`", e isso é inviável: por [D-02](D-02-dois-composes.md) a stack
+  que o gate sobe **é** a de produção, com `NODE_ENV=production` e `SEMEAR=true` — a semeadura é o
+  que dá ao gate de navegação uma área logada para percorrer. Medido na execução da história #116:
+  com o gatilho no `NODE_ENV`, o serviço `migrate` sai com código 1 e **a stack do gate não sobe**.
+  A guarda derrubava o portão que ela existia para proteger.
+
+  O que distingue produção da stack de prova são **duas barreiras independentes**, e a semeadura
+  precisa das duas:
+
+  1. **`AMBIENTE_DE_PROVA`** — a stack de prova se declara. O default é `false`, e quem o liga é o
+     **comando** do gate (`STACK_UP_CMD`, em `preator-perfil.sh`), nunca o arquivo. Produção usa o
+     mesmo compose e não liga nada, então continua protegida por código.
+  2. **As credenciais de teste** (`PREATOR_TEST_USER` / `PREATOR_TEST_PASS`) — a semeadura já as
+     exigia antes desta história, e continua. Em produção elas simplesmente não existem.
+
+  Duas barreiras porque uma sozinha falha em silêncio na direção errada: a chave sozinha vira uma
+  variável que alguém copia junto com o resto do ambiente; a credencial sozinha protege por
+  **ausência**, e ausência não é decisão. Para semear em produção seria preciso ligar a chave **e**
+  fornecer credencial de teste — duas coisas deliberadas, nenhuma delas por descuido.
+
 - **O Traefik e a instância do Sentry não são provados por gate nenhum daqui.** Mesmo contrato que a
   D-08 assinou: o gate prova que o produto funciona **sem** eles; operá-los é assunto de playbook.
 - **Nada nesta decisão cobre perda de dado.** Backup e restore são a história #117, e a dependência
