@@ -15,6 +15,7 @@
     "teste": "vitest run --reporter=default --reporter=json --outputFile.json=./relatorio-testes.json"
   },
   "dependencies": {
+    "@sentry/node": "^10.72.0",
     "cookie": "^2.0.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
