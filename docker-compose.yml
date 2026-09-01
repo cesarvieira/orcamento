@@ -78,6 +78,16 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-orcamento}:${POSTGRES_PASSWORD:-orcamento}@postgres:5432/${POSTGRES_DB:-orcamento}
       SESSAO_SEGREDO: ${SESSAO_SEGREDO:-troque-este-segredo-fora-do-gate}
       SESSAO_TTL_HORAS: ${SESSAO_TTL_HORAS:-720}
+      # A MESMA linha que o `migrate` tem, e ela precisa estar nos DOIS: o
+      # compose não propaga variável do shell para um contêiner que não a
+      # referencia. Sem esta linha, o contêiner `api` sobe com
+      # AMBIENTE_DE_PROVA indefinida MESMO durante o gate, a guarda de
+      # produção fica armada, e o gate só passa porque o segredo-placeholder
+      # acima tem exatamente 32 caracteres — o mínimo que a guarda exige.
+      # Encurtá-lo em um caractere derrubaria o gate por um motivo que
+      # ninguém encontraria. Achado na revisão da tarefa #120, num arquivo
+      # que nem #120 nem #122 possuíam sozinhas: é defeito de costura.
+      AMBIENTE_DE_PROVA: ${AMBIENTE_DE_PROVA:-false}
       ORIGEM_WEB: ${ORIGEM_WEB:-http://localhost:3001}
       MAIL_DRIVER: ${MAIL_DRIVER:-log}
       MAIL_FROM: ${MAIL_FROM:-}
