@@ -57,18 +57,14 @@ jobs:
       # é artefato distribuído (D-09, D-07). O `id` do secret casa com o
       # `--mount=type=secret,id=sentry_auth_token` do web/Dockerfile.
       #
-      # ⚠️ COSTURA EM ABERTO (achado da #123, não corrigido aqui — fora do
-      # escopo, que é só .github/workflows/): `web/nuxt.config.ts` lê
-      # `process.env.SENTRY_URL` / `SENTRY_ORG` / `SENTRY_PROJETO` dentro do
-      # `RUN` de build do `web/Dockerfile`, mas esse Dockerfile só injeta
-      # `SENTRY_AUTH_TOKEN` naquele comando — não declara `ARG`/`ENV` para os
-      # outros três. Um `--build-arg` para um `ARG` não declarado é ignorado
-      # pelo Docker (aviso, não erro): estas três linhas abaixo hoje **não
-      # chegam** ao processo de build, e o upload do source map ao Sentry
-      # self-hosted tende a falhar ou mirar `sentry.io` por engano (URL
-      # vazia). Peça ao Dockerfile (#121) declarar os três `ARG`/`ENV` no
-      # stage `build`, redeclarados no `RUN`, do mesmo jeito que
-      # `SENTRY_AUTH_TOKEN` — só então este `build-args:` passa a valer.
+      # Os `build-args` abaixo SÓ valem porque `web/Dockerfile` declara um
+      # `ARG` para cada um. **O Docker ignora em silêncio um `--build-arg`
+      # cujo `ARG` não foi declarado** — nada falha, e o valor simplesmente
+      # não chega ao build. Foi assim que `SENTRY_URL`/`ORG`/`PROJETO`
+      # passaram despercebidos até a #123: sem eles o `sentry-cli` cai no
+      # default e fala com o `sentry.io`, não com a instância self-hosted.
+      # Corrigido na costura desta história (`ac24c85`). Acrescentou um
+      # `build-arg` aqui? Declare o `ARG` lá, ou ele não existe.
       - name: Build e publica a imagem do front
         uses: docker/build-push-action@v6
         with:
