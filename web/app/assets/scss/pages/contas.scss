@@ -44,6 +44,15 @@
   margin-top: 6px;
 }
 
+// A nota de RN-07 ("Não inclui as contas reserva.", tarefa #40) — preservada
+// abaixo do `faturaAviso` (história #74, tarefa #110), que ocupa a posição
+// original do desenho. Ver o cabeçalho de `contas.vue` para a decisão.
+.contas__resumo-nota {
+  font-size: 10.5px;
+  color: var(--texto-fraco);
+  margin-top: 3px;
+}
+
 // ── estados vazios ───────────────────────────────────────────────────────
 
 .contas__vazio {
@@ -127,6 +136,62 @@
 .contas__seta {
   font-size: 16px;
   color: var(--texto-apagado);
+}
+
+// ── AÇÕES DA FATURA — "Ver fatura" / "Pagar fatura" (história #74, #110) ──
+// Recorte-desenho-74 §1: linha de dois botões-pílula dentro do cartão da
+// conta, só em CREDITO (`a.ehCartao`). Mobile 36px/12px/8px, desktop
+// 38px/12.5px/10px (mockup mobile `:283-288`, desktop `:362-367`).
+.contas__acoes-fatura {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+
+  @media (min-width: 768px) {
+    gap: 10px;
+  }
+}
+
+.contas__botao-fatura {
+  flex: 1;
+  height: 36px;
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+
+  @media (min-width: 768px) {
+    height: 38px;
+    font-size: 12.5px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  // "Ver fatura" — secundário: branco com borda (mockup `border:1px solid rgba(0,0,0,0.12)`).
+  &--secundario {
+    border: 1px solid var(--borda-media);
+    background: var(--superficie);
+    color: var(--tinta);
+  }
+
+  // "Pagar fatura" — primário: azul sólido (mockup `#14325a` = `var(--tinta)`).
+  &--primario {
+    border: none;
+    background: var(--tinta);
+    color: #fff;
+  }
+}
+
+// F2 — "Não há fatura em aberto nesse cartão." (mesma frase do 409 `fatura_sem_valor`).
+.contas__aviso-pagamento {
+  margin: 8px 0 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--alerta);
 }
 
 // ── rodapé · cadastrar conta ─────────────────────────────────────────────
@@ -425,4 +490,93 @@
     opacity: 0.6;
     cursor: default;
   }
+}
+
+// ── FOLHA · sheetPagar (F1, decisão humana 2026-08-31 — ver cabeçalho de
+//    `contas.vue`) ─────────────────────────────────────────────────────────
+// Reaproveita `.sheet`/`.sheet__cabecalho`/`.sheet__cartao`/`.sheet__erro`/
+// `.botao`/`.sheet__salvar` já definidos acima para `sheetConta`, e as globais
+// `.lista`/`.linha`/`.linha--botao` (`base/_lista.scss`) para as linhas do
+// dropdown — mesmo par que `faturas.vue` usa para o seletor de conta
+// pagadora (D3). Só o valor da fatura e o botão fechado do dropdown são
+// novos aqui, porque `faturas.scss` está fora do escopo desta tarefa.
+
+.contas__pagar-valor {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--alerta);
+  margin-top: 6px;
+}
+
+.contas__pagar-seletor-container {
+  position: relative;
+}
+
+.contas__pagar-seletor {
+  width: 100%;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 13px;
+  background: var(--superficie);
+  border: 1px solid var(--borda-media);
+  border-radius: var(--raio);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.contas__pagar-seletor-quadrado {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 7px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.contas__pagar-seletor-texto {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--texto);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.contas__pagar-seletor-seta {
+  flex: none;
+  font-size: 14px;
+  color: var(--texto-fraco);
+}
+
+.contas__pagar-seletor-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  background: transparent;
+}
+
+.contas__pagar-seletor-painel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 46;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.contas__pagar-seletor-check {
+  flex: none;
+  margin-left: auto;
+  font-size: 15px;
+  color: var(--tinta);
 }

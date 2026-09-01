@@ -155,12 +155,80 @@ os valores na linha de apoio do cartão de crédito (`"Fecha dia 20 · vence dia
 `subDaConta()`), mas nenhum cálculo de ciclo de fatura roda em lugar nenhum ainda — quem procurar
 por essa lógica no módulo de contas não vai achar, porque ela não é deste módulo. Ver `EF02-MC-004`.
 
-### _Ver fatura_ / _Pagar fatura_ — omitidos, não deixados inertes
+### _Ver fatura_ / _Pagar fatura_ — omitidos na #40, **construídos na história #74**
 
 O mockup mostra os dois no item de cartão de crédito. A tarefa #40 os **omitiu** da tela (não
-existem no HTML renderizado) — são da EF-05, e diferente do que a EF-00 fez com "Google"/"Apple" em
-`/entrar` (que ficaram visíveis e inertes, com "em breve"), aqui a decisão foi não mostrar um botão
-para uma tela que ainda não existe. Confirmado pelo condutor lendo o template renderizado.
+existiam no HTML renderizado) — são da EF-05, e diferente do que a EF-00 fez com "Google"/"Apple" em
+`/entrar` (que ficaram visíveis e inertes, com "em breve"), a decisão de então foi não mostrar um
+botão para uma tela que ainda não existia.
+
+**Isso deixou de valer.** A tela `fatura` passou a existir na EF-05 (história #19), e a história
+**#74** (tarefa #110) construiu as duas portas — ver a seção "As duas portas da fatura" logo abaixo.
+O texto acima fica registrado porque explica **por que** houve um intervalo em que os botões não
+existiam: não foi esquecimento, foi decisão datada.
+
+## As duas portas da fatura e o `faturaAviso` — história #74, tarefa #110
+
+**A origem é uma lacuna de escopo, não um defeito de execução.** A decomposição da história #19 não
+encarregou ninguém de `contas.vue`, e a tarefa da tela de fatura (#71) foi explicitamente proibida
+de tocá-lo — corretamente, porque duas tarefas na mesma pasta produzem implementações divergentes.
+O buraco ficou **entre** as pastas, e foi a revisão de costura da #19 que o pegou.
+
+O que entrou em `web/app/pages/contas.vue` (+ `web/app/assets/scss/pages/contas.scss`):
+
+| Peça               | Comportamento                                                                                                                                                                     |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **"Ver fatura"**   | navega para `/faturas?contaId=<id>` — a **porta 1**. Sem ela, só se chegava à fatura pelo _Mais_ (mobile) ou pela sidebar (desktop), e os dois caem no fallback "primeiro cartão" |
+| **"Pagar fatura"** | paga **sem trocar de tela** — a **porta 4**. Perdê-la faria o produto exigir dois passos onde o desenho pede um                                                                   |
+| **`faturaAviso`**  | 3ª linha do card "EM CONTA HOJE": _"Faturas de X ainda não debitadas"_ / _"Nenhuma fatura em aberto"_                                                                             |
+
+Os dois botões só aparecem em conta `CREDITO` (`sc-if value="{{ a.ehCartao }}"` no mockup).
+
+### As duas decisões humanas que o desenho não cobria (2026-08-31)
+
+O desenho tem os botões, mas não resolve duas ambiguidades. As duas foram **escaladas como fork
+antes de qualquer código ser escrito** — não decididas pelo agente:
+
+- **F1 · a conta pagadora.** D3 (2026-08-28) já exigia que ela fosse **escolhida, nunca fixa**, mas
+  a lista de contas não tem seletor. Decidido: "Pagar fatura" **sempre abre uma folha de
+  confirmação** com o seletor de conta pagadora, reaproveitando o padrão de `faturas.vue`. ⛔ Não
+  porta a armadilha do protótipo (`contaPagadora` fixa na primeira conta `DEBITO`,
+  `Orcamento Familiar.dc.html:1004`), que a [EF-05 §4](../especificacoes/EF-05-faturas.md) nomeia.
+  A folha é superfície que o desenho **não** tem — é decisão humana registrada, não invenção.
+- **F2 · qual fatura o botão único paga.** D1/D2 admitem mais de uma fatura em aberto (a `FECHADA`
+  aguardando pagamento **mais** o ciclo `ABERTA` corrente). Decidido: paga a **`FECHADA` mais
+  antiga**; com **2+ `FECHADA`s** navega para `/faturas?contaId=`, onde cada bloco tem seu próprio
+  botão; **sem nenhuma `FECHADA`** mostra _"Não há fatura em aberto nesse cartão."_ — a frase do
+  próprio desenho, idêntica à do 409 `fatura_sem_valor` — **sem** disparar o POST. Mesmo critério
+  que `faturas.vue#faturaParaBotaoNoCabecalho` já aplicava.
+
+**Só fatura `FECHADA` é pagável** — o ciclo `ABERTA` só acumula. Isso não foi suposto: está em
+`faturas.vue#blocos` (campo `temBotao`), e foi conferido no código antes de virar sinal da tarefa.
+
+### O `faturaAviso` não abriu endpoint novo
+
+No protótipo o aviso soma `a.faturaConta` de cada cartão. Aqui o valor **já chega derivado do
+servidor**: o `saldoCentavos` de uma conta `CREDITO` é `−Σ(fatura em aberto, D1)`
+(`api/src/modulos/contas/servico.ts#expressaoSaldoDerivado`). A tela **soma o que já tem em mão e
+formata** — não recalcula regra de lastro (regra inviolável #4) e não chama `GET /faturas` por
+cartão só para montar o aviso. A revisão de costura conferiu essa matemática contra a expressão do
+servidor, em vez de aceitar o comentário do código.
+
+### A nota de RN-07 sobreviveu
+
+O desenho tem **uma** linha nessa posição (`faturaAviso`); o código tinha **outra** (_"Não inclui as
+contas reserva."_, acréscimo da #40 para tornar RN-07 visível à vista). Apagá-la seria regressão de
+algo que a EF-02 provou. As duas convivem: o aviso de fatura na posição do desenho, a nota de RN-07
+abaixo, em `.contas__resumo-nota`.
+
+### A fonte de desenho — como quase se perdeu
+
+A issue da história apontava um recorte de desenho que **não existia mais**: era anotação
+não-versionada do condutor da #19, apagada pelo `limpar-sessao.sh`. O MCP do Claude Design também
+falhou a conectar na sessão. Isso teria virado fork — mas **o mockup está versionado** em
+`docs/mockup/project/` desde `349dd62`, e o recorte foi reextraído de lá. Fica registrado porque é
+o antídoto de um defeito medido na própria #19: recorte incompleto faz o agente inventar com
+convicção, contra um texto que afirma que "o desenho não define".
 
 ## O que a EF-00/EF-01 já tinham deixado pronto (não foi refeito)
 
@@ -215,8 +283,15 @@ PROVA_DE_COMPORTAMENTO=PASS
 
 ## O que não foi portado do mockup
 
-`support.js` (runtime gerado do dc-runtime, conforme já registrado desde a EF-00) e os botões _Ver
-fatura_/_Pagar fatura_ do item de cartão — omitidos por serem da EF-05, ver acima.
+`support.js` (runtime gerado do dc-runtime, conforme já registrado desde a EF-00).
+
+Os botões _Ver fatura_/_Pagar fatura_ do item de cartão **saíram desta lista na história #74**: eram
+omissão temporária, não recusa de porte, e hoje estão na tela.
+
+Continua não portada a linha de apoio do cartão como o mockup a monta (`'limite … · livre … · vence
+dia …'`, `Orcamento Familiar.dc.html:1032`): `subDaConta()` mostra `'Fecha dia X · vence dia Y'`. É
+divergência **pré-existente** da tarefa #40; a história #74 proibiu explicitamente que a tarefa #110
+a "consertasse", por estar fora do escopo declarado dela.
 
 ## O que ainda não é desta EF
 

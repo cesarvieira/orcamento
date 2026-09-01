@@ -304,9 +304,12 @@ conta pagadora escolhidos permanecem).
 
 ## Costura reportada, não implementada nesta história (fora de escopo de pasta)
 
-- `faturaAviso` (card "EM CONTA HOJE" da tela `contas`, EF-02) e os botões "Ver fatura"/"Pagar
-  fatura" direto da lista de contas — ambos vivem em `contas.vue`, fora do escopo de arquivo desta
-  história; o recorte de desenho já os registra como pertencentes à EF-02.
+- ~~`faturaAviso` (card "EM CONTA HOJE" da tela `contas`, EF-02) e os botões "Ver fatura"/"Pagar
+  fatura" direto da lista de contas~~ — **fechado pela história #74** (tarefa #110, mesclada em
+  `e3c7c4a`). Ambos viviam em `contas.vue`, fora do escopo de arquivo desta história; viraram
+  história própria, com as duas ambiguidades do desenho (conta pagadora e qual fatura pagar)
+  escaladas como fork e decididas pelo humano antes do código. Detalhe as-built em
+  [MANUAL-02](MANUAL-02-contas.md), seção "As duas portas da fatura".
 - "Contas" acender como aba ativa enquanto a tela `fatura` está aberta — é do layout
   (`navegacao.ts`/shell), não desta pasta.
 - `EF05-MC-002` (MC-05) — `POST /lancamentos` não invalida `contas`/`faturas`; lacuna herdada da
