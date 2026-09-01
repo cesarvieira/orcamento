@@ -43,6 +43,23 @@ ENV NUXT_PUBLIC_API_BASE=$API_BASE_PUBLICA
 ARG SENTRY_RELEASE=
 ENV NUXT_PUBLIC_SENTRY_RELEASE=$SENTRY_RELEASE
 
+# Para ONDE o source map sobe. `nuxt.config.ts` lê os três de `process.env` em
+# tempo de build (bloco `sourceMapsUploadOptions`), e sem estes `ARG` eles
+# chegam vazios: o `sentry-cli` cai no default e fala com o **sentry.io**, não
+# com a instância self-hosted — o upload "acontece" e não chega em lugar nenhum.
+#
+# ⚠️ O que torna isso invisível: **o Docker ignora em SILÊNCIO um `--build-arg`
+# cujo `ARG` não foi declarado.** O workflow pode passar os três corretamente e
+# o build não vê nenhum, sem aviso. Foi assim que passou despercebido até a
+# tarefa #123.
+#
+# Diferente do `SENTRY_AUTH_TOKEN` logo abaixo, estes três NÃO são segredo — a
+# URL da instância, o slug da org e o do projeto. `ARG` normal serve; o que não
+# pode virar `ARG` é o token, e o porquê está lá embaixo.
+ARG SENTRY_URL=
+ARG SENTRY_ORG=
+ARG SENTRY_PROJETO=
+
 COPY tsconfig.base.json ./
 # O contrato é GERADO e versionado: entra pronto na imagem. Regenerá-lo aqui
 # exigiria o fonte da API dentro do build do front — acoplamento sem ganho.
