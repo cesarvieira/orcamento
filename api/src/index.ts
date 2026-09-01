@@ -5,10 +5,17 @@
  * `/realtime` (D-04). Por isso não há variável de ambiente nova para o tempo
  * real — `API_BASE` já descreve o endpoint.
  */
+// ⛔ PRIMEIRA LINHA, e é regra: o SDK do Sentry instrumenta Express, `pg` e
+// `http` por dentro, e não alcança o que já foi carregado antes dele. Importar
+// isto depois do `./app` faz a observabilidade "funcionar" sem requisição, sem
+// query e sem trace — o pior dos defeitos, o que parece certo. Ver D-08.
+import './instrumentacao';
+
 import { createServer } from 'node:http';
 
 import { criarApp } from './app';
 import { ambiente } from './config/ambiente';
+import { ambienteDoSentry, sentryLigado } from './instrumentacao';
 import { fecharBanco } from './db';
 import { criarServidorDeTempoReal, fecharTempoReal } from './realtime/servidor';
 
@@ -60,6 +67,13 @@ function banner(): void {
       ambiente.GOOGLE_CLIENT_ID
         ? 'ligado'
         : 'desligado (GOOGLE_CLIENT_ID vazio — o botão fica inerte no front)'
+    }`,
+    `sentry        ${
+      sentryLigado()
+        ? `ligado · ambiente=${ambienteDoSentry()} · teste=${
+          ambiente.SENTRY_TESTE_HABILITADO ? 'GET /diagnostico/sentry' : 'desligado'
+        }`
+        : 'desligado (SENTRY_DSN vazio — nada sai desta máquina)'
     }`,
   ];
 

@@ -12,9 +12,11 @@
     "migrar": "tsx src/db/migrar.ts",
     "semear": "tsx ../scripts/seed.ts",
     "openapi:emitir": "tsx src/openapi/emitir.ts",
+    "sentry:teste": "tsx src/scripts/sentry-teste.ts",
     "teste": "vitest run --reporter=default --reporter=json --outputFile.json=./relatorio-testes.json"
   },
   "dependencies": {
+    "@sentry/node": "^10.72.0",
     "cookie": "^2.0.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",

@@ -70,7 +70,9 @@ export default tseslint.config(
       'api/src/http/middleware/erro.ts',
       'api/src/http/middleware/tenant.ts',
       'api/src/openapi/emitir.ts',
+      'api/src/scripts/sentry-teste.ts',
       'api/src/modulos/familia/email.ts',
+      'web/app/middleware/sessao.global.ts',
       'packages/contrato/gerar.mjs',
     ],
     rules: {

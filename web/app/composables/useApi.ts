@@ -12,12 +12,25 @@
  *    no SSR quem tem o cookie é a requisição que chegou ao Nuxt, e ele só
  *    chega à API se formos nós a repassá-lo.
  */
-export function useApi() {
+/**
+ * A base que ESTE processo usa — a interna no SSR, a pública no navegador.
+ *
+ * Existe separada de `useApi()` porque quem trata o erro precisa dizer QUAL
+ * endereço não respondeu. "A API não respondeu" manda a pessoa procurar no
+ * lugar errado; "não respondeu em http://localhost:3000" resolve o caso em
+ * dez segundos — e o caso real que motivou isto foi exatamente esse: a API
+ * na 3010, o SSR chamando a 3000.
+ */
+export function useApiBase(): string {
   const config = useRuntimeConfig();
 
-  const base = import.meta.server
+  return import.meta.server
     ? (config.apiBaseInterna as string)
     : (config.public.apiBase as string);
+}
+
+export function useApi() {
+  const base = useApiBase();
 
   const cabecalhosDoSsr = import.meta.server ? useRequestHeaders(['cookie']) : {};
 

@@ -35,6 +35,7 @@ export type CriarConta = components['schemas']['CriarConta'];
 export type CriarConvite = components['schemas']['CriarConvite'];
 export type DefinirRendaPrevista = components['schemas']['DefinirRendaPrevista'];
 export type DefinirTeto = components['schemas']['DefinirTeto'];
+export type DiagnosticoSentry = components['schemas']['DiagnosticoSentry'];
 export type Erro = components['schemas']['Erro'];
 export type FamiliaAtual = components['schemas']['FamiliaAtual'];
 export type Fatura = components['schemas']['Fatura'];

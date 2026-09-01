@@ -6,10 +6,15 @@
  *   3. tenant        — descarta `familiaId` do cliente e monta o contexto
  *                      a partir do token, ANTES de qualquer handler (R1)
  *   4. rotas
- *   5. 404 e erro
+ *   5. 404, captura no Sentry e erro
  *
  * Inverter 3 e 4 é o bug: um handler que rode antes do tenant enxerga o
  * `familiaId` que o cliente mandou.
+ *
+ * No passo 5 a ordem também é regra: a captura do Sentry OBSERVA o erro e o
+ * repassa; quem responde ao cliente continua sendo o `tratarErro`, sempre na
+ * forma `Erro` do contrato. Pô-la depois dele não capturaria nada — o erro já
+ * teria sido respondido e encerrado.
  */
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
@@ -23,6 +28,7 @@ import {
   carregarSessao,
   descartarTenantDoCliente,
 } from './http/middleware/tenant';
+import { rotasDeDiagnostico } from './http/rotas/diagnostico';
 import { rotasDeSaude } from './http/rotas/saude';
 import { rotasDeContas } from './modulos/contas/rotas';
 import { rotasDeFamilia } from './modulos/familia/rotas';
@@ -31,6 +37,7 @@ import { rotasDeLancamentos } from './modulos/lancamentos/rotas';
 import { rotasDeMetas } from './modulos/metas/rotas';
 import { rotasDeOrcamento } from './modulos/orcamento/rotas';
 import { rotasDeFechamento } from './modulos/fechamento/rotas';
+import { instalarCapturaDeErro } from './instrumentacao';
 import { construirDocumento } from './openapi/registro';
 import './openapi/esquemas';
 
@@ -67,6 +74,7 @@ export function criarApp(): Express {
   });
 
   app.use(rotasDeSaude);
+  app.use(rotasDeDiagnostico);
   app.use(rotasDeFamilia);
   app.use(rotasDeContas);
   app.use(rotasDeOrcamento);
@@ -76,6 +84,7 @@ export function criarApp(): Express {
   app.use(rotasDeFechamento);
 
   app.use(tratarNaoEncontrado);
+  instalarCapturaDeErro(app);
   app.use(tratarErro);
 
   return app;

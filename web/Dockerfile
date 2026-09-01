@@ -52,4 +52,11 @@ COPY --from=build /app/web/.output ./
 
 EXPOSE 3001
 
-CMD ["node", "server/index.mjs"]
+# `--import` do config do Sentry ANTES do servidor, e é regra, não estilo: o SDK
+# instrumenta `http`, `fetch` e o Nitro por dentro, e não alcança o que já foi
+# carregado antes dele. Sem esta flag a observabilidade do SSR "funciona" —
+# sem requisição, sem trace, e sem o erro que a gente foi lá procurar.
+#
+# O arquivo é gerado pelo módulo em todo build, e é inerte com DSN vazio: a
+# flag não cria dependência de o Sentry estar configurado. Ver D-08.
+CMD ["node", "--import", "./server/sentry.server.config.mjs", "server/index.mjs"]

@@ -132,6 +132,40 @@ modelo é redeclarado (R6).
   vitest não imprime um resumo nos formatos que o gate reconhece), `FRONT_DIR`/`FRONT_BUILD`/
   `TYPECHECK_CMD`, `COMPOSE`/`API_PORT`/`FRONT_PORT`, `OPENAPI_URL`, `CRAWL_CMD`/`MAX_QUEBRADAS`.
 
+## Observabilidade — Sentry (D-08)
+
+> Acrescentado na história [#114](https://github.com/cesarvieira/orcamento/issues/114), depois do
+> fechamento inicial da EF-00. Passo a passo de operação em
+> [`.preator/playbooks/sentry.md`](../../.preator/playbooks/sentry.md).
+
+Instância **self-hosted**, que **não** vive neste repositório: aqui só se consome um DSN. O
+`docker-compose.yml` daqui é o alvo do `deploy-fresh`, e os ~20 contêineres do Sentry o tornariam
+improvável de subir do zero em tempo de gate.
+
+`SENTRY_DSN` vazio (o default) = SDK não inicializa e nada sai da máquina. É o que mantém a suíte
+de integração offline e o gate de navegação com zero erro de rede.
+
+| Onde  | Arquivo                                                       | Nota                                                                                                                              |
+| ----- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| API   | `api/src/instrumentacao.ts`                                   | importado na **primeira linha** de `index.ts` — o SDK instrumenta Express e `pg` por dentro e não alcança o que já foi carregado  |
+| API   | `api/src/app.ts`                                              | a captura entra entre o 404 e o `tratarErro`; quem responde ao cliente continua sendo o `tratarErro`, na forma `Erro` do contrato |
+| Front | `web/sentry.client.config.ts` · `web/sentry.server.config.ts` | exigência do `@sentry/nuxt`: arquivos de raiz. **Não** criam `web/server/`                                                        |
+| Front | `web/Dockerfile`                                              | o CMD carrega o config com `--import` antes do servidor, pelo mesmo motivo da primeira linha da API                               |
+
+**Nada sensível sai no evento.** `sendDefaultPii: false` mais uma limpeza que apaga o valor de
+todo campo cujo nome case com senha/token/cookie/authorization/secret, em qualquer profundidade —
+duas implementações irmãs (`api/src/instrumentacao.ts` e `web/app/utils/limpeza-de-evento.ts`),
+provadas em `api/testes/sentry.teste.ts` e `web/app/utils/limpeza-de-evento.teste.ts`. O stack
+trace não é limpo, de propósito.
+
+**Três portas para provar que está viva, a qualquer momento:**
+
+| Porta    | Comando / caminho                               | Depende de                                                                   |
+| -------- | ----------------------------------------------- | ---------------------------------------------------------------------------- |
+| CLI      | `pnpm --filter @orcamento/api run sentry:teste` | nada — nem stack no ar, nem chave ligada. Sai `1` se não confirmar a entrega |
+| Endpoint | `GET /diagnostico/sentry` (`?modo=erro`)        | `SENTRY_TESTE_HABILITADO=true`; fora isso, 404                               |
+| Tela     | `/mais/diagnostico`                             | `NUXT_PUBLIC_SENTRY_TESTE_HABILITADO=true` + sessão; fora isso, 404          |
+
 ## Prova rodada (evidência)
 
 Re-executada pelo condutor, **independente do relato do agente**, três vezes:

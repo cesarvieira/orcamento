@@ -9,6 +9,16 @@
  * doutrina proíbe. A API é o `api/`.
  */
 export default defineNuxtConfig({
+  /**
+   * Observabilidade (D-08). O módulo carrega `sentry.client.config.ts` e
+   * `sentry.server.config.ts` da raiz de `web/` — e os dois só inicializam o
+   * SDK quando há DSN. Sem DSN, o módulo entra no build e não faz nada:
+   * nenhuma requisição sai, e o gate de navegação segue com zero erro de rede.
+   *
+   * ⛔ Isto NÃO cria `web/server/`. O módulo se pendura no Nitro que já existe
+   * para o SSR; nenhuma rota de servidor nova nasce daqui.
+   */
+  modules: ['@sentry/nuxt/module'],
   ssr: true,
 
   /**
@@ -61,6 +71,20 @@ export default defineNuxtConfig({
       // fica inerte em vez de tentar carregar um script sem client id.
       // Sobrescrito por NUXT_PUBLIC_GOOGLE_CLIENT_ID.
       googleClientId: process.env.GOOGLE_CLIENT_ID ?? '',
+
+      // --- Observabilidade (D-08) ------------------------------------------
+      // O DSN da instância SELF-HOSTED do Sentry. Vazio por padrão: o SDK não
+      // inicializa e NADA sai da máquina. É público por construção — o do
+      // navegador sai no HTML —, mas quem o tem escreve na sua instância.
+      // Sobrescrito por NUXT_PUBLIC_SENTRY_DSN.
+      sentryDsn: '',
+      // Separa dev, prova e produção dentro da instância.
+      sentryAmbiente: process.env.NODE_ENV ?? 'development',
+      // 0 = só captura de erro, sem trace. O disco da instância é seu.
+      sentryTracesSampleRate: 0,
+      // Liga a tela `/mais/diagnostico`. `false` inclusive em produção: ela
+      // quebra de propósito. Liga para diagnosticar, desliga depois.
+      sentryTesteHabilitado: false,
     },
   },
 
@@ -86,6 +110,24 @@ export default defineNuxtConfig({
     transpile: ['@orcamento/contrato'],
   },
 
+  /**
+   * Source map do cliente — e por que ele é OPT-IN.
+   *
+   * Sem source map, o stack trace do navegador chega minificado e quase
+   * inútil. Com ele ligado sempre, todo artefato de produção passa a carregar
+   * os `.map` — peso a mais e o código-fonte recuperável por quem adivinhar a
+   * URL, mesmo sem Sentry nenhum na jogada.
+   *
+   * Então ele acompanha a intenção: existe `SENTRY_AUTH_TOKEN` no build? Emite
+   * (`hidden`: gera o arquivo, sem o comentário que o aponta) e sobe para a
+   * instância. Não existe? Build normal, sem mapa e sem upload — e nada quebra.
+   *
+   * ⚠️ O upload ainda depende do binário do `@sentry/cli`, que este monorepo
+   * NÃO instala por padrão (ver `allowBuilds` em `pnpm-workspace.yaml`). São
+   * as duas coisas juntas, e o playbook diz isso.
+   */
+  sourcemap: { client: process.env.SENTRY_AUTH_TOKEN ? 'hidden' : false },
+
   compatibilityDate: '2025-07-15',
 
   nitro: {
@@ -96,5 +138,16 @@ export default defineNuxtConfig({
     strict: true,
     // O typecheck roda pelo gate, com `nuxt typecheck` — não a cada build.
     typeCheck: false,
+  },
+
+  sentry: {
+    sourceMapsUploadOptions: {
+      enabled: Boolean(process.env.SENTRY_AUTH_TOKEN),
+      // A instância self-hosted. Sem isto o `sentry-cli` fala com o sentry.io.
+      url: process.env.SENTRY_URL ?? '',
+      org: process.env.SENTRY_ORG ?? '',
+      project: process.env.SENTRY_PROJETO ?? '',
+      authToken: process.env.SENTRY_AUTH_TOKEN ?? '',
+    },
   },
 });

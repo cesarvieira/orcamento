@@ -78,6 +78,63 @@ const esquema = z.object({
    * `NUXT_PUBLIC_*` com este valor o publicaria no HTML de todo mundo.
    */
   GOOGLE_CLIENT_SECRET: z.string().default(''),
+
+  /**
+   * OBSERVABILIDADE (D-08) — o DSN da instância SELF-HOSTED do Sentry.
+   *
+   * Vazio é o default e é um estado válido: o SDK nem se inicializa e NADA sai
+   * desta máquina. É isso que mantém a suíte de integração offline e o gate de
+   * navegação com zero erro de rede — um coletor inalcançável pintaria o gate
+   * de vermelho por um motivo que não é o produto.
+   *
+   * O DSN não é segredo no sentido do client secret (ele viaja no envelope de
+   * todo evento, e o do front sai no HTML), mas também não é público: quem o
+   * tem consegue escrever eventos na sua instância. Ambiente, como todo o
+   * resto (D-07).
+   */
+  SENTRY_DSN: z.string().default(''),
+  /**
+   * Separa dev, prova e produção DENTRO da instância. Vazio herda o
+   * `NODE_ENV` — que é o que se quer em 90% dos casos; a variável existe para
+   * o caso em que não é (duas instalações de prova, por exemplo).
+   */
+  SENTRY_AMBIENTE: z.string().default(''),
+  /**
+   * Fatia das requisições que viram trace de performance. 0.1 = 10%, o
+   * suficiente para ver forma sem inundar o disco da instância — que é seu.
+   * `0` desliga o tracing e mantém só a captura de erro.
+   */
+  SENTRY_TRACES_SAMPLE_RATE: z.coerce.number().min(0).max(1).default(0.1),
+  /**
+   * A versão que o evento carrega. Preenchida no build (o SHA do commit serve),
+   * é o que faz o stack trace casar com o source map certo. Vazia, o evento
+   * chega sem release — funciona, só dói mais de ler.
+   */
+  SENTRY_RELEASE: z.string().default(''),
+  /**
+   * O slug da organização na instância. Só serve para o `sentry:teste` montar
+   * o link direto do evento que acabou de mandar. Vazio, ele imprime só o
+   * `event_id` — o teste continua valendo.
+   */
+  SENTRY_ORG: z.string().default(''),
+  /**
+   * Liga as PORTAS DE TESTE expostas (o endpoint `/diagnostico/sentry` e a
+   * tela `/mais/diagnostico`). `false` por padrão, inclusive em produção: uma
+   * delas estoura de propósito, e rota assim aberta é ruído e convite a abuso.
+   * Liga para diagnosticar, desliga depois.
+   *
+   * A CLI `pnpm --filter @orcamento/api run sentry:teste` NÃO passa por aqui:
+   * ela é comando, não superfície exposta — e por isso é a porta que funciona
+   * a qualquer momento, sem ligar chave nenhuma.
+   *
+   * Enum em vez de booleano coagido de propósito: `SENTRY_TESTE_HABILITADO=1`
+   * ou `=yes` falha alto aqui, em vez de virar `false` em silêncio e render
+   * meia hora de "por que o endpoint continua dando 404?".
+   */
+  SENTRY_TESTE_HABILITADO: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform(v => v === 'true'),
 });
 
 const analise = esquema.safeParse(process.env);
