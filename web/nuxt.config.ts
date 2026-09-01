@@ -123,22 +123,41 @@ export default defineNuxtConfig({
   },
 
   /**
-   * Source map do cliente — e por que ele é OPT-IN.
+   * Source map — cliente E servidor, e por que os dois são OPT-IN.
    *
-   * Sem source map, o stack trace do navegador chega minificado e quase
-   * inútil. Com ele ligado sempre, todo artefato de produção passa a carregar
-   * os `.map` — peso a mais e o código-fonte recuperável por quem adivinhar a
-   * URL, mesmo sem Sentry nenhum na jogada.
+   * Sem source map, o stack trace chega minificado e quase inútil. Com ele
+   * ligado sempre, todo artefato de produção passa a carregar os `.map` —
+   * peso a mais e o código-fonte recuperável por quem adivinhar a URL, mesmo
+   * sem Sentry nenhum na jogada.
    *
-   * Então ele acompanha a intenção: existe `SENTRY_AUTH_TOKEN` no build? Emite
-   * (`hidden`: gera o arquivo, sem o comentário que o aponta) e sobe para a
-   * instância. Não existe? Build normal, sem mapa e sem upload — e nada quebra.
+   * Então os dois acompanham a intenção: existe `SENTRY_AUTH_TOKEN` no
+   * build? Emite (`hidden`: gera o arquivo, sem o comentário que o aponta) e
+   * sobe para a instância. Não existe? Build normal, sem mapa e sem upload —
+   * e nada quebra.
    *
    * ⚠️ O upload ainda depende do binário do `@sentry/cli`, que este monorepo
    * NÃO instala por padrão (ver `allowBuilds` em `pnpm-workspace.yaml`). São
    * as duas coisas juntas, e o playbook diz isso.
+   *
+   * `server` NÃO É REDUNDANTE com `client` — medido, não suposto. Achado em
+   * produção (tarefa #121): sem `server` aqui, um build SEM token deixava
+   * 62 `.map` de servidor na imagem — o Nitro os emite POR PADRÃO, com ou
+   * sem token, ao contrário do cliente (que já nascia opt-in). E
+   * `sourcemaps.filesToDeleteAfterUpload`, logo abaixo no bloco `sentry`, NÃO
+   * limpava essa sobra: aquela deleção é um hook do PLUGIN do Sentry, e sem
+   * token o plugin nunca roda — não há hook para disparar. A dupla trava
+   * simetricamente: sem token nenhum dos dois lados EMITE `.map`, então não
+   * sobra nada para o glob ter que apagar depois. O risco de vazar
+   * código-fonte é só do lado `public/` (servido por HTTP); `server/`
+   * ninguém alcança por URL e o `CMD` nem lê esses mapas (sem
+   * `--enable-source-maps`) — mas a D-09 promete "os `.map` não podem
+   * entrar na imagem" sem condicional nenhum, e é isso que este `server`
+   * fecha.
    */
-  sourcemap: { client: process.env.SENTRY_AUTH_TOKEN ? 'hidden' : false },
+  sourcemap: {
+    client: process.env.SENTRY_AUTH_TOKEN ? 'hidden' : false,
+    server: process.env.SENTRY_AUTH_TOKEN ? 'hidden' : false,
+  },
 
   compatibilityDate: '2025-07-15',
 
