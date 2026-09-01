@@ -18,6 +18,27 @@ carregarAmbiente();
 const esquema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 
+  /**
+   * A barreira 1 das duas que a D-09 exige (emenda de 2026-09-01): sem ela,
+   * `NODE_ENV=production` sozinho não distingue produção real da stack de
+   * PROVA que o gate sobe — a mesma imagem, D-02 — e que precisa semear a
+   * família de teste para o gate de navegação ter área logada.
+   *
+   * `false` por padrão, inclusive em produção real: lá ninguém liga esta
+   * chave. Quem liga é o COMANDO do gate (`STACK_UP_CMD` em
+   * `preator-perfil.sh`), nunca o `docker-compose.yml` — arquivo não
+   * distingue quem o está rodando, comando distingue.
+   *
+   * Chaveia as DUAS guardas abaixo (SESSAO_SEGREDO e SEMEAR) — de propósito:
+   * antes desta variável, a guarda de SESSAO_SEGREDO só passava no gate
+   * porque o default do compose (`troque-este-segredo-fora-do-gate`) tem
+   * exatamente 32 caracteres. Coincidência não é projeto.
+   */
+  AMBIENTE_DE_PROVA: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform(v => v === 'true'),
+
   DATABASE_URL: z.string().min(1, 'DATABASE_URL é obrigatória'),
 
   API_PORT: z.coerce.number().int().positive().default(3000),
@@ -171,7 +192,11 @@ export const ambiente = analise.data;
  */
 const SESSAO_SEGREDO_TAMANHO_MINIMO = 32;
 
-if (ambiente.NODE_ENV === 'production') {
+// As duas guardas abaixo disparam sob PRODUÇÃO REAL — não sob a stack de
+// prova que o gate sobe (mesmo NODE_ENV=production, D-02): AMBIENTE_DE_PROVA
+// é o que separa as duas (emenda à D-09, 2026-09-01). NODE_ENV sozinho não
+// bastava — foi medido: derrubava o próprio gate que deveria proteger.
+if (ambiente.NODE_ENV === 'production' && !ambiente.AMBIENTE_DE_PROVA) {
   if (ambiente.SESSAO_SEGREDO === 'segredo-de-desenvolvimento') {
     throw new Error(
       '[ambiente] SESSAO_SEGREDO ausente (ou igual ao default de desenvolvimento) sob ' +
@@ -190,8 +215,8 @@ if (ambiente.NODE_ENV === 'production') {
   if (ambiente.SEMEAR) {
     throw new Error(
       '[ambiente] SEMEAR=true sob NODE_ENV=production. Isso semearia a família de teste ' +
-      '(PREATOR_TEST_USER) no banco real — defina SEMEAR=false (ou remova a variável) no ' +
-      'ambiente de produção.',
+      '(PREATOR_TEST_USER) no banco real — defina SEMEAR=false (ou remova a variável), ou ' +
+      'ligue AMBIENTE_DE_PROVA=true se isto for a stack de prova do gate, não produção real.',
     );
   }
 }
