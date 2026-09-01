@@ -72,9 +72,19 @@ as imagens e sobe o stack. Não existe chave SSH. E o job **verifica**:
 `GET https://api.orcamento.cesarvieira.dev/health` em retry até responder, senão falha. Deploy
 disparado não é deploy provado — é a mesma régua do Portão B aplicada à publicação.
 
-**5 · O release é o SHA, cravado na imagem no build.** O `SENTRY_RELEASE` da API e o do front entram
-como `ARG`/`ENV` no build, onde o SHA é conhecido. O env do stack vira override opcional, não a
-fonte.
+**5 · O release é o SHA, cravado na imagem no build — e o compose não o toca.** O `SENTRY_RELEASE`
+da API e o do front entram como `ARG`/`ENV` no build, onde o SHA é conhecido.
+
+A primeira redação desta decisão dizia que "o env do stack vira override opcional". **Não vira, e
+não deve virar.** Um `environment:` do compose vence sempre o `ENV` da imagem — inclusive valendo
+string vazia —, então declarar a variável lá **apaga** o release que o CI acabou de gravar. Foi o
+que acontecia: `docker compose config` mostrava `SENTRY_RELEASE: ""` para a `api`, enquanto o `web`
+preservava o dele por nunca ter declarado o seu. Achado na revisão de costura da história #116, e
+invisível até então porque com `SENTRY_DSN` vazio o SDK nem inicializa.
+
+A regra passa a ser: **nenhum dos dois serviços declara o release no compose.** Isso remove um
+override — e é bom que remova. O release tem de ser o SHA da imagem que está rodando; um valor
+digitado à mão agrupa erro novo dentro de versão velha, que é pior que release nenhum.
 
 ## O que esta decisão muda em decisões anteriores
 

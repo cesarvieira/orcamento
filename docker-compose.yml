@@ -106,7 +106,21 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_AMBIENTE: ${SENTRY_AMBIENTE:-}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
-      SENTRY_RELEASE: ${SENTRY_RELEASE:-}
+      # ⛔ NÃO declare `SENTRY_RELEASE` aqui. Ele é cravado na imagem pelo
+      # `api/Dockerfile` a partir do SHA do commit (D-09), e um `environment:`
+      # explícito do compose SEMPRE vence o `ENV` da imagem — mesmo valendo
+      # string vazia. A linha `SENTRY_RELEASE: ${SENTRY_RELEASE:-}` que morava
+      # aqui zerava, a cada subida, o release que o CI tinha acabado de gravar:
+      # `docker compose config` mostrava `SENTRY_RELEASE: ""` para a `api`
+      # enquanto o `web` — que nunca declarou a dele — preservava o seu.
+      #
+      # Passou despercebido porque com `SENTRY_DSN` vazio o SDK nem inicializa,
+      # então o release vazio só apareceria no dia em que o Sentry fosse ligado
+      # em produção. Achado na revisão de COSTURA da história #116.
+      #
+      # E não devolva o override "só por precaução": o release TEM de ser o SHA
+      # da imagem que está rodando. Um release digitado à mão agrupa erro novo
+      # em versão velha — pior que release nenhum.
       SENTRY_ORG: ${SENTRY_ORG:-}
       # A porta de teste EXPOSTA (GET /diagnostico/sentry). Desligada por
       # padrão: ela estoura de propósito.
