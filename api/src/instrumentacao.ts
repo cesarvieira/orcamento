@@ -125,7 +125,7 @@ export function ambienteDoSentry(): string {
  * Inicializa o SDK. Devolve `true` se ligou de fato — `false` quando o DSN
  * está vazio, que NÃO é erro: é o modo inerte.
  */
-export function iniciarObservabilidade(): boolean {
+function iniciarObservabilidade(): boolean {
   if (ligado) return true;
   if (!ambiente.SENTRY_DSN) return false;
 

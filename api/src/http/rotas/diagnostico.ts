@@ -34,7 +34,7 @@ export const rotasDeDiagnostico: RouterType = Router();
  * Sentry usa o nome do tipo, e um teste proposital misturado com os erros de
  * verdade é exatamente o que ninguém quer no dia do incidente.
  */
-export class ErroDeTesteDoSentry extends Error {
+class ErroDeTesteDoSentry extends Error {
   constructor() {
     super('Erro proposital da porta de diagnóstico — se você o está vendo, a captura funciona.');
     this.name = 'ErroDeTesteDoSentry';
