@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # =============================================================================
 # Imagem de produção do front.
 #
@@ -31,13 +32,26 @@ WORKDIR /app
 ARG API_BASE_PUBLICA=http://localhost:3000
 ENV NUXT_PUBLIC_API_BASE=$API_BASE_PUBLICA
 
+# O release é o SHA do commit (D-09), conhecido no momento do build — não é
+# segredo, então ARG/ENV normal, igual a API_BASE_PUBLICA acima.
+ARG SENTRY_RELEASE=
+ENV NUXT_PUBLIC_SENTRY_RELEASE=$SENTRY_RELEASE
+
 COPY tsconfig.base.json ./
 # O contrato é GERADO e versionado: entra pronto na imagem. Regenerá-lo aqui
 # exigiria o fonte da API dentro do build do front — acoplamento sem ganho.
 COPY packages/contrato packages/contrato
 COPY web/ web/
 
-RUN pnpm --filter @orcamento/web run build
+# ⛔ SENTRY_AUTH_TOKEN NÃO é ARG. Um ARG fica gravado no histórico de camada
+# da imagem, e a imagem é artefato distribuído — pior que arquivo versionado
+# (D-09, D-07). O secret mount só existe DENTRO deste RUN: nunca vira camada,
+# nunca vira ENV da imagem final. `nuxt.config.ts` continua lendo
+# `process.env.SENTRY_AUTH_TOKEN` sem mudança nenhuma — sem token no mount, a
+# variável simplesmente chega vazia e o build segue sem mapa e sem upload.
+RUN --mount=type=secret,id=sentry_auth_token \
+    SENTRY_AUTH_TOKEN="$(cat /run/secrets/sentry_auth_token 2>/dev/null || true)" \
+    pnpm --filter @orcamento/web run build
 
 # -----------------------------------------------------------------------------
 FROM node:22-alpine AS producao

@@ -78,6 +78,11 @@ export default defineNuxtConfig({
       // navegador sai no HTML —, mas quem o tem escreve na sua instância.
       // Sobrescrito por NUXT_PUBLIC_SENTRY_DSN.
       sentryDsn: '',
+      // A versão que gerou o evento — o SHA do commit (D-09). String vazia é
+      // default e é estado válido: sem release, o SDK funciona igual, só dói
+      // mais de ler qual deploy produziu o erro. Sobrescrito por
+      // NUXT_PUBLIC_SENTRY_RELEASE.
+      sentryRelease: '',
       // Separa dev, prova e produção dentro da instância.
       sentryAmbiente: process.env.NODE_ENV ?? 'development',
       // 0 = só captura de erro, sem trace. O disco da instância é seu.
@@ -148,6 +153,50 @@ export default defineNuxtConfig({
       org: process.env.SENTRY_ORG ?? '',
       project: process.env.SENTRY_PROJETO ?? '',
       authToken: process.env.SENTRY_AUTH_TOKEN ?? '',
+    },
+    /**
+     * Requisito de segurança, não polimento: o `.output` inteiro vai para a
+     * imagem final (`web/Dockerfile`). Sem apagar o `.map` depois do upload,
+     * ligar o Sentry publica o código-fonte do front para quem adivinhar a
+     * URL — o risco que o comentário de `sourcemap` acima existe para evitar.
+     *
+     * DOIS globs, e nenhum dos dois é redundante — medido, não suposto:
+     *
+     * 1. O Nuxt roda DOIS builds Vite (cliente e SSR), que escrevem primeiro
+     *    em `<buildDir>/dist/{client,server}`. Só DEPOIS dos dois terminarem
+     *    o Nitro copia `dist/client` para `.output/public`. O hook de
+     *    deleção do plugin do Sentry para o build do CLIENTE dispara no fim
+     *    DAQUELE build Vite — ou seja, ANTES dessa cópia existir. Um glob
+     *    mirando só `.output/**` não encontra nada nesse instante e não
+     *    apaga NADA do lado cliente: o `.map` sobrevive em `dist/client` e o
+     *    Nitro o copia, intacto, para o artefato final. O glob do buildDir
+     *    é o que protege o cliente — e o buildDir não pode ser fixo em
+     *    `.nuxt`: o gate roda com `NUXT_BUILD_DIR=.nuxt-gate` (ver
+     *    `preator-perfil.sh`), então a variável precisa ser lida do mesmo
+     *    jeito que `buildDir:` acima lê.
+     * 2. O Nitro monta `.output/server` numa passada de rollup própria que
+     *    escreve DIRETO ali, sem passar por `dist/server` antes. É essa
+     *    passada que o glob `.output/**` apaga — só o lado servidor.
+     *
+     * Tire um dos dois glob e o outro lado vaza em silêncio: build verde,
+     * imagem com o código-fonte dentro.
+     *
+     * E a deleção NÃO depende do upload ter concluído — é a suposição
+     * natural de quem lê isto pela primeira vez, e ela é errada. É um hook
+     * `buildEnd` INCONDICIONAL (`deleteArtifacts`, dentro de
+     * `@sentry/bundler-plugin-core`): apaga o que casar com o glob sempre
+     * que a opção está definida, upload tendo dado certo, falhado, ou nem
+     * tentado (sem token, `sourceMapsUploadOptions.enabled` é `false` e o
+     * upload nem roda — mas esta deleção continua rodando do mesmo jeito).
+     * Testado: token falso + URL inalcançável → o upload falha, loga o
+     * erro, o build segue verde do mesmo jeito, e os `.map` somem dos dois
+     * lados igual.
+     */
+    sourcemaps: {
+      filesToDeleteAfterUpload: [
+        `${process.env.NUXT_BUILD_DIR || '.nuxt'}/dist/client/**/*.map`,
+        '.output/**/*.map',
+      ],
     },
   },
 });

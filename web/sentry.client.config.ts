@@ -18,11 +18,13 @@ import { limparEvento } from './app/utils/limpeza-de-evento';
 
 const config = useRuntimeConfig();
 const dsn = (config.public.sentryDsn as string) || '';
+const release = (config.public.sentryRelease as string) || '';
 
 if (dsn) {
   Sentry.init({
     dsn,
     environment: (config.public.sentryAmbiente as string) || 'development',
+    ...(release ? { release } : {}),
     tracesSampleRate: Number(config.public.sentryTracesSampleRate ?? 0),
     // O default do SDK manda IP e cabeçalho de identificação. Aqui não: o que
     // se quer saber é O QUE quebrou, não quem estava logado.
