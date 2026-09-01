@@ -58,6 +58,30 @@
         ],
         "additionalProperties": false
       },
+      "DiagnosticoSentry": {
+        "type": "object",
+        "properties": {
+          "ligado": {
+            "type": "boolean",
+            "description": "O SDK inicializou? `false` quando SENTRY_DSN está vazio."
+          },
+          "ambiente": {
+            "type": "string",
+            "description": "O ambiente com que o evento chega à instância."
+          },
+          "eventId": {
+            "nullable": true,
+            "description": "O id do evento enviado — `null` quando o SDK está inerte.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ligado",
+          "ambiente",
+          "eventId"
+        ],
+        "additionalProperties": false
+      },
       "Credenciais": {
         "type": "object",
         "properties": {

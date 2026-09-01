@@ -37,6 +37,26 @@ export const EsquemaSaude = registrarEsquema(
   }),
 );
 
+/**
+ * O que a porta de teste do Sentry devolve (D-08). Publicado no contrato como
+ * qualquer outra rota — rota que não se registra não existe.
+ *
+ * @fundacao
+ */
+export const EsquemaDiagnosticoSentry = registrarEsquema(
+  'DiagnosticoSentry',
+  z.object({
+    ligado: z
+      .boolean()
+      .meta({ description: 'O SDK inicializou? `false` quando SENTRY_DSN está vazio.' }),
+    ambiente: z.string().meta({ description: 'O ambiente com que o evento chega à instância.' }),
+    eventId: z
+      .string()
+      .nullable()
+      .meta({ description: 'O id do evento enviado — `null` quando o SDK está inerte.' }),
+  }),
+);
+
 export const EsquemaCredenciais = registrarEsquema(
   'Credenciais',
   z.object({

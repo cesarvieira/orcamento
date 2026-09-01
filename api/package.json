@@ -12,6 +12,7 @@
     "migrar": "tsx src/db/migrar.ts",
     "semear": "tsx ../scripts/seed.ts",
     "openapi:emitir": "tsx src/openapi/emitir.ts",
+    "sentry:teste": "tsx src/scripts/sentry-teste.ts",
     "teste": "vitest run --reporter=default --reporter=json --outputFile.json=./relatorio-testes.json"
   },
   "dependencies": {

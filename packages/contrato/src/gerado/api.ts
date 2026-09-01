@@ -529,6 +529,14 @@ export interface components {
             banco: "ok" | "indisponivel";
             versao: string;
         };
+        DiagnosticoSentry: {
+            /** @description O SDK inicializou? `false` quando SENTRY_DSN está vazio. */
+            ligado: boolean;
+            /** @description O ambiente com que o evento chega à instância. */
+            ambiente: string;
+            /** @description O id do evento enviado — `null` quando o SDK está inerte. */
+            eventId: string | null;
+        };
         Credenciais: {
             email: string;
             senha: string;
