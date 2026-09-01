@@ -1,0 +1,481 @@
+// FOLHA DE NOVO LANÇAMENTO (`sheetLanc`) — issue #53, história #18 (EF-04).
+//
+// FONTE: `.preator/tmp/recorte-desenho-18.md` §2 (não commitado — artefato do
+// condutor). As classes `.sheet*` são as MESMAS de `pages/orcamento.scss` e
+// `pages/contas.scss`, mas `scoped` do Vue não vaza entre componentes:
+// redeclaradas aqui de propósito — mesmo precedente já registrado naqueles
+// dois arquivos (extrair um parcial tocaria `base.scss`, fora do escopo
+// declarado desta tarefa: só `assets/scss/components/`).
+
+// ── overlay · folha (idem `pages/contas.scss`/`pages/orcamento.scss`) ────
+
+.sheet-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(12, 22, 40, 0.42);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.sheet {
+  background: var(--fundo);
+  border-radius: 22px 22px 0 0;
+  padding: 18px;
+  max-height: 92vh;
+  overflow-y: auto;
+  flex: none;
+
+  @media (min-width: 768px) {
+    width: 100%;
+    max-width: 460px;
+    margin: 0 auto 24px;
+    border-radius: var(--raio-grande);
+  }
+}
+
+.sheet__cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.sheet__titulo {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.sheet__fechar {
+  background: none;
+  border: none;
+  font-size: 15px;
+  color: var(--texto-fraco);
+  cursor: pointer;
+  padding: 0;
+}
+
+.sheet__nome {
+  width: 100%;
+  height: 46px;
+  border: 1px solid var(--borda-media);
+  border-radius: var(--raio-pequeno);
+  padding: 0 13px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--texto);
+  outline: none;
+  background: var(--superficie);
+}
+
+.sheet__erro {
+  margin: 12px 2px 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--alerta);
+}
+
+.sheet__salvar {
+  margin-top: 18px;
+}
+
+// TIPO — mesma anatomia de `.sheet__tipo` em `pages/contas.scss` (o
+// seletor-anel de `TIPOS_CONTA`); reaproveitada aqui por analogia visual
+// para `TIPOS_LANCAMENTO` — ver comentário no `<script>` do componente
+// sobre por que este seletor não vem do desenho.
+
+.sheet__tipos {
+  display: flex;
+  gap: 8px;
+}
+
+.sheet__tipo {
+  flex: 1;
+  height: 58px;
+  border-radius: var(--raio);
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: var(--superficie);
+  color: var(--texto-medio);
+  box-shadow: inset 0 0 0 1px var(--borda-media);
+
+  i {
+    font-size: 18px;
+  }
+
+  span {
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  &--ativo {
+    background: var(--tinta);
+    color: #fff;
+    box-shadow: 0 0 0 2px var(--tinta-forte);
+  }
+}
+
+// Stepper redondo — mesma anatomia de `.sheet__passo` em `pages/contas.scss`/`pages/orcamento.scss`.
+.sheet__passo {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border: 1px solid var(--borda-media);
+  background: var(--superficie);
+  border-radius: 9999px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--tinta);
+  cursor: pointer;
+
+  &--pequeno {
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
+  }
+}
+
+// ── pílulas "Foto do recibo" / "Importar extrato" (recorte §2.2) ─────────
+// ⚠️ Fora de escopo do produto (`.preator/CONTEXT.md`) — desenhadas, não
+// implementadas: o clique só mostra `.folha__aviso`.
+
+.folha__pilulas {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.folha__pilula {
+  flex: 1;
+  height: 34px;
+  border: 1px solid var(--borda-media);
+  background: var(--superficie);
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--texto-medio);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  i {
+    font-size: 14px;
+  }
+}
+
+.folha__aviso {
+  margin: 6px 2px 0;
+  font-size: 11.5px;
+  color: var(--texto-medio);
+}
+
+.folha__tipos {
+  margin-top: 12px;
+}
+
+.folha__descricao {
+  margin-top: 10px;
+}
+
+// ── VALOR (recorte §2.3) ──────────────────────────────────────────────────
+
+// ── VALOR ────────────────────────────────────────────────────────────────
+// 🟨 Fica ACIMA DO TECLADO por decisão do humano — no mockup ele está no topo
+// da folha. Os dois formam uma peça só: com o valor lá em cima, o olho subia a
+// folha inteira a cada tecla. `margin-top: auto` não serve aqui (a folha não é
+// flex de altura fixa); o par valor+teclado é mantido junto pela ORDEM no
+// template e por esta margem, que é a única entre eles.
+.folha__valor-cartao {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-grande);
+  padding: 16px;
+  margin-top: 14px;
+  text-align: center;
+}
+
+.folha__valor-rotulo {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--texto-fraco);
+}
+
+// É um `<input>`, não mais um `<div>`: precisa dos resets que o campo traz do
+// agente do usuário (borda, fundo, fonte) para continuar parecendo o número
+// grande do desenho em vez de uma caixa de texto.
+.folha__valor-numero {
+  width: 100%;
+  border: 0;
+  background: none;
+  outline: none;
+  padding: 0;
+  margin-top: 4px;
+  font-family: inherit;
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  text-align: center;
+  appearance: none;
+
+  &::placeholder {
+    color: var(--texto-apagado);
+  }
+
+  // O contorno só no foco por teclado — o campo é grande e o anel padrão
+  // desenharia um retângulo em volta do número inteiro a cada clique.
+  &:focus-visible {
+    outline: 2px solid var(--tinta);
+    outline-offset: 4px;
+    border-radius: var(--raio-pequeno);
+  }
+}
+
+.folha__valor-resumo {
+  font-size: 11.5px;
+  color: var(--texto-fraco);
+  margin-top: 4px;
+}
+
+// ── campos em dropdown — LANÇAMENTO RÁPIDO · CATEGORIA · CONTA(S) ────────
+// (recorte §2.4/§2.5/§2.6 — mesma anatomia de linha nos três, per recorte)
+
+.folha__campo-toggle {
+  width: 100%;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 0 14px;
+  margin-top: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--texto);
+  text-align: left;
+}
+
+.folha__campo-icone {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 8px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+}
+
+.folha__campo-icone-vazio {
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border-radius: 8px;
+  background: var(--fundo);
+  color: var(--texto-fraco);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  box-shadow: inset 0 0 0 1px var(--borda-media);
+
+  &--bolt {
+    background: var(--fundo);
+    color: var(--tinta);
+  }
+}
+
+.folha__campo-rotulo-coluna {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.folha__campo-rotulo {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--texto-fraco);
+}
+
+.folha__campo-valor {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--texto);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.folha__campo-seta {
+  flex: none;
+  font-size: 15px;
+  color: var(--texto-apagado);
+}
+
+// A lista expandida — `max-height` por campo (recorte: atalhos 224px, categoria 248px).
+.folha__lista {
+  max-height: 248px;
+  overflow-y: auto;
+  margin-top: 6px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+
+  &--atalhos {
+    max-height: 224px;
+  }
+}
+
+.folha__lista-vazia {
+  margin: 0;
+  padding: 16px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
+// A linha em si é a `.linha` global (`base/_lista.scss`) — este seletor só
+// ajusta o tamanho do ícone para os 28px do recorte (o global é 32px, usado
+// em telas sem essa exigência de tamanho).
+.folha__item .linha__icone {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.folha__check {
+  flex: none;
+  font-size: 16px;
+  color: var(--tinta);
+  margin-left: 4px;
+}
+
+// ── DATA · PARCELAS (recorte §2.7) ────────────────────────────────────────
+
+.folha__linha-dupla {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.folha__data-campo {
+  flex: 1;
+  min-width: 0;
+}
+
+.folha__parcelas-campo {
+  flex: none;
+  width: 128px;
+}
+
+.folha__data-entrada,
+.folha__parcelas-entrada {
+  height: 48px;
+  display: flex;
+  align-items: center;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  margin-top: 2px;
+}
+
+.folha__data-entrada {
+  gap: 8px;
+  padding: 0 12px;
+
+  i {
+    font-size: 16px;
+    color: var(--texto-fraco);
+    flex: none;
+  }
+}
+
+.folha__data-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: none;
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--texto);
+}
+
+.folha__parcelas-entrada {
+  justify-content: space-between;
+  padding: 0 6px;
+}
+
+.folha__parcelas-valor {
+  min-width: 28px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.folha__hint {
+  margin: 8px 2px 0;
+  font-size: 11.5px;
+}
+
+// ── TECLADO NUMÉRICO (recorte §2.9) ───────────────────────────────────────
+
+// ── TECLADO NUMÉRICO — só no celular ─────────────────────────────────────
+// 🟨 Decisão do humano, não do desenho (o mockup é só mobile e sempre o mostra).
+// No desktop existe teclado físico: um teclado de tela ali seria um caminho a
+// mais para a mesma coisa, e o mais lento dos dois.
+//
+// ⚠️ Ele some por CSS, e o campo de valor continua digitável nos dois tamanhos
+// — é isso que impede a tela de ficar sem entrada nenhuma se o breakpoint
+// mudar. O `inputmode="none"` do campo (ver `FolhaLancamento.vue`) é o outro
+// lado: no celular ele impede o teclado do sistema de subir por cima deste.
+.folha__teclado {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+
+  @media (min-width: 768px) {
+    display: none;
+  }
+}
+
+.folha__tecla {
+  height: 46px;
+  border: none;
+  border-radius: var(--raio-pequeno);
+  background: var(--superficie);
+  box-shadow: inset 0 0 0 1px var(--borda-media);
+  font-family: inherit;
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--texto);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:active {
+    background: var(--fundo);
+  }
+}

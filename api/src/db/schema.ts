@@ -28,7 +28,13 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
-import { atualizadoEm, competencia as colunaCompetencia, criadoEm, dinheiroCentavos } from './tipos';
+import {
+  atualizadoEm,
+  competencia as colunaCompetencia,
+  criadoEm,
+  dataDoFato,
+  dinheiroCentavos,
+} from './tipos';
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -49,6 +55,32 @@ export const provedorIdentidade = pgEnum('provedor_identidade', [
  * e o gate de contrato reprova.
  */
 export const tipoConta = pgEnum('tipo_conta', ['DEBITO', 'CREDITO', 'RESERVA']);
+
+/**
+ * O tipo de um lançamento (EF-04 §1). STRING no banco e no contrato, mesmo
+ * motivo de `tipoConta` acima.
+ *
+ * TIPO EXPLÍCITO, NÃO SINAL: o protótipo representa receita como valor
+ * negativo com categoria nula — funciona para somar e falha para relatar,
+ * filtrar e validar, e torna `TRANSFERENCIA` inexprimível (EF-04 §1/§4).
+ */
+export const tipoLancamento = pgEnum('tipo_lancamento', [
+  'RECEITA',
+  'DESPESA',
+  'TRANSFERENCIA',
+]);
+
+/**
+ * O estado do ciclo de uma fatura (EF-05 §1). STRING no banco e no contrato,
+ * mesmo motivo de `tipoConta` acima.
+ *
+ * ⚠️ CUIDADO DE NOMENCLATURA (D1, `.preator/skills/negocio/faturas-e-ciclo-do-cartao/SKILL.md`):
+ * este enum NÃO é sinônimo do termo de negócio "fatura em aberto". Uma fatura
+ * `FECHADA` (aguardando pagamento) TAMBÉM está "em aberto" no sentido do
+ * produto — só `PAGA` sai da soma de RN-25/RN-26. Ver
+ * `modulos/faturas/dominio.ts#statusDoCiclo` e `modulos/faturas/servico.ts`.
+ */
+export const statusFatura = pgEnum('status_fatura', ['ABERTA', 'FECHADA', 'PAGA']);
 
 // ---------------------------------------------------------------------------
 // Familia — o tenant. Raiz de todo isolamento.
@@ -72,7 +104,7 @@ export const familias = pgTable('familias', {
 
 /**
  * Autor imutável de cada lançamento. Todo membro tem o MESMO poder sobre os
- * dados da família: não há papéis, e a ausência deles é a regra (RN-05/EF-01).
+ * dados da família: não há papéis, e a ausência deles é a regra (RN-45/EF-01).
  */
 export const membros = pgTable(
   'membros',
@@ -82,7 +114,7 @@ export const membros = pgTable(
       .notNull()
       .references(() => familias.id, { onDelete: 'cascade' }),
     nome: text('nome').notNull(),
-    /** Email canônico do membro — é a chave que liga as identidades (RN-04). */
+    /** Email canônico do membro — é a chave que liga as identidades (RN-44). */
     email: text('email').notNull(),
     criadoEm: criadoEm(),
     atualizadoEm: atualizadoEm(),
@@ -101,7 +133,7 @@ export const membros = pgTable(
  * Separada de `membros` de propósito: o mesmo email pode chegar por Google e
  * por senha e precisa resolver para A MESMA PESSOA. Guardar o provedor dentro
  * de `membros` obrigaria a duplicar a pessoa por provedor — que é exatamente o
- * furo de RN-04 (EF-01).
+ * furo de RN-44 (EF-01).
  *
  * `segredo` só é preenchido no provedor `senha` (hash scrypt + sal, nunca a
  * senha). No provedor `google` fica nulo: quem guarda a credencial é o Google.
@@ -120,7 +152,7 @@ export const identidades = pgTable(
     emailVerificado: timestamp('email_verificado', { withTimezone: true }),
     segredo: text('segredo'),
     /**
-     * O CÓDIGO de 6 dígitos que confirma o cadastro (RN-06/RN-09/RN-10). Nulo
+     * O CÓDIGO de 6 dígitos que confirma o cadastro (RN-46/RN-49/RN-50). Nulo
      * em toda identidade que já nasceu confirmada — Google, que traz o email
      * verificado do provedor, e quem entrou por convite, cujo email o próprio
      * convite já provou.
@@ -134,18 +166,18 @@ export const identidades = pgTable(
     tokenConfirmacao: text('token_confirmacao'),
     confirmacaoExpiraEm: timestamp('confirmacao_expira_em', { withTimezone: true }),
     /**
-     * RN-11 — erros acumulados neste código. Ao chegar no teto, o código é
+     * RN-51 — erros acumulados neste código. Ao chegar no teto, o código é
      * invalidado. É o ÚNICO obstáculo à força bruta desde que o token virou
-     * 6 dígitos (RN-10): sem ele, ~1 milhão de combinações caem em segundos.
+     * 6 dígitos (RN-50): sem ele, ~1 milhão de combinações caem em segundos.
      */
     tentativasConfirmacao: integer('tentativas_confirmacao').notNull().default(0),
     /**
-     * O CÓDIGO de 6 dígitos que troca a senha esquecida (RN-12). Mora aqui
+     * O CÓDIGO de 6 dígitos que troca a senha esquecida (RN-52). Mora aqui
      * pelo mesmo motivo que `tokenConfirmacao`: o que se recupera É o segredo
      * DESTA identidade — um estado dela, não uma entidade nova.
      *
      * Só o provedor `senha` chega a ter um. Numa identidade `google` a coluna
-     * fica sempre nula: não há segredo nosso a trocar (RN-15 resolve isso
+     * fica sempre nula: não há segredo nosso a trocar (RN-55 resolve isso
      * criando a identidade de senha, não recuperando a do Google).
      *
      * Sem índice único, como os outros códigos: 6 dígitos colidem entre
@@ -153,7 +185,7 @@ export const identidades = pgTable(
      */
     tokenRecuperacao: text('token_recuperacao'),
     recuperacaoExpiraEm: timestamp('recuperacao_expira_em', { withTimezone: true }),
-    /** RN-11 aplicada à recuperação — ver o comentário gêmeo acima. */
+    /** RN-51 aplicada à recuperação — ver o comentário gêmeo acima. */
     tentativasRecuperacao: integer('tentativas_recuperacao').notNull().default(0),
     criadoEm: criadoEm(),
     atualizadoEm: atualizadoEm(),
@@ -169,7 +201,7 @@ export const identidades = pgTable(
 // ---------------------------------------------------------------------------
 
 /**
- * Expira e é de uso único (RN-03/EF-01). O prazo é parâmetro de ambiente
+ * Expira e é de uso único (RN-43/EF-01). O prazo é parâmetro de ambiente
  * (`CONVITE_TTL_HORAS`), não regra — por isso mora no `.env`, não aqui.
  *
  * O fluxo de envio e aceite é da EF-01; a EF-00 só declara a forma.
@@ -182,18 +214,18 @@ export const convites = pgTable(
       .notNull()
       .references(() => familias.id, { onDelete: 'cascade' }),
     email: text('email').notNull(),
-    /** O CÓDIGO de 6 dígitos (RN-10). Sem índice único: colide entre linhas. */
+    /** O CÓDIGO de 6 dígitos (RN-50). Sem índice único: colide entre linhas. */
     token: text('token').notNull(),
     expiraEm: timestamp('expira_em', { withTimezone: true }).notNull(),
     usadoEm: timestamp('usado_em', { withTimezone: true }),
     /**
-     * Quando o convidado RECUSOU (RN-08). Separado de `usadoEm` de propósito:
+     * Quando o convidado RECUSOU (RN-48). Separado de `usadoEm` de propósito:
      * os dois encerram o convite, mas só a recusa libera aquele email para
      * criar a própria família — e quem lê a tabela depois precisa distinguir
      * "entrou" de "não quis".
      */
     recusadoEm: timestamp('recusado_em', { withTimezone: true }),
-    /** RN-11 — ver o comentário gêmeo em `identidades`. */
+    /** RN-51 — ver o comentário gêmeo em `identidades`. */
     tentativas: integer('tentativas').notNull().default(0),
     criadoEm: criadoEm(),
   },
@@ -436,6 +468,263 @@ export const competencias = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// FechamentoMes — competência selada (EF-08 §1).
+// ---------------------------------------------------------------------------
+
+export const fechamentosMes = pgTable(
+  'fechamentos_mes',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    familiaId: uuid('familia_id')
+      .notNull()
+      .references(() => familias.id, { onDelete: 'cascade' }),
+    competencia: colunaCompetencia('competencia').notNull(),
+    sobraCentavos: dinheiroCentavos('sobra_centavos').notNull(),
+    fechadoEm: timestamp('fechado_em', { withTimezone: true }).notNull().defaultNow(),
+    autorMembroId: uuid('autor_membro_id')
+      .notNull()
+      .references(() => membros.id),
+    criadoEm: criadoEm(),
+  },
+  t => [
+    uniqueIndex('fechamentos_mes_familia_competencia_unico').on(t.familiaId, t.competencia),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// SerieParcelas — agrupa as N parcelas de uma compra parcelada (EF-04 §1).
+// Guarda `totalCentavos`/`quantidade` da COMPRA ORIGINAL.
+// ---------------------------------------------------------------------------
+
+/**
+ * Suposição declarada pelo condutor (issue #52, fork 1): `totalCentavos` e
+ * `quantidade` são a compra ORIGINAL e NUNCA são reescritos por exclusão de
+ * parcela — mesmo motivo de `lancamentos.criadoPorMembroId` ser imutável
+ * (RN-16). RN-21 (soma == total) vale na GERAÇÃO da série
+ * (`modulos/lancamentos/dominio.ts`), não depois: excluir parcelas (`esta` ·
+ * `todas` · `a partir desta`) não é obrigado a manter essa igualdade, porque
+ * o total guardado é o da compra, não da série remanescente.
+ *
+ * `quantidade` mínima é 2: quantidade 1 não é parcelamento — é um
+ * `Lancamento` avulso, sem `SerieParcelas` (RN-20 fala em "até 48×", nunca em
+ * "1×").
+ */
+export const seriesParcelas = pgTable(
+  'series_parcelas',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** Todo dado do produto pende da família (R1). Vem sempre do token. */
+    familiaId: uuid('familia_id')
+      .notNull()
+      .references(() => familias.id, { onDelete: 'cascade' }),
+    totalCentavos: dinheiroCentavos('total_centavos').notNull(),
+    quantidade: integer('quantidade').notNull(),
+    criadoEm: criadoEm(),
+  },
+  t => [
+    index('series_parcelas_por_familia').on(t.familiaId),
+    check('series_parcelas_total_positivo', sql`${t.totalCentavos} > 0`),
+    // RN-20 — até 48×; mínimo 2 (ver comentário acima sobre por que 1 não é série).
+    check('series_parcelas_quantidade_intervalo', sql`${t.quantidade} between 2 and 48`),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Lancamento — um movimento (EF-04 §1). RECEITA · DESPESA · TRANSFERENCIA.
+// ---------------------------------------------------------------------------
+
+/**
+ * `data` (quando aconteceu) e `competencia` (que mês de orçamento consome)
+ * são colunas DISTINTAS de propósito (RN-15) — `competencia` é calculada na
+ * escrita a partir de `data` (`modulos/lancamentos/dominio.ts`), nunca
+ * derivada na leitura.
+ *
+ * Os CHECKs abaixo impõem no banco a mesma forma que o Zod
+ * (`modulos/lancamentos/esquemas.ts`) já impõe na borda: `categoriaId` só em
+ * `DESPESA`; `contaDestinoId` só em `TRANSFERENCIA`, e nunca igual a
+ * `contaId` (fork 3 da issue #52 trata isto TAMBÉM na entrada, com 400 — este
+ * CHECK é defesa em profundidade, mesmo padrão de
+ * `remanejamentos_origem_diferente_destino`).
+ *
+ * `criadoPorMembroId` é imutável (RN-16): nunca há UPDATE nesta tabela, só
+ * INSERT e DELETE — por isso não há `atualizadoEm`, mesmo padrão de
+ * `remanejamentos`.
+ */
+export const lancamentos = pgTable(
+  'lancamentos',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** Todo dado do produto pende da família (R1). Vem sempre do token. */
+    familiaId: uuid('familia_id')
+      .notNull()
+      .references(() => familias.id, { onDelete: 'cascade' }),
+    tipo: tipoLancamento('tipo').notNull(),
+    descricao: text('descricao').notNull(),
+    valorCentavos: dinheiroCentavos('valor_centavos').notNull(),
+    data: dataDoFato('data').notNull(),
+    /** `AAAA-MM` — calculada na escrita a partir de `data` (RN-15/RN-18). */
+    competencia: colunaCompetencia('competencia').notNull(),
+    /** Obrigatório em `DESPESA`; nulo em `RECEITA`/`TRANSFERENCIA` (EF-04 §1). */
+    categoriaId: uuid('categoria_id').references(() => categorias.id, { onDelete: 'cascade' }),
+    /** A conta afetada — origem, em `TRANSFERENCIA`. */
+    contaId: uuid('conta_id')
+      .notNull()
+      .references(() => contas.id, { onDelete: 'cascade' }),
+    /** Só em `TRANSFERENCIA` (EF-04 §1); nulo em `RECEITA`/`DESPESA`. */
+    contaDestinoId: uuid('conta_destino_id').references(() => contas.id, { onDelete: 'cascade' }),
+    /** RN-16 — imutável: nunca atualizado depois do INSERT. */
+    criadoPorMembroId: uuid('criado_por_membro_id')
+      .notNull()
+      .references(() => membros.id),
+    /** Nulo quando o lançamento não é parcela de nada (RN-20/RN-21). */
+    serieParcelaId: uuid('serie_parcela_id').references(() => seriesParcelas.id, {
+      onDelete: 'cascade',
+    }),
+    /** 1-baseado; nulo quando `serieParcelaId` é nulo. */
+    numeroParcela: integer('numero_parcela'),
+    criadoEm: criadoEm(),
+  },
+  t => [
+    index('lancamentos_por_familia_competencia').on(t.familiaId, t.competencia),
+    index('lancamentos_por_conta').on(t.contaId),
+    index('lancamentos_por_categoria_competencia').on(t.categoriaId, t.competencia),
+    index('lancamentos_por_serie').on(t.serieParcelaId),
+    check('lancamentos_valor_positivo', sql`${t.valorCentavos} > 0`),
+    check(
+      'lancamentos_categoria_somente_em_despesa',
+      sql`(${t.tipo} = 'DESPESA' and ${t.categoriaId} is not null) or (${t.tipo} <> 'DESPESA' and ${t.categoriaId} is null)`,
+    ),
+    check(
+      'lancamentos_conta_destino_somente_em_transferencia',
+      sql`(${t.tipo} = 'TRANSFERENCIA' and ${t.contaDestinoId} is not null) or (${t.tipo} <> 'TRANSFERENCIA' and ${t.contaDestinoId} is null)`,
+    ),
+    check(
+      'lancamentos_conta_destino_diferente_da_origem',
+      sql`${t.contaDestinoId} is null or ${t.contaDestinoId} <> ${t.contaId}`,
+    ),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Fatura — cartão × ciclo (EF-05 §1). RN-23 (ciclo de fechamento) · RN-24
+// (pagar é transferência) · RN-25/RN-26 (fatura em aberto, D1).
+// ---------------------------------------------------------------------------
+
+/**
+ * NÃO guarda total: o total de uma fatura é sempre a soma, na leitura, dos
+ * lançamentos `DESPESA` da conta cujo ciclo (RN-23) cai em
+ * `[abreEm, fechaEm]` (`modulos/faturas/servico.ts`) — materializar o total
+ * criaria uma segunda verdade que diverge se um lançamento daquele ciclo for
+ * excluído depois de a fatura fechar. `abreEm`/`fechaEm`/`venceEm` SÃO
+ * persistidos porque são a identidade do ciclo em si (a mecânica de RN-23),
+ * não um valor derivável de outra coluna sem prática de mercado, e servem de
+ * limite para a soma acima.
+ *
+ * Uma linha só existe quando o ciclo foi de fato materializado — na leitura,
+ * por `modulos/faturas/servico.ts#garantirFaturaDoCiclo` (find-or-create de
+ * UM ciclo). `listarFaturasDoCartao` chama essa função uma vez para o ciclo
+ * CORRENTE (sempre) e uma vez para cada ciclo JÁ FECHADO que tem despesa e
+ * ainda não tem linha (encontrados varrendo `lancamentos` da conta). Não
+ * existe uma linha por ciclo desde a criação do cartão — seria trabalho
+ * antecipado sem uso, e o índice único (contaId, fechaEm) mais o
+ * find-or-create tornam a criação tardia segura.
+ *
+ * O CHECK abaixo é a mesma forma de `contas_campos_de_credito_apenas_em_credito`:
+ * os três campos de pagamento (status/pagaEm/pagaComContaId) só coexistem
+ * quando `status = 'PAGA'` — RN-24 nunca deixa a fatura "meio paga".
+ */
+export const faturas = pgTable(
+  'faturas',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** Todo dado do produto pende da família (R1). Vem sempre do token. */
+    familiaId: uuid('familia_id')
+      .notNull()
+      .references(() => familias.id, { onDelete: 'cascade' }),
+    /** O cartão (uma `Conta` do tipo `CREDITO`) dono deste ciclo. */
+    contaId: uuid('conta_id')
+      .notNull()
+      .references(() => contas.id, { onDelete: 'cascade' }),
+    /** Primeiro dia do ciclo — dia seguinte ao `fechaEm` do ciclo anterior do mesmo cartão. */
+    abreEm: dataDoFato('abre_em').notNull(),
+    /** RN-23 — dia em que o ciclo encerra; a IDENTIDADE do ciclo (com `contaId`). */
+    fechaEm: dataDoFato('fecha_em').notNull(),
+    /** Primeira ocorrência de `diaVencimento` estritamente depois de `fechaEm`. */
+    venceEm: dataDoFato('vence_em').notNull(),
+    /** ⚠️ NÃO confundir com o termo de negócio "fatura em aberto" (D1) — ver o enum acima. */
+    status: statusFatura('status').notNull().default('ABERTA'),
+    /** RN-24 — só preenchido quando `status = 'PAGA'`. */
+    pagaEm: timestamp('paga_em', { withTimezone: true }),
+    /** RN-24/D3 — a conta ESCOLHIDA PELO USUÁRIO no pedido de pagamento; nunca a primeira de débito. */
+    pagaComContaId: uuid('paga_com_conta_id').references(() => contas.id),
+    criadoEm: criadoEm(),
+    atualizadoEm: atualizadoEm(),
+  },
+  t => [
+    // A identidade de um ciclo é (cartão, fechaEm) — encontra-la-ou-cria-la
+    // (`servico.ts`) depende deste índice para ser seguro sob concorrência.
+    uniqueIndex('faturas_conta_fecha_em_unico').on(t.contaId, t.fechaEm),
+    index('faturas_por_familia').on(t.familiaId),
+    index('faturas_por_conta').on(t.contaId),
+    check(
+      'faturas_pagamento_completo_ou_ausente',
+      sql`(${t.status} = 'PAGA' and ${t.pagaEm} is not null and ${t.pagaComContaId} is not null)
+          or (${t.status} <> 'PAGA' and ${t.pagaEm} is null and ${t.pagaComContaId} is null)`,
+    ),
+  ],
+);
+
+// ---------------------------------------------------------------------------
+// Meta — cofrinho de poupança (EF-07 §1). Alvo + conta RESERVA própria, 1:1.
+// ---------------------------------------------------------------------------
+
+/**
+ * ⛔ Regra #0: `.preator/skills/negocio/metas-e-reservas/SKILL.md` — glossário
+ * ("Cofrinho (= Meta)", "Acumulado", "Conta RESERVA do cofrinho") e decisão
+ * D3, citando `docs/especificacoes/EF-07-metas.md` §1 como fonte primária.
+ *
+ * O ACUMULADO NÃO mora aqui: é a soma, na leitura, das transferências
+ * (`TRANSFERENCIA`) cujo `contaDestinoId` é a conta `RESERVA` vinculada
+ * (`modulos/metas/servico.ts`) — materializar um `atual` criaria a segunda
+ * verdade que o produto evita em toda entidade derivada (mesmo motivo de
+ * saldo de conta e de lastro).
+ *
+ * D3 — cada cofrinho tem a PRÓPRIA conta `RESERVA`, criada junto (saldo
+ * inicial 0), em vínculo 1:1 ÚNICO — por isso `contaReservaId` carrega
+ * `uniqueIndex` abaixo; sem essa restrição, duas metas apontando para a
+ * mesma conta leriam o MESMO acumulado (o edge case que D3 rejeita — ver a
+ * skill, seção "Edge cases").
+ */
+export const metas = pgTable(
+  'metas',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    /** Todo dado do produto pende da família (R1). Vem sempre do token. */
+    familiaId: uuid('familia_id')
+      .notNull()
+      .references(() => familias.id, { onDelete: 'cascade' }),
+    nome: text('nome').notNull(),
+    alvoCentavos: dinheiroCentavos('alvo_centavos').notNull(),
+    /**
+     * D3 — a conta `RESERVA` própria deste cofrinho. `ON DELETE cascade`: se
+     * a conta some, o cofrinho some junto (a conta é dona da existência
+     * dele, não o contrário).
+     */
+    contaReservaId: uuid('conta_reserva_id')
+      .notNull()
+      .references(() => contas.id, { onDelete: 'cascade' }),
+    criadoEm: criadoEm(),
+    atualizadoEm: atualizadoEm(),
+  },
+  t => [
+    index('metas_por_familia').on(t.familiaId),
+    // D3 — o vínculo 1:1: UMA conta RESERVA nunca serve a mais de um cofrinho.
+    uniqueIndex('metas_conta_reserva_unica').on(t.contaReservaId),
+    check('metas_alvo_positivo', sql`${t.alvoCentavos} > 0`),
+  ],
+);
+
+// ---------------------------------------------------------------------------
 // Relações
 // ---------------------------------------------------------------------------
 
@@ -444,6 +733,7 @@ export const familiasRelacoes = relations(familias, ({ many }) => ({
   convites: many(convites),
   contas: many(contas),
   categorias: many(categorias),
+  fechamentosMes: many(fechamentosMes),
 }));
 
 export const categoriasRelacoes = relations(categorias, ({ one, many }) => ({
@@ -491,10 +781,82 @@ export const competenciasRelacoes = relations(competencias, ({ one }) => ({
   }),
 }));
 
+export const fechamentosMesRelacoes = relations(fechamentosMes, ({ one }) => ({
+  familia: one(familias, {
+    fields: [fechamentosMes.familiaId],
+    references: [familias.id],
+  }),
+  autor: one(membros, {
+    fields: [fechamentosMes.autorMembroId],
+    references: [membros.id],
+  }),
+}));
+
 export const contasRelacoes = relations(contas, ({ one }) => ({
   familia: one(familias, {
     fields: [contas.familiaId],
     references: [familias.id],
+  }),
+}));
+
+export const seriesParcelasRelacoes = relations(seriesParcelas, ({ one, many }) => ({
+  familia: one(familias, {
+    fields: [seriesParcelas.familiaId],
+    references: [familias.id],
+  }),
+  lancamentos: many(lancamentos),
+}));
+
+export const lancamentosRelacoes = relations(lancamentos, ({ one }) => ({
+  familia: one(familias, {
+    fields: [lancamentos.familiaId],
+    references: [familias.id],
+  }),
+  categoria: one(categorias, {
+    fields: [lancamentos.categoriaId],
+    references: [categorias.id],
+  }),
+  conta: one(contas, {
+    fields: [lancamentos.contaId],
+    references: [contas.id],
+  }),
+  contaDestino: one(contas, {
+    fields: [lancamentos.contaDestinoId],
+    references: [contas.id],
+  }),
+  autor: one(membros, {
+    fields: [lancamentos.criadoPorMembroId],
+    references: [membros.id],
+  }),
+  serieParcela: one(seriesParcelas, {
+    fields: [lancamentos.serieParcelaId],
+    references: [seriesParcelas.id],
+  }),
+}));
+
+export const faturasRelacoes = relations(faturas, ({ one }) => ({
+  familia: one(familias, {
+    fields: [faturas.familiaId],
+    references: [familias.id],
+  }),
+  conta: one(contas, {
+    fields: [faturas.contaId],
+    references: [contas.id],
+  }),
+  pagaComConta: one(contas, {
+    fields: [faturas.pagaComContaId],
+    references: [contas.id],
+  }),
+}));
+
+export const metasRelacoes = relations(metas, ({ one }) => ({
+  familia: one(familias, {
+    fields: [metas.familiaId],
+    references: [familias.id],
+  }),
+  contaReserva: one(contas, {
+    fields: [metas.contaReservaId],
+    references: [contas.id],
   }),
 }));
 
@@ -543,3 +905,7 @@ export type Categoria = typeof categorias.$inferSelect;
 export type OrcamentoMes = typeof orcamentosMes.$inferSelect;
 export type Remanejamento = typeof remanejamentos.$inferSelect;
 export type CompetenciaDb = typeof competencias.$inferSelect;
+export type SerieParcelas = typeof seriesParcelas.$inferSelect;
+export type LancamentoDb = typeof lancamentos.$inferSelect;
+export type FaturaDb = typeof faturas.$inferSelect;
+export type MetaDb = typeof metas.$inferSelect;

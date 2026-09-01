@@ -1,0 +1,317 @@
+// VISÃO DO MÊS (EF-04) — tela `home` do mockup. `.preator/tmp/recorte-desenho-18.md`
+// §4 é FONTE, não ilustração; o LASTRO (EF-06, #20) tem recorte próprio,
+// `recorte-desenho-20.md` §1/§2, para a faixa de bloqueio e a barra de duas
+// faixas abaixo — ver o cabeçalho de `pages/index.vue` para as divergências
+// declaradas (posição da linha `bloqLabel`, texto da explicação).
+//
+// Mesmo princípio de `orcamento.scss`/`contas.scss`: cores, raios e tamanhos
+// vêm do desenho, traduzidos para as variáveis do sistema visual do shell.
+// `.sheet*`/`.linha*` são globais (`base.scss`) — esta tela não precisa
+// deles, e por isso não os redeclara.
+
+// ── estados vazios ───────────────────────────────────────────────────────
+
+.home__vazio {
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--texto-fraco);
+
+  &--erro {
+    color: var(--alerta);
+  }
+}
+
+// ── CARTÃO-HERÓI (recorte §4.2) ──────────────────────────────────────────
+
+.home__hero {
+  background: var(--tinta);
+  color: #fff;
+  border-radius: var(--raio-grande);
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.home__hero-titulo {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.62;
+}
+
+.home__hero-numero {
+  margin: 6px 0 14px;
+  font-size: 38px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.home__hero-blocos {
+  display: flex;
+  gap: 10px;
+}
+
+.home__hero-bloco {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: var(--raio-pequeno);
+  padding: 11px 13px;
+}
+
+.home__hero-bloco-rotulo {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.home__hero-bloco-valor {
+  margin: 4px 0 0;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.home__hero-bloco-sub {
+  margin: 2px 0 0;
+  font-size: 10.5px;
+  opacity: 0.62;
+}
+
+// ── FAIXA DE BLOQUEIO (recorte-desenho-20.md §1) ─────────────────────────
+// Cores do desenho traduzidas: `#ef6c00` já existe no shell como
+// `--atencao`; a explicação `#5b6675` já existe como `--texto-medio`.
+
+.home__bloqueio {
+  margin: 0 0 16px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  background: var(--superficie);
+  border: 1px solid rgba(239, 108, 0, 0.32);
+  border-radius: var(--raio);
+}
+
+.home__bloqueio-icone {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 9px;
+  background: var(--atencao);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.home__bloqueio-texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.home__bloqueio-titulo {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--atencao);
+}
+
+.home__bloqueio-explicacao {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--texto-medio);
+}
+
+// ── "Categorias" + legenda (recorte §4.5) ────────────────────────────────
+
+.home__secao-cabecalho {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin: 4px 2px 8px;
+}
+
+.home__secao-titulo {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.home__secao-legenda {
+  font-size: 10.5px;
+  color: var(--texto-fraco);
+}
+
+// ── lista de categorias (recorte §4.6) ───────────────────────────────────
+
+.home__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.home__cartao {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+}
+
+// O cartão INTEIRO é o botão — porta 2 do recorte §1. Sem `text-align` nem
+// reset de fonte no `<button>` global, então declarados aqui.
+.home__categoria {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  background: none;
+  border: none;
+  padding: 12px;
+  font-family: inherit;
+  color: var(--texto);
+  text-align: left;
+  cursor: pointer;
+}
+
+.home__icone {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 9px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+}
+
+.home__texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.home__linha-superior {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.home__nome {
+  font-size: 13.5px;
+  font-weight: 700;
+}
+
+.home__valores {
+  flex: none;
+  text-align: right;
+}
+
+.home__disponivel {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.home__pct {
+  display: block;
+  font-size: 10.5px;
+  color: var(--texto-fraco);
+  margin-top: 1px;
+}
+
+.home__gasto {
+  display: block;
+  font-size: 11px;
+  color: var(--texto-fraco);
+  margin-top: 3px;
+}
+
+// Linha `bloqLabel` (recorte-desenho-20.md §2) — mesma cor de aviso da faixa
+// de bloqueio, posição MOBILE do recorte (ver ponto 5 do cabeçalho de
+// `index.vue`).
+.home__bloqueado {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--atencao);
+  margin-top: 2px;
+}
+
+// Trilho com DUAS faixas lado a lado (recorte-desenho-20.md §2): a gasta e a
+// bloqueada (hachurada). `display:flex` + `overflow:hidden` no trilho —
+// nenhuma das duas faixas arredonda a própria borda, só o trilho.
+.home__barra {
+  display: flex;
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 9999px;
+  background: #eceef1;
+  overflow: hidden;
+}
+
+.home__barra-fill {
+  display: block;
+  height: 100%;
+}
+
+// Faixa bloqueada — hachura literal do recorte (recorte-desenho-20.md §2).
+// Some sozinha quando a largura é 0%.
+.home__barra-bloqueado {
+  display: block;
+  height: 100%;
+  background: repeating-linear-gradient(135deg, #d7dce3 0 3px, #eceef1 3px 6px);
+}
+
+// ── categoria estourada — mesmo cartão de `orcamento.scss`, redeclarado de
+// propósito: `scoped` não atravessa arquivos (mesmo comentário de lá). ────
+
+.home__estouro {
+  margin: 0 12px 12px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--superficie);
+  border: 1px solid rgba(198, 40, 40, 0.28);
+  border-radius: var(--raio);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.home__estouro-texto {
+  flex: 1;
+  min-width: 0;
+}
+
+.home__estouro-titulo {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--alerta);
+}
+
+.home__estouro-subtitulo {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: var(--texto-medio);
+}
+
+.home__estouro-botao {
+  flex: none;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 9999px;
+  background: var(--tinta);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+}

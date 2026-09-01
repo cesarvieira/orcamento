@@ -45,11 +45,11 @@ para que a família continue sendo o único limite de quem vê o quê.
 
 | #     | Regra                                                                                                                                                                                                                  | Origem (lei/norma/decisão)                             |
 | ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| RN-01 | O `familiaId` deriva **sempre** do token, nunca do request (vale também no WebSocket: a room é resolvida no handshake)                                                                                                 | [D-05](../../../docs/decisoes/D-05-acesso-familiar.md) |
-| RN-02 | O email que aceita o convite é idêntico ao convidado; com Google vale o email **verificado** pelo provedor, não o digitado                                                                                             | D-05                                                   |
-| RN-03 | Convite **expira** (TTL em `CONVITE_TTL_HORAS`) e é de **uso único**                                                                                                                                                   | D-05                                                   |
-| RN-04 | Mesmo email via Google e via senha resolve para a **mesma pessoa** — sem isso, quem foi convidado como `ana@x.com` cria conta de senha com o mesmo email, existe duas vezes, e o convite se burla sem nunca ser aceito | D-05                                                   |
-| RN-05 | Todo membro da família tem o mesmo poder sobre os dados — não há hierarquia de papéis                                                                                                                                  | mockup + D-05                                          |
+| RN-41 | O `familiaId` deriva **sempre** do token, nunca do request (vale também no WebSocket: a room é resolvida no handshake)                                                                                                 | [D-05](../../../docs/decisoes/D-05-acesso-familiar.md) |
+| RN-42 | O email que aceita o convite é idêntico ao convidado; com Google vale o email **verificado** pelo provedor, não o digitado                                                                                             | D-05                                                   |
+| RN-43 | Convite **expira** (TTL em `CONVITE_TTL_HORAS`) e é de **uso único**                                                                                                                                                   | D-05                                                   |
+| RN-44 | Mesmo email via Google e via senha resolve para a **mesma pessoa** — sem isso, quem foi convidado como `ana@x.com` cria conta de senha com o mesmo email, existe duas vezes, e o convite se burla sem nunca ser aceito | D-05                                                   |
+| RN-45 | Todo membro da família tem o mesmo poder sobre os dados — não há hierarquia de papéis                                                                                                                                  | mockup + D-05                                          |
 
 ## Regulação / compliance (o que a lei/norma exige)
 
@@ -63,26 +63,26 @@ para que a família continue sendo o único limite de quem vê o quê.
 1. **Entrar** — Google OAuth ou email+senha → cookie `httpOnly` → tela do mês.
 2. **Convidar** — de dentro de _Mais_, o membro informa um email → convite é enviado e persistido
    como pendente, listado na família.
-3. **Aceitar** — `/convite/:token` → valida o email (RN-02) → cria ou resolve o `Membro` (RN-04) →
+3. **Aceitar** — `/convite/:token` → valida o email (RN-42) → cria ou resolve o `Membro` (RN-44) →
    entra logado.
 
 ## Casos de uso principais
 
 | UC    | Ator      | Objetivo                                         | Regras envolvidas   |
 | ----- | --------- | ------------------------------------------------ | ------------------- |
-| UC-01 | Membro    | Autenticar e acessar os dados da própria família | RN-01, RN-05        |
-| UC-02 | Membro    | Convidar uma nova pessoa para a família          | RN-03               |
-| UC-03 | Convidado | Aceitar o convite e virar membro da família      | RN-02, RN-03, RN-04 |
+| UC-01 | Membro    | Autenticar e acessar os dados da própria família | RN-41, RN-45        |
+| UC-02 | Membro    | Convidar uma nova pessoa para a família          | RN-43               |
+| UC-03 | Convidado | Aceitar o convite e virar membro da família      | RN-42, RN-43, RN-44 |
 
 ## Edge cases e exceções do domínio
 
 - Convite expirado: recusa com erro claro; tentativa registrada (driver `log` em ambiente de teste).
-- Email do convite diferente do email que tenta aceitar: recusa (RN-02).
-- Token já usado (aceito antes): recusa — uso único (RN-03).
+- Email do convite diferente do email que tenta aceitar: recusa (RN-42).
+- Token já usado (aceito antes): recusa — uso único (RN-43).
 - Mesmo email chega por Google depois de já existir conta por senha, ou vice-versa: resolve para o
-  mesmo `Membro`, nunca duplica a pessoa (RN-04).
+  mesmo `Membro`, nunca duplica a pessoa (RN-44).
 - Família B tentando enxergar ou receber evento de dado da família A, via REST **ou** via socket:
-  isolamento tem que segurar nos dois canais (RN-01).
+  isolamento tem que segurar nos dois canais (RN-41).
 
 ## Fontes do conhecimento
 

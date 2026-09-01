@@ -4,11 +4,11 @@
  * (familiaId sempre no WHERE) e o cálculo do saldo derivado morem num lugar
  * só.
  */
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, or, sql } from 'drizzle-orm';
 import type { z } from 'zod';
 
 import type { Db } from '../../db';
-import { contas } from '../../db/schema';
+import { contas, lancamentos } from '../../db/schema';
 import type { EsquemaNovaConta } from './esquemas';
 
 export type EntradaDeConta = z.infer<typeof EsquemaNovaConta>;
@@ -32,16 +32,76 @@ export interface ContaLida {
 // ---------------------------------------------------------------------------
 
 /**
- * Não existe tabela de lançamentos ainda — ela é da EF-04. O termo da soma
- * fica FIXO em 0 até lá, mas a expressão já está montada como uma ADIÇÃO
- * (`saldoInicial + termoDosLancamentos`) de propósito: quando a EF-04 criar
- * `lancamentos`, ela troca só este termo por
- * `coalesce((select sum(valor_centavos) from lancamentos
- *   where lancamentos.conta_id = contas.id), 0)` — a leitura inteira não muda.
+ * EF-04 (tarefa #52) travava o termo dos lançamentos em 0 para `CREDITO`,
+ * apontando explicitamente para esta EF (RN-19: "quem move é a fatura paga,
+ * e a fatura é da EF-05 — ainda não construída"). **Este é o ponto que a
+ * EF-05 estende, não duplica.**
+ *
+ * ⛔ Regra #0: RN-25 e D1 vêm de
+ * `.preator/skills/negocio/faturas-e-ciclo-do-cartao/SKILL.md` — "Saldo do
+ * cartão (exibido) = soma dos totais de TODAS as faturas em aberto do
+ * cartão" —, citando `docs/especificacoes/EF-05-faturas.md` §2 como fonte
+ * primária.
+ *
+ * O termo é um SOMATÓRIO COM SINAL — RN-17: transferência não é despesa,
+ * então ela move as DUAS pontas (origem perde, destino ganha), nunca
+ * decrementa "gasto":
+ *   RECEITA                       → + valorCentavos
+ *   DESPESA                       → − valorCentavos
+ *   TRANSFERENCIA, esta é origem  → − valorCentavos
+ *   TRANSFERENCIA, esta é destino → + valorCentavos
+ *
+ * Aplicado SEM EXCEÇÃO a `CREDITO` (a diferença para EF-04: antes havia um
+ * `case when tipo = 'CREDITO' then 0 else (...)`, removido), o mesmo
+ * somatório vira exatamente RN-25/D1: cada `DESPESA` (uma compra no cartão)
+ * SUBTRAI, e o pagamento de fatura (RN-24 — uma `TRANSFERENCIA` com o cartão
+ * como DESTINO) SOMA de volta. Como `saldoInicialCentavos` é sempre `null`
+ * (coalescido a 0) numa `CREDITO` (EF-02 §1 — cartão não tem saldo inicial,
+ * é dívida, não caixa), `saldoCentavos` de um cartão fica:
+ *
+ *   saldoCentavos = −Σ(fatura em aberto, D1: TODA fatura não paga)
+ *
+ * Negativo (ou zero, sem compra nenhuma) — nunca precisa de linha de
+ * `Fatura` para estar correto: é a soma de TODO o histórico da conta, então
+ * não fica desatualizado mesmo que ninguém tenha aberto a tela de fatura
+ * (`modulos/faturas/servico.ts` usa isto para `limiteLivreCentavos`, RN-26).
+ *
+ * 🔀 FORK declarado ao humano: o comentário original de RN-18/RN-19 dizia
+ * "não move o saldo da conta" para uma compra no crédito — eu leio isto como
+ * "não move o CAIXA REAL de uma conta de débito/reserva" (o motivo real de
+ * RN-18/RN-19: a compra no cartão não pode debitar duas vezes, na hora da
+ * compra E na hora do pagamento). A skill de EF-05 (Regra #0, fonte
+ * PRIMÁRIA e mais recente para esta EF) é explícita que o "saldo exibido do
+ * cartão" DEVE refletir a fatura em aberto, que cresce a cada compra — dessa
+ * forma o campo `saldoCentavos` de uma CREDITO passa a ter um significado
+ * novo (dívida, não caixa) a partir desta tarefa. Se esta leitura estiver
+ * errada, é decisão para reverter aqui, não em outro lugar.
+ *
+ * `::integer` no fim do `coalesce` é deliberado: `sum(integer)` no Postgres
+ * devolve `bigint`, e o driver `pg` serializa `bigint` como STRING (evita
+ * perda de precisão fora do range de um `number` do JS). Sem o cast,
+ * `saldoCentavos` chegaria como `"31240"` em vez de `31240`.
  */
 function expressaoSaldoDerivado() {
-  const termoDosLancamentosAindaNaoExiste = sql`0`; // @fundacao — EF-04 substitui isto (ver comentário acima).
-  return sql<number>`(coalesce(${contas.saldoInicialCentavos}, 0) + (${termoDosLancamentosAindaNaoExiste}))`;
+  const termoDosLancamentos = sql<number>`coalesce((
+    select sum(
+      case
+        when ${lancamentos.tipo} = 'RECEITA' then ${lancamentos.valorCentavos}
+        when ${lancamentos.tipo} = 'DESPESA' then -${lancamentos.valorCentavos}
+        when ${lancamentos.tipo} = 'TRANSFERENCIA' and ${lancamentos.contaId} = ${contas.id}
+          then -${lancamentos.valorCentavos}
+        when ${lancamentos.tipo} = 'TRANSFERENCIA' and ${lancamentos.contaDestinoId} = ${contas.id}
+          then ${lancamentos.valorCentavos}
+        else 0
+      end
+    )
+    from ${lancamentos}
+    where ${lancamentos.contaId} = ${contas.id} or ${lancamentos.contaDestinoId} = ${contas.id}
+  ), 0)::integer`;
+
+  return sql<number>`(
+    coalesce(${contas.saldoInicialCentavos}, 0) + (${termoDosLancamentos})
+  )`;
 }
 
 const colunasDeLeitura = {
@@ -57,10 +117,20 @@ const colunasDeLeitura = {
   saldoCentavos: expressaoSaldoDerivado(),
 };
 
-/** RN-07 — "o total 'em conta hoje' não soma reserva": soma tudo que não é RESERVA. */
+/**
+ * RN-07 — "o total 'em conta hoje' não soma reserva". Até a EF-05, isto
+ * filtrava só `tipo !== 'RESERVA'` (incluindo `CREDITO`, cujo `saldoCentavos`
+ * era sempre 0 — o filtro e a soma coincidiam por acidente). Agora que
+ * `CREDITO` carrega uma dívida real (ver `expressaoSaldoDerivado` acima),
+ * manter esse filtro subtrairia a fatura em aberto do "caixa de hoje" — uma
+ * mudança de comportamento da RN-07 (EF-02, já mesclada) que NÃO é desta
+ * tarefa decidir. Por isso o filtro passa a ser explícito `=== 'DEBITO'`:
+ * numericamente idêntico ao de antes (CREDITO sempre contribuía 0), mas
+ * agora correto por CONSTRUÇÃO, não por coincidência.
+ */
 function totalEmContaHoje(linhas: ContaLida[]): number {
   return linhas
-    .filter(linha => linha.tipo !== 'RESERVA')
+    .filter(linha => linha.tipo === 'DEBITO')
     .reduce((total, linha) => total + linha.saldoCentavos, 0);
 }
 
@@ -77,8 +147,14 @@ export async function listarContas(
   return { contas: linhas, totalEmContaHojeCentavos: totalEmContaHoje(linhas) };
 }
 
-/** O único jeito de ler UMA conta — sempre filtrado por família (R1). */
-async function buscarContaDaFamilia(
+/**
+ * O único jeito de ler UMA conta — sempre filtrado por família (R1).
+ * Exportado desde a EF-05: `modulos/faturas/servico.ts` reaproveita (não
+ * duplica) para validar o cartão e para ler `saldoCentavos`/`limiteCentavos`
+ * na hora de calcular `limiteLivreCentavos` (RN-26) e validar a conta
+ * pagadora (D3).
+ */
+export async function buscarContaDaFamilia(
   db: Db,
   familiaId: string,
   id: string,
@@ -152,23 +228,25 @@ export async function atualizarConta(
 }
 
 // ---------------------------------------------------------------------------
-// RN-06 — conta com lançamento não pode ser excluída
+// RN-06 — conta com lançamento não pode ser excluída (EF-02 §2, tarefa #52)
 // ---------------------------------------------------------------------------
 
 /**
- * O ponto de checagem de RN-06.
- *
- * DECISÃO DE DESENHO (tarefa #39): a tabela `lancamentos` não existe ainda —
- * ela é da EF-04, e fingir que já a consulta seria inventar dado que não
- * existe. Em vez de deixar a regra comentada ou espalhada num `if` dentro da
- * rota, ela vira esta função nomeada, com a assinatura que a EF-04 vai manter:
- * hoje o corpo SEMPRE devolve `true` (nenhuma conta tem lançamento, porque
- * lançamento não existe), e a EF-04 troca só o corpo por
- * `!(await db.select().from(lancamentos).where(eq(lancamentos.contaId, contaId)).limit(1)).length`
- * — `excluirConta` e a rota que a chama não mudam uma linha.
+ * O ponto de checagem de RN-06. Cobre as DUAS pontas: `contaId` (a conta é a
+ * origem/afetada de RECEITA, DESPESA ou TRANSFERENCIA) e `contaDestinoId` (a
+ * conta é DESTINO de uma TRANSFERENCIA) — as duas colunas têm
+ * `ON DELETE cascade` para `contas.id` (`db/schema.ts`), e o cascade existe
+ * para o caso de a FAMÍLIA inteira ser apagada, não para liberar RN-06: quem
+ * impede a exclusão indevida de UMA conta é esta checagem na aplicação,
+ * antes do DELETE chegar ao banco.
  */
-export async function contaPodeSerExcluida(_db: Db, _contaId: string): Promise<boolean> {
-  return true;
+export async function contaPodeSerExcluida(db: Db, contaId: string): Promise<boolean> {
+  const [linha] = await db
+    .select({ id: lancamentos.id })
+    .from(lancamentos)
+    .where(or(eq(lancamentos.contaId, contaId), eq(lancamentos.contaDestinoId, contaId)))
+    .limit(1);
+  return !linha;
 }
 
 export type ResultadoDeExclusao = 'excluida' | 'nao_encontrada' | 'tem_lancamentos';

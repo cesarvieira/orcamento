@@ -1,0 +1,173 @@
+// EXTRATO (EF-04) — tela `extrato` do mockup. `.preator/tmp/recorte-desenho-18.md`
+// §5 é FONTE, não ilustração — ver o cabeçalho de `pages/extrato.vue` para
+// as divergências declaradas (texto do dia, `e.sub`, os dois vazios).
+//
+// `.lista`/`.linha*` são globais (`base.scss`) — reaproveitados para o
+// dropdown de conta e para as linhas de lançamento, só com os ajustes de
+// tamanho que este `scoped` permite sobrescrever (28px em vez de 32px, o
+// desenho §5.5).
+
+// O reset de `<button>` NÃO está aqui: é `.linha--botao`, em
+// `base/_lista.scss`. Ele nasceu nesta tela, mas a folha de lançamento passou
+// a precisar dele nos três dropdowns dela — com o segundo consumidor, manter a
+// regra na tela seria a primeira das cópias divergentes.
+
+// O título "Extrato" já vem do shell (`topo__titulo`). Esta tela só
+// acrescenta a sublinha — mesmo padrão de `contas.scss`/`orcamento.scss`.
+.extrato__subtitulo {
+  margin: -8px 0 16px;
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
+// ── estados vazios ───────────────────────────────────────────────────────
+
+.extrato__vazio {
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--texto-fraco);
+
+  &--erro {
+    color: var(--alerta);
+  }
+}
+
+// ── FILTRO POR CONTA (recorte §5.2 — z-index literal do desenho) ─────────
+
+.extrato__filtro-container {
+  position: relative;
+  z-index: 30;
+  margin-bottom: 16px;
+}
+
+.extrato__filtro {
+  width: 100%;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 13px;
+  background: var(--superficie);
+  border: 1px solid var(--borda-media);
+  border-radius: var(--raio);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.extrato__filtro-quadrado {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 7px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.extrato__filtro-texto {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.extrato__filtro-rotulo {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+}
+
+.extrato__filtro-valor {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--texto);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.extrato__filtro-seta {
+  flex: none;
+  font-size: 14px;
+  color: var(--texto-fraco);
+}
+
+// Catura o clique fora do painel para fechar — não é do desenho (que não
+// precisa dizer isso: é comportamento padrão de dropdown), mas sem ele o
+// painel só fecharia escolhendo uma conta.
+.extrato__filtro-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: transparent;
+}
+
+.extrato__filtro-painel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  max-height: 264px;
+  overflow-y: auto;
+  background: var(--superficie);
+  border-radius: var(--raio);
+  box-shadow: 0 12px 30px rgba(10, 25, 50, 0.22);
+}
+
+.extrato__check {
+  flex: none;
+  margin-left: auto;
+  font-size: 15px;
+  color: var(--tinta);
+}
+
+// ── agrupamento por dia (recorte §5.4) ────────────────────────────────────
+
+.extrato__dias {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.extrato__dia-rotulo {
+  margin: 0 2px 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+}
+
+// ── linha de lançamento (recorte §5.5) — 28px, não os 32px de `.linha` ──
+
+// Só o tamanho do ícone: o reset de `<button>` vem de `.linha--botao`.
+.extrato__linha {
+  .linha__icone {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    font-size: 14px;
+  }
+}
+
+.extrato__desc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.extrato__valor {
+  flex: none;
+  margin-left: 8px;
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}

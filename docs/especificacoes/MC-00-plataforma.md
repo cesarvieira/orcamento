@@ -71,6 +71,6 @@ semeador em `SEMEADORES_DE_MODULO`.
 - [x] EF atualizada (DoD marcado, decisões incorporadas)
 - [x] MC criada
 - [x] MANUAL as-built criado
-- [x] Memória do condutor (`.motor/condutor-14.md`) atualizada
+- [x] Memória do condutor (`.preator/tmp/condutor-14.md`) atualizada
 - [x] Issues #14 e #24 carimbadas `provado`, com evidência comentada
 - [x] PR aberto: [#25](https://github.com/cesarvieira/orcamento/pull/25)

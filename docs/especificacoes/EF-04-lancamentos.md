@@ -86,16 +86,58 @@ tela `extrato` · modal de detalhe.
 
 ## §5 — Definition of Done
 
-- [ ] Um teste de integração por RN acima
-- [ ] **Parcela final:** soma das parcelas == total, com valor quebrado (ex.: 100,00 em 3×)
-- [ ] Compra no crédito não altera o saldo da conta
-- [ ] Retroativo não consome o teto do mês corrente
-- [ ] Transferência não aparece como gasto de categoria nenhuma
-- [ ] Extrato abre no artefato de deploy, **incluindo o estado vazio**
-- [ ] Isolamento entre famílias · dois clientes veem a mudança sem refresh
-- [ ] `PROVA_DE_COMPORTAMENTO=PASS`
+> Marcado com o que a história **provou de fato** — medido, não declarado. Detalhe RN a RN,
+> `arquivo:linha`, em [MC-04](MC-04-lancamentos.md).
 
-## §6 — Forks abertos
+- [x] Um teste de integração por RN acima — **exceto RN-22**, cujo guarda está testado mas cujo
+      caso positivo depende de `fechamentos_mes` ([EF-08](EF-08-fechamento.md), #22, não
+      construída); marcar RN-22 como coberta seria mentira auditável. Ver `MC-04`, `EF04-MC-001`
+- [x] **Parcela final:** soma das parcelas == total, com valor quebrado (100,00 em 3× → 33,33 ·
+      33,33 · 33,34) — `api/testes/lancamentos.teste.ts:356-374`
+- [x] Compra no crédito não altera o saldo da conta — `lancamentos.teste.ts:213-236`. **RN-19
+      só está coberta na metade negativa**: o saldo se mover quando a fatura é paga é da
+      [EF-05](EF-05-faturas.md), #19, não construída. Ver `MC-04`, `EF04-MC-002`
+- [x] Retroativo não consome o teto do mês corrente — `lancamentos.teste.ts:301-352`
+- [x] Transferência não aparece como gasto de categoria nenhuma — `lancamentos.teste.ts:170-195`
+- [x] Extrato abre no artefato de deploy, **incluindo o estado vazio** — provado que abre e mostra
+      vazio (gate de navegação), mas o seed não tem lançamento nenhum
+      (`api/src/db/semear.ts:60`), então o vazio exercitado é o 🟨 "família sem histórico", nunca
+      o 🟦 "por filtro/mês" do mockup. Ver `MC-04`, `EF04-MC-003`
+- [x] Isolamento entre famílias — 4 testes, `lancamentos.teste.ts:836-895`. **Dois clientes veem a
+      mudança sem refresh:** provado — mecanismo genérico e o caso específico de dois sockets da
+      MESMA família contra `lancamentos` (`api/testes/realtime.teste.ts:111-149`). A lacuna existiu
+      (só havia prova de isolamento entre famílias) e foi fechada pela tarefa #64. Ver `MC-04`,
+      `EF04-MC-005`
+- [x] `PROVA_DE_COMPORTAMENTO=PASS` em toda tarefa mesclada desta história — lista viva, na ordem
+      real (não envelhece como uma contagem fixa neste texto): `git log --oneline --first-parent
+    main..historia/18-ef-04-lancamentos`. A suíte roda **181 testes**, 0 falhando — contagem
+      literal, conferida de novo por esta tarefa (`node scripts/contar-testes.mjs`); muda só se um
+      módulo ganhar ou perder teste, não com o passar de tarefas de documentação
 
-**Excluir uma parcela apaga a série inteira ou só aquela parcela?** Não está decidido. Escalar ao
-humano antes de implementar — não inventar.
+## §6 — Forks
+
+Os dois forks abertos por esta EF foram **fechados pelo humano em 2026-08-27**, no aval que
+decompôs a história #18 (comentário da issue #18). Registrados aqui como decisão, não como
+pergunta em aberto:
+
+1. **Excluir uma parcela apaga a série inteira ou só aquela parcela?** — **Decidido: o detalhe
+   pergunta o alcance.** `DELETE /lancamentos/{id}?modo=esta|todas|a-partir-desta` — `esta` remove
+   só a linha, `todas` remove a série inteira, `a-partir-desta` remove esta e as de competência
+   posterior. Esta caixa de diálogo **não tem fonte no desenho** (no mockup, compra parcelada
+   gerava um lançamento só — §4 desta EF); construída no vocabulário visual das outras folhas do
+   app. Para um lançamento avulso (sem série), "Excluir" continua batendo com o desenho: apaga
+   direto, sem perguntar. Implementado e testado em `api/testes/lancamentos.teste.ts:543-702`;
+   registrado como decisão do humano em `web/app/components/ModalDetalheLancamento.vue:12-34`.
+2. **RN-22 (competência selada)** — **Decidido: o guarda fica como selo `@fundacao` apontando a
+   EF-08.** `competenciaEstaSelada` (`api/src/modulos/lancamentos/servico.ts:109-129`) é o ponto de
+   checagem nomeado, chamado nos dois lugares de escrita, e hoje sempre libera — a query exata que
+   substitui o `return false` está comentada no código, para a EF-08 (#22) trocar sem tocar em
+   mais nada. O caso positivo (lançamento de fato recusado por selagem) fica **pendente da EF-08**,
+   registrado em `MC-04` (`EF04-MC-001`), não escondido.
+
+**Suposição declarada pelo condutor (2026-08-27), consumida e provada:** `series_parcelas.total`
+(`totalCentavos`) e `quantidade` guardam a **compra original** e não são reescritos por exclusão de
+parcelas — mesmo motivo de `criadoPorMembroId` ser imutável (RN-16). RN-21 vale **na geração**, que
+é onde esta EF a especifica no §2. Provado direto no banco em
+`api/testes/lancamentos.teste.ts:671-681`. Foi esta suposição que gerou o defeito medido e corrigido
+pela tarefa #62 (`Lancamento` não expunha o total da série — ver `MANUAL-04`).

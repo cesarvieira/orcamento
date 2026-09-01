@@ -8,30 +8,25 @@
  * É IDEMPOTENTE: rodar duas vezes não duplica nada. O serviço `migrate` do
  * compose o chama a cada subida.
  *
- * ─────────────────────────────────────────────────────────────────────────────
- * ⚠️ ESCOPO — o seed é da plataforma, os dados são dos módulos.
- *
- * A EF-00 declara "nenhuma entidade de domínio": não existem ainda tabelas de
- * contas, categorias, lançamentos, faturas ou metas para semear. Por isso este
- * arquivo entrega o ARNÊS e a parte de acesso (família + membro aceito), e
- * abre um ponto de extensão explícito: cada EF de módulo acrescenta a sua
- * função em `SEMEADORES_DE_MODULO` e semeia de 1 a 3 registros seus.
- *
- * Registrar-se aqui é parte da Definition of Done de cada módulo — um módulo
- * que não semeia deixa o gate de navegação abrindo a sua tela vazia, e tela
- * vazia não prova render.
- * ─────────────────────────────────────────────────────────────────────────────
+ * O ambiente semeado cobre 2 meses passados, o mês atual e lançamentos
+ * futuros (parcelas + avulsos), com todos os tipos de dado que o produto
+ * conhece — contas, orçamento, lançamentos, faturas, metas e fechamento.
  */
-import { eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 
 import type { Db } from './index';
-import { familias, identidades, membros } from './schema';
+import { convites, familias, identidades, membros } from './schema';
 import { gerarHashDeSenha } from '../modulos/familia/senha';
+import { criarConvite } from '../modulos/familia/convites';
 import { semeadorDeContas } from '../modulos/contas/semear';
 import { semeadorDeOrcamento } from '../modulos/orcamento/semear';
+import { semeadorDeMetas } from '../modulos/metas/semear';
+import { semeadorDeLancamentos } from '../modulos/lancamentos/semear';
+import { semeadorDeFaturas } from '../modulos/faturas/semear';
+import { semeadorDeFechamento } from '../modulos/fechamento/semear';
 
 /**
- * O contrato que cada módulo cumpre para semear os seus 1–3 registros.
+ * O contrato que cada módulo cumpre para semear os seus registros.
  * Implementado pela primeira vez em `modulos/contas/semear.ts` (EF-02).
  */
 export interface SemeadorDeModulo {
@@ -42,29 +37,71 @@ export interface SemeadorDeModulo {
 
 /**
  * O que a plataforma entrega pronto a quem semeia depois dela.
- * Consumido pela primeira vez em `modulos/contas/semear.ts` (EF-02).
  */
 export interface ContextoDoSeed {
   familiaId: string;
   membroId: string;
-  /** A competência de referência do seed, `AAAA-MM`. */
+  /** Segundo membro (Bruno) — autor alternativo de lançamentos (RN-16). */
+  segundoMembroId: string;
+  /** A competência de referência do seed, `AAAA-MM` (mês corrente). */
   competencia: string;
 }
 
 /**
- * Os semeadores dos módulos. EF-02 a EF-08 acrescentam os seus aqui. Vazio na
- * EF-00 porque não havia entidade de domínio ainda — um seed que fingisse ter
- * seria pior que um seed honesto e curto. A EF-02 (contas) é a primeira a se
- * registrar.
+ * Ordem importa: contas → orçamento → metas → lançamentos → faturas →
+ * fechamento. Fechamento sela o mês −2 e tem de rodar por último.
  */
-const SEMEADORES_DE_MODULO: SemeadorDeModulo[] = [semeadorDeContas, semeadorDeOrcamento];
+const SEMEADORES_DE_MODULO: SemeadorDeModulo[] = [
+  semeadorDeContas,
+  semeadorDeOrcamento,
+  semeadorDeMetas,
+  semeadorDeLancamentos,
+  semeadorDeFaturas,
+  semeadorDeFechamento,
+];
 
 const FAMILIA_DE_TESTE = 'Família de teste';
+const EMAIL_BRUNO = 'bruno.seed@orcamento.local';
+const EMAIL_CONVITE_PENDENTE = 'carla.convidada@exemplo.test';
 
 function competenciaDeHoje(): string {
   const agora = new Date();
   const mes = String(agora.getUTCMonth() + 1).padStart(2, '0');
   return `${agora.getUTCFullYear()}-${mes}`;
+}
+
+async function garantirSegundoMembro(db: Db, familiaId: string): Promise<string> {
+  const [existente] = await db
+    .select({ id: membros.id })
+    .from(membros)
+    .where(eq(membros.email, EMAIL_BRUNO))
+    .limit(1);
+  if (existente) return existente.id;
+
+  const [membro] = await db
+    .insert(membros)
+    .values({ familiaId, nome: 'Bruno', email: EMAIL_BRUNO })
+    .returning({ id: membros.id });
+  if (!membro) throw new Error('seed: não consegui criar o segundo membro (Bruno)');
+  return membro.id;
+}
+
+async function garantirConvitePendente(db: Db, familiaId: string): Promise<boolean> {
+  const [pendente] = await db
+    .select({ id: convites.id })
+    .from(convites)
+    .where(
+      and(
+        eq(convites.familiaId, familiaId),
+        eq(convites.email, EMAIL_CONVITE_PENDENTE),
+        isNull(convites.usadoEm),
+        isNull(convites.recusadoEm),
+      ),
+    )
+    .limit(1);
+  if (pendente) return false;
+  await criarConvite(db, familiaId, EMAIL_CONVITE_PENDENTE);
+  return true;
 }
 
 export async function semear(db: Db): Promise<string> {
@@ -111,6 +148,9 @@ export async function semear(db: Db): Promise<string> {
     membroId = membro.id;
   }
 
+  const segundoMembroId = await garantirSegundoMembro(db, familiaId);
+  const conviteNovo = await garantirConvitePendente(db, familiaId);
+
   // ── identidade (provedor senha) ──────────────────────────────────────────
   const [credencial] = await db
     .select({ id: identidades.id })
@@ -139,20 +179,18 @@ export async function semear(db: Db): Promise<string> {
   const contexto: ContextoDoSeed = {
     familiaId,
     membroId,
+    segundoMembroId,
     competencia: competenciaDeHoje(),
   };
 
-  const partes: string[] = [`família de teste + membro aceito (${email} / ${senha})`];
+  const partes: string[] = [
+    `família de teste + Ana (${email}) + Bruno · competência ${contexto.competencia}`,
+  ];
+  if (conviteNovo) partes.push(`convite pendente (${EMAIL_CONVITE_PENDENTE})`);
 
   for (const semeador of SEMEADORES_DE_MODULO) {
     const quantos = await semeador.semear(db, contexto);
     partes.push(`${semeador.modulo}: ${quantos}`);
-  }
-
-  if (SEMEADORES_DE_MODULO.length === 0) {
-    partes.push(
-      'nenhum módulo registrado — a EF-00 não tem entidade de domínio (ver SEMEADORES_DE_MODULO)',
-    );
   }
 
   return partes.join(' · ');

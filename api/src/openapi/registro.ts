@@ -15,12 +15,28 @@
  */
 import { z } from 'zod';
 
+import { ehNomeDeFamiliaId } from '../http/middleware/tenant';
+
 type Metodo = 'get' | 'post' | 'put' | 'patch' | 'delete';
 
 interface Resposta {
   status: number;
   descricao: string;
   esquema?: string;
+}
+
+/** O esquema de UM parâmetro de query — sempre string na URL; `enum` para os de valor fechado. */
+interface EsquemaDeParametro {
+  type: 'string';
+  enum?: readonly string[];
+}
+
+interface ParametroDeQuery {
+  nome: string;
+  /** @default false */
+  obrigatorio?: boolean;
+  descricao?: string;
+  esquema: EsquemaDeParametro;
 }
 
 interface Rota {
@@ -30,6 +46,8 @@ interface Rota {
   etiquetas: string[];
   exigeSessao: boolean;
   corpo?: string;
+  /** Parâmetros de QUERY declarados — os de CAMINHO se derivam sozinhos de `:nome`. */
+  query?: ParametroDeQuery[];
   respostas: Resposta[];
 }
 
@@ -48,6 +66,11 @@ export function registrarEsquema<T extends z.ZodType>(nome: string, esquema: T):
   return esquema;
 }
 
+/** Os nomes de parâmetro num caminho Express (`/contas/:id` → `['id']`). */
+function nomesDeParametrosNoCaminho(caminho: string): string[] {
+  return [...caminho.matchAll(/:([A-Za-z0-9_]+)/g)].map(m => m[1] as string);
+}
+
 export function registrarRota(rota: Rota): void {
   const chave = `${rota.metodo} ${rota.caminho}`;
   if (rotas.some(r => `${r.metodo} ${r.caminho}` === chave)) {
@@ -58,9 +81,27 @@ export function registrarRota(rota: Rota): void {
   // roteador DEPOIS dos middlewares de aplicação — o middleware de tenant não
   // teria como limpá-lo. Então a rota simplesmente não pode existir: quem
   // precisa do id da família o pega do token.
-  if (/[:{]familia_?[Ii]d\b/.test(rota.caminho)) {
+  //
+  // `ehNomeDeFamiliaId` (dona em `http/middleware/tenant.ts`, issue #102) é
+  // quem decide o que conta como familiaId — este guarda só extrai os nomes
+  // de parâmetro do caminho e pergunta a ela, não reimplementa a comparação.
+  const paramDeFamiliaNoCaminho = nomesDeParametrosNoCaminho(rota.caminho).find(ehNomeDeFamiliaId);
+  if (paramDeFamiliaNoCaminho) {
     throw new Error(
       `rota com familiaId no caminho: ${chave} — o familiaId vem do token, nunca do request (R1 · D-05)`,
+    );
+  }
+
+  // R1 também cobre QUERY, não só caminho. #60 abriu esta superfície ao dar
+  // à rota um jeito de declarar parâmetro de query — o middleware de tenant
+  // já descarta variantes de familiaId de `req.query` em runtime (defesa em
+  // profundidade), mas a guarda do CONTRATO só olhava o caminho, e um
+  // contrato que anuncia familiaId como query é imprecisão que convida ao
+  // mesmo erro amanhã, independente de o middleware barrar hoje.
+  const paramDeFamiliaNaQuery = (rota.query ?? []).find(p => ehNomeDeFamiliaId(p.nome));
+  if (paramDeFamiliaNaQuery) {
+    throw new Error(
+      `rota com familiaId na query: ${chave} — o familiaId vem do token, nunca do request (R1 · D-05)`,
     );
   }
 
@@ -80,12 +121,22 @@ function caminhoOpenApi(caminho: string): string {
 }
 
 function parametrosDeCaminho(caminho: string) {
-  const nomes = [...caminho.matchAll(/:([A-Za-z0-9_]+)/g)].map(m => m[1]);
+  const nomes = nomesDeParametrosNoCaminho(caminho);
   return nomes.map(nome => ({
     name: nome as string,
     in: 'path' as const,
     required: true,
     schema: { type: 'string' as const },
+  }));
+}
+
+function parametrosDeQuery(query: ParametroDeQuery[]) {
+  return query.map(p => ({
+    name: p.nome,
+    in: 'query' as const,
+    required: p.obrigatorio ?? false,
+    ...(p.descricao ? { description: p.descricao } : {}),
+    schema: p.esquema,
   }));
 }
 
@@ -115,7 +166,7 @@ export function construirDocumento(): Record<string, unknown> {
       };
     }
 
-    const parametros = parametrosDeCaminho(rota.caminho);
+    const parametros = [...parametrosDeCaminho(rota.caminho), ...parametrosDeQuery(rota.query ?? [])];
 
     caminhos[caminho][rota.metodo] = {
       summary: rota.resumo,

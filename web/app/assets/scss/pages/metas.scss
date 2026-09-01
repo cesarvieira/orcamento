@@ -1,0 +1,441 @@
+// METAS (EF-07) — tela `metas` do mockup. `.preator/tmp/recorte-desenho-21.md`
+// é FONTE, não ilustração — ver o cabeçalho de `pages/metas.vue` para o que
+// vem do desenho e o que vem de D1/D2/D4/D5 (decisões humanas 2026-08-29).
+//
+// `.lista`/`.linha*`/`.botao` são globais (`base.scss`) — reaproveitados para
+// o dropdown da conta de origem (mesmo padrão de `faturas.scss`) e para o
+// botão de salvar da folha de criação.
+
+// O título "Metas" já vem do shell (`topo__titulo`). Esta tela só acrescenta
+// a sublinha — mesmo padrão de `contas.vue`/`faturas.vue`.
+.metas__subtitulo {
+  margin: -8px 0 16px;
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
+// ── estados vazios ───────────────────────────────────────────────────────
+
+.metas__vazio {
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--texto-fraco);
+
+  &--erro {
+    color: var(--alerta);
+  }
+}
+
+// ── D2/D5 · SELETOR DE CONTA DE ORIGEM — mesmo padrão de `faturas.scss` ──
+
+.metas__seletor-container {
+  position: relative;
+  z-index: 30;
+  margin-bottom: 14px;
+}
+
+.metas__seletor {
+  width: 100%;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 13px;
+  background: var(--superficie);
+  border: 1px solid var(--borda-media);
+  border-radius: var(--raio);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.metas__seletor-quadrado {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 7px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+.metas__seletor-texto {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+
+.metas__seletor-rotulo {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+}
+
+.metas__seletor-valor {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--texto);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metas__seletor-seta {
+  flex: none;
+  font-size: 14px;
+  color: var(--texto-fraco);
+}
+
+.metas__seletor-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: transparent;
+}
+
+.metas__seletor-painel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 40;
+  max-height: 264px;
+  overflow-y: auto;
+  background: var(--superficie);
+  border-radius: var(--raio);
+  box-shadow: 0 12px 30px rgba(10, 25, 50, 0.22);
+}
+
+.metas__seletor-check {
+  flex: none;
+  margin-left: auto;
+  font-size: 15px;
+  color: var(--tinta);
+}
+
+// ── A LISTA DE COFRINHOS (recorte §2) ────────────────────────────────────
+//
+// Mobile: coluna única. Desktop: grade de 3 colunas. As duas variantes vêm
+// literalmente do desenho (mobile:384 / desktop:460); o breakpoint de 768px é
+// leitura do condutor (recorte §2, 🟨), mesmo valor que toda tela do app já
+// usa (`--quebra-desktop`).
+
+.metas__lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  @media (min-width: 768px) {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+}
+
+// ── O CARTÃO DO COFRINHO (recorte §3) ────────────────────────────────────
+
+.metas__cartao {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  padding: 15px;
+
+  @media (min-width: 768px) {
+    padding: 18px;
+  }
+}
+
+.metas__topo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.metas__nome {
+  font-size: 14px;
+  font-weight: 700;
+
+  @media (min-width: 768px) {
+    font-size: 14.5px;
+  }
+}
+
+.metas__percentual {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--texto-fraco);
+
+  @media (min-width: 768px) {
+    font-size: 11.5px;
+  }
+}
+
+.metas__acumulado {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-top: 4px;
+
+  @media (min-width: 768px) {
+    font-size: 24px;
+    margin-top: 6px;
+  }
+}
+
+.metas__alvo {
+  font-size: 11px;
+  color: var(--texto-fraco);
+  margin-top: 1px;
+
+  @media (min-width: 768px) {
+    font-size: 11.5px;
+    margin-top: 0;
+  }
+}
+
+.metas__trilho {
+  height: 6px;
+  border-radius: 9999px;
+  background: #eceef1;
+  overflow: hidden;
+  margin-top: 10px;
+
+  @media (min-width: 768px) {
+    margin-top: 12px;
+  }
+}
+
+.metas__preenchimento {
+  height: 100%;
+  background: var(--tinta);
+}
+
+.metas__botoes {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+
+  @media (min-width: 768px) {
+    margin-top: 14px;
+  }
+}
+
+.metas__botao-guardar {
+  flex: 1;
+  height: 34px;
+  border: 1px solid var(--borda-media);
+  background: var(--superficie);
+  border-radius: 9999px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--tinta);
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  @media (min-width: 768px) {
+    height: 36px;
+    font-size: 12.5px;
+  }
+}
+
+// ── D4 · CRIAR COFRINHO — botão de rodapé, mesmo padrão de `contas__nova` ──
+
+.metas__novo {
+  width: 100%;
+  height: 48px;
+  margin-top: 14px;
+  border: 1px dashed rgba(20, 50, 90, 0.35);
+  background: none;
+  border-radius: var(--raio);
+  font-family: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--tinta);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+// ── D4 · FOLHA — mesmo vocabulário visual de `sheetConta` (`contas.scss`) ──
+
+.metas__sheet-fundo {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(12, 22, 40, 0.42);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.metas__sheet {
+  background: var(--fundo);
+  border-radius: 22px 22px 0 0;
+  padding: 18px;
+  max-height: 92vh;
+  overflow-y: auto;
+  flex: none;
+
+  @media (min-width: 768px) {
+    width: 100%;
+    max-width: 460px;
+    margin: 0 auto 24px;
+    border-radius: var(--raio-grande);
+  }
+}
+
+.metas__sheet-cabecalho {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.metas__sheet-titulo {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.metas__sheet-fechar {
+  background: none;
+  border: none;
+  font-size: 15px;
+  color: var(--texto-fraco);
+  cursor: pointer;
+  padding: 0;
+}
+
+.metas__sheet-nome {
+  width: 100%;
+  height: 46px;
+  border: 1px solid var(--borda-media);
+  border-radius: var(--raio-pequeno);
+  padding: 0 13px;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--texto);
+  outline: none;
+  background: var(--superficie);
+}
+
+.metas__sheet-cartao {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 14px;
+  margin-top: 10px;
+}
+
+.metas__sheet-rotulo {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--texto-medio);
+}
+
+.metas__sheet-sub {
+  font-size: 11px;
+  color: var(--texto-fraco);
+  margin-top: 2px;
+}
+
+.metas__sheet-stepper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+// Mesmo reset de `sheet__stepper-valor` (`contas.scss`): é um `input`, mas
+// precisa continuar parecendo o número do desenho.
+.metas__sheet-stepper-valor {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  font-family: inherit;
+  color: var(--texto);
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: 2px 0;
+  outline: none;
+
+  &:hover {
+    border-bottom-color: var(--borda-media);
+  }
+
+  &:focus {
+    border-bottom-color: var(--texto);
+  }
+}
+
+.metas__sheet-passo {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border: 1px solid var(--borda-media);
+  background: var(--superficie);
+  border-radius: 9999px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--tinta);
+  cursor: pointer;
+}
+
+.metas__sheet-erro {
+  margin: 12px 2px 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--alerta);
+}
+
+.metas__sheet-salvar {
+  margin-top: 18px;
+}
+
+// ── TOAST (recorte §0/§3 — `aviso()`, some em 2600 ms) ───────────────────
+//
+// 🟨 Sem componente global de toast no projeto ainda (leitura do condutor,
+// recorte §5) — construído aqui, escopo desta tela.
+
+.metas__toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--altura-tabbar) + 16px);
+  transform: translateX(-50%);
+  z-index: 60;
+  max-width: calc(100vw - 32px);
+  padding: 12px 18px;
+  border-radius: 9999px;
+  background: var(--tinta-forte);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  text-align: center;
+  box-shadow: var(--sombra-flutuante);
+
+  &--erro {
+    background: var(--alerta);
+  }
+
+  @media (min-width: 768px) {
+    bottom: 24px;
+  }
+}

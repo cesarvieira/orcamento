@@ -37,7 +37,7 @@ export interface ConteudoDoEmail {
   /** O box destacado com barra à esquerda. Omita para não renderizá-lo. */
   destaque?: { rotulo: string; texto: string };
   /**
-   * O código de 6 dígitos, quando o email leva um (RN-10). Renderizado em
+   * O código de 6 dígitos, quando o email leva um (RN-50). Renderizado em
    * bloco grande e monoespaçado — quem vai DIGITAR precisa ler dígito a
    * dígito, e fonte proporcional confunde 0/O e 1/l.
    */

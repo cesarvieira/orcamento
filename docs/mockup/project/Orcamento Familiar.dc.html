@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css" rel="stylesheet">
+<style>
+  body { margin:0; background:#f6f7f9; font-family:'Manrope',system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+  a { color:#14325a; text-decoration:none; }
+  a:hover { color:#0d2440; }
+  * { box-sizing:border-box; }
+  @keyframes upIn { from { transform:translateY(18px); opacity:0 } to { transform:translateY(0); opacity:1 } }
+</style>
+</helmet>
+
+<sc-if value="{{ telaLogin }}" hint-placeholder-val="{{ false }}">
+  <div style="min-height:100vh; display:flex; justify-content:center; background:#14325a">
+    <div style="width:100%; max-width:430px; min-height:100vh; background:#14325a; color:#fff; display:flex; flex-direction:column; padding:0 22px 26px">
+
+      <div style="flex:1; display:flex; flex-direction:column; justify-content:center; padding:44px 0 24px">
+        <div style="width:54px; height:54px; border-radius:16px; background:rgba(255,255,255,0.14); display:flex; align-items:center; justify-content:center; margin-bottom:20px">
+          <i class="ti ti-home-dollar" style="font-size:28px"></i>
+        </div>
+        <div style="font-size:29px; font-weight:800; letter-spacing:-0.02em; line-height:1.15">Orçamento<br>da casa</div>
+        <div style="font-size:14px; opacity:0.7; margin-top:10px; line-height:1.5; text-wrap:pretty">Um lugar só para o dinheiro de vocês dois.</div>
+      </div>
+
+      <div style="background:#fff; border-radius:20px; padding:20px 18px; color:#14325a; box-shadow:0 10px 34px rgba(5,18,40,0.35)">
+        <div style="font-size:17px; font-weight:800; letter-spacing:-0.01em">Entrar</div>
+
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:14px">
+          <label style="height:52px; padding:0 14px; display:flex; align-items:center; gap:10px; background:#f6f7f9; border:1px solid rgba(0,0,0,0.10); border-radius:13px">
+            <i class="ti ti-mail" style="font-size:18px; color:#8b94a3"></i>
+            <span style="flex:1; min-width:0">
+              <span style="display:block; font-size:9.5px; font-weight:700; letter-spacing:0.06em; color:#8b94a3">E-MAIL</span>
+              <input value="{{ authEmail }}" onChange="{{ setAuthEmail }}" inputmode="email" placeholder="voce@email.com" style="width:100%; border:none; outline:none; background:none; font-family:inherit; font-size:14px; font-weight:700; color:#14325a; padding:0">
+            </span>
+          </label>
+
+          <label style="height:52px; padding:0 8px 0 14px; display:flex; align-items:center; gap:10px; background:#f6f7f9; border:1px solid rgba(0,0,0,0.10); border-radius:13px">
+            <i class="ti ti-lock" style="font-size:18px; color:#8b94a3"></i>
+            <span style="flex:1; min-width:0">
+              <span style="display:block; font-size:9.5px; font-weight:700; letter-spacing:0.06em; color:#8b94a3">SENHA</span>
+              <input value="{{ authSenha }}" onChange="{{ setAuthSenha }}" type="{{ tipoSenha }}" placeholder="••••••••" style="width:100%; border:none; outline:none; background:none; font-family:inherit; font-size:14px; font-weight:700; color:#14325a; padding:0">
+            </span>
+            <button onClick="{{ toggleSenha }}" style="width:36px; height:36px; flex:none; border:none; background:none; color:#8b94a3; cursor:pointer"><i class="ti {{ iconeSenha }}" style="font-size:18px"></i></button>
+          </label>
+        </div>
+
+        <sc-if value="{{ authErro }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; align-items:center; gap:8px; margin-top:10px; font-size:12px; font-weight:700; color:{{ corAuthErro }}"><i class="ti {{ iconeAuthErro }}" style="font-size:16px"></i><span>{{ authErro }}</span></div>
+        </sc-if>
+
+        <button onClick="{{ entrar }}" style="width:100%; height:52px; margin-top:14px; border:none; border-radius:13px; background:#14325a; color:#fff; font-family:inherit; font-size:15px; font-weight:800; cursor:pointer">Entrar</button>
+
+        <button onClick="{{ irEsqueci }}" style="width:100%; height:38px; margin-top:4px; border:none; background:none; font-family:inherit; font-size:12.5px; font-weight:700; color:#5b6675; cursor:pointer">Esqueci minha senha</button>
+
+        <div style="display:flex; align-items:center; gap:10px; margin:8px 0 12px"><span style="flex:1; height:1px; background:rgba(0,0,0,0.09)"></span><span style="font-size:11px; font-weight:700; color:#8b94a3">ou</span><span style="flex:1; height:1px; background:rgba(0,0,0,0.09)"></span></div>
+
+        <div style="display:flex; flex-direction:column; gap:8px">
+          <button onClick="{{ entrarSocial }}" style="width:100%; height:48px; border:1px solid rgba(0,0,0,0.12); border-radius:13px; background:#fff; display:flex; align-items:center; justify-content:center; gap:9px; font-family:inherit; font-size:13.5px; font-weight:700; color:#14325a; cursor:pointer"><i class="ti ti-brand-google" style="font-size:18px"></i><span>Continuar com Google</span></button>
+          <button onClick="{{ entrarSocial }}" style="width:100%; height:48px; border:1px solid rgba(0,0,0,0.12); border-radius:13px; background:#fff; display:flex; align-items:center; justify-content:center; gap:9px; font-family:inherit; font-size:13.5px; font-weight:700; color:#14325a; cursor:pointer"><i class="ti ti-brand-apple" style="font-size:18px"></i><span>Continuar com Apple</span></button>
+        </div>
+      </div>
+
+      <button onClick="{{ irCadastro }}" style="width:100%; height:50px; margin-top:16px; border:1px solid rgba(255,255,255,0.28); border-radius:13px; background:none; font-family:inherit; font-size:13.5px; font-weight:700; color:#fff; cursor:pointer">Criar conta da família</button>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ telaCadastro }}" hint-placeholder-val="{{ false }}">
+  <div style="min-height:100vh; display:flex; justify-content:center; background:#f6f7f9">
+    <div style="width:100%; max-width:430px; min-height:100vh; background:#f6f7f9; color:#14325a; display:flex; flex-direction:column; padding:0 18px 26px">
+
+      <div style="height:58px; display:flex; align-items:center; gap:10px">
+        <button onClick="{{ irLogin }}" style="width:36px; height:36px; border:1px solid rgba(0,0,0,0.10); background:#fff; border-radius:9999px; color:#14325a; cursor:pointer; display:flex; align-items:center; justify-content:center"><i class="ti ti-arrow-left" style="font-size:18px"></i></button>
+        <div style="font-size:12px; font-weight:700; color:#8b94a3">Passo {{ passoStr }}</div>
+      </div>
+
+      <div style="display:flex; gap:5px; margin-bottom:18px">
+        <sc-for list="{{ passos }}" as="p" hint-placeholder-count="2">
+          <span style="flex:1; height:4px; border-radius:9999px; background:{{ p.bg }}"></span>
+        </sc-for>
+      </div>
+
+      <div style="font-size:25px; font-weight:800; letter-spacing:-0.02em; line-height:1.2">{{ cadTitulo }}</div>
+      <div style="font-size:13.5px; color:#5b6675; margin-top:8px; line-height:1.5; text-wrap:pretty">{{ cadSub }}</div>
+
+      <sc-if value="{{ passo1 }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px">
+          <label style="height:56px; padding:0 14px; display:flex; align-items:center; gap:10px; background:#fff; border:1px solid rgba(0,0,0,0.10); border-radius:14px">
+            <i class="ti ti-user" style="font-size:18px; color:#8b94a3"></i>
+            <span style="flex:1; min-width:0">
+              <span style="display:block; font-size:9.5px; font-weight:700; letter-spacing:0.06em; color:#8b94a3">SEU NOME</span>
+              <input value="{{ authNome }}" onChange="{{ setAuthNome }}" placeholder="Ana" style="width:100%; border:none; outline:none; background:none; font-family:inherit; font-size:14.5px; font-weight:700; color:#14325a; padding:0">
+            </span>
+          </label>
+          <label style="height:56px; padding:0 14px; display:flex; align-items:center; gap:10px; background:#fff; border:1px solid rgba(0,0,0,0.10); border-radius:14px">
+            <i class="ti ti-mail" style="font-size:18px; color:#8b94a3"></i>
+            <span style="flex:1; min-width:0">
+              <span style="display:block; font-size:9.5px; font-weight:700; letter-spacing:0.06em; color:#8b94a3">E-MAIL</span>
+              <input value="{{ authEmail }}" onChange="{{ setAuthEmail }}" inputmode="email" placeholder="voce@email.com" style="width:100%; border:none; outline:none; background:none; font-family:inherit; font-size:14.5px; font-weight:700; color:#14325a; padding:0">
+            </span>
+          </label>
+          <label style="height:56px; padding:0 8px 0 14px; display:flex; align-items:center; gap:10px; background:#fff; border:1px solid rgba(0,0,0,0.10); border-radius:14px">
+            <i class="ti ti-lock" style="font-size:18px; color:#8b94a3"></i>
+            <span style="flex:1; min-width:0">
+              <span style="display:block; font-size:9.5px; font-weight:700; letter-spacing:0.06em; color:#8b94a3">SENHA</span>
+              <input value="{{ authSenha }}" onChange="{{ setAuthSenha }}" type="{{ tipoSenha }}" placeholder="mínimo 8 caracteres" style="width:100%; border:none; outline:none; background:none; font-family:inherit; font-size:14.5px; font-weight:700; color:#14325a; padding:0">
+            </span>
+            <button onClick="{{ toggleSenha }}" style="width:36px; height:36px; flex:none; border:none; background:none; color:#8b94a3; cursor:pointer"><i class="ti {{ iconeSenha }}" style="font-size:18px"></i></button>
+          </label>
+          <div style="display:flex; align-items:center; gap:6px">
+            <sc-for list="{{ forcaBarras }}" as="b" hint-placeholder-count="3">
+              <span style="flex:1; height:4px; border-radius:9999px; background:{{ b.bg }}"></span>
+            </sc-for>
+            <span style="font-size:11px; font-weight:700; color:#8b94a3; width:56px; text-align:right">{{ forcaLabel }}</span>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ passo2 }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:20px">
+          <label style="height:56px; padding:0 14px; display:flex; align-items:center; gap:10px; background:#fff; border:1px solid rgba(0,0,0,0.10); border-radius:14px">
+            <i class="ti ti-home" style="font-size:18px; color:#8b94a3"></i>
+            <span style="flex:1; min-width:0">
+              <span style="display:block; font-size:9.5px; font-weight:700; letter-spacing:0.06em; color:#8b94a3">NOME DO ORÇAMENTO</span>
+              <input value="{{ authCasa }}" onChange="{{ setAuthCasa }}" placeholder="Orçamento da casa" style="width:100%; border:none; outline:none; background:none; font-family:inherit; font-size:14.5px; font-weight:700; color:#14325a; padding:0">
+            </span>
+          </label>
+          <label style="height:56px; padding:0 14px; display:flex; align-items:center; gap:10px; background:#fff; border:1px solid rgba(0,0,0,0.10); border-radius:14px">
+            <i class="ti ti-user-plus" style="font-size:18px; color:#8b94a3"></i>
+            <span style="flex:1; min-width:0">
+              <span style="display:block; font-size:9.5px; font-weight:700; letter-spacing:0.06em; color:#8b94a3">CONVIDAR PARCEIRO (OPCIONAL)</span>
+              <input value="{{ authConvite }}" onChange="{{ setAuthConvite }}" inputmode="email" placeholder="bruno@email.com" style="width:100%; border:none; outline:none; background:none; font-family:inherit; font-size:14.5px; font-weight:700; color:#14325a; padding:0">
+            </span>
+          </label>
+          <div style="background:#fff; border:1px solid rgba(0,0,0,0.10); border-radius:14px; padding:14px">
+            <div style="font-size:12px; font-weight:800; letter-spacing:0.04em; color:#8b94a3">DIA DE INÍCIO DO MÊS</div>
+            <div style="display:flex; gap:8px; margin-top:10px">
+              <sc-for list="{{ opcoesCiclo }}" as="c" hint-placeholder-count="3">
+                <button onClick="{{ c.usar }}" style="flex:1; height:44px; border:1px solid {{ c.borda }}; background:{{ c.bg }}; color:{{ c.fg }}; border-radius:11px; font-family:inherit; font-size:13px; font-weight:700; cursor:pointer">{{ c.label }}</button>
+              </sc-for>
+            </div>
+            <div style="font-size:11.5px; color:#8b94a3; margin-top:9px; line-height:1.45">Dá para mudar depois em Ajustes.</div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ authErro }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex; align-items:center; gap:8px; margin-top:12px; font-size:12px; font-weight:700; color:{{ corAuthErro }}"><i class="ti {{ iconeAuthErro }}" style="font-size:16px"></i><span>{{ authErro }}</span></div>
+      </sc-if>
+
+      <div style="flex:1"></div>
+
+      <button onClick="{{ avancarCadastro }}" style="width:100%; height:54px; margin-top:20px; border:none; border-radius:14px; background:#14325a; color:#fff; font-family:inherit; font-size:15px; font-weight:800; cursor:pointer; box-shadow:0 4px 14px rgba(20,50,90,0.28)">{{ cadBotao }}</button>
+      <div style="font-size:11.5px; color:#8b94a3; text-align:center; margin-top:12px; line-height:1.5">Ao criar a conta você aceita os termos de uso e a política de privacidade.</div>
+    </div>
+  </div>
+</sc-if>
+
+<sc-if value="{{ logado }}" hint-placeholder-val="{{ true }}">
+<div style="min-height:100vh; display:flex; justify-content:center; background:#f6f7f9">
+  <div style="width:100%; max-width:430px; height:100vh; background:#f6f7f9; overflow:hidden; position:relative; display:flex; flex-direction:column; color:#14325a">
+
+    
+
+    <div style="flex:1; overflow-y:auto; overflow-x:hidden">
+
+      <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:6px 18px 18px">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px">
+            <div style="display:flex; align-items:center; gap:10px">
+              <button onClick="{{ prevMes }}" style="width:30px; height:30px; border:1px solid rgba(0,0,0,0.10); background:#fff; border-radius:9999px; font-size:15px; color:#14325a; cursor:pointer; line-height:1">‹</button>
+              <div style="font-size:19px; font-weight:800; letter-spacing:-0.01em">{{ mesLongo }}</div>
+              <button onClick="{{ nextMes }}" style="width:30px; height:30px; border:1px solid rgba(0,0,0,0.10); background:#fff; border-radius:9999px; font-size:15px; color:#14325a; cursor:pointer; line-height:1">›</button>
+            </div>
+            <div style="height:32px; padding:0 12px; border-radius:9999px; background:#fff; border:1px solid rgba(0,0,0,0.10); display:flex; align-items:center; font-size:11px; font-weight:700; color:#5b6675">A + B</div>
+          </div>
+
+          <div style="background:#14325a; border-radius:16px; padding:18px 18px 16px; color:#fff; box-shadow:0 3px 12px rgba(20,50,90,0.28)">
+            <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; opacity:0.62">Liberado até o fim do mês</div>
+            <div style="font-size:38px; font-weight:800; letter-spacing:-0.03em; margin:4px 0 12px">{{ disponivel }}</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px">
+              <div style="background:rgba(255,255,255,0.10); border-radius:10px; padding:9px 11px">
+                <div style="font-size:10px; font-weight:700; opacity:0.65; letter-spacing:0.04em">RECEBIDO</div>
+                <div style="font-size:14px; font-weight:700; margin-top:2px">{{ recebido }}</div>
+                <div style="font-size:10px; opacity:0.6; margin-top:1px">de {{ previsto }} previsto</div>
+              </div>
+              <div style="background:rgba(255,255,255,0.10); border-radius:10px; padding:9px 11px">
+                <div style="font-size:10px; font-weight:700; opacity:0.65; letter-spacing:0.04em">{{ alocLabel }}</div>
+                <div style="font-size:14px; font-weight:700; margin-top:2px">{{ naoAlocado }}</div>
+                <div style="font-size:10px; opacity:0.6; margin-top:1px">renda variável</div>
+              </div>
+            </div>
+          </div>
+
+          <sc-if value="{{ temEstouro }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:12px; background:#fff; border:1px solid rgba(198,40,40,0.28); border-radius:14px; padding:14px; display:flex; align-items:center; gap:12px; box-shadow:0 2px 8px rgba(0,0,0,0.05)">
+              <div style="flex:1">
+                <div style="font-size:13px; font-weight:700; color:#c62828">{{ estouroTitulo }}</div>
+                <div style="font-size:11.5px; color:#5b6675; margin-top:2px">Cobrir com o saldo de outra categoria</div>
+              </div>
+              <button onClick="{{ abrirRemanejar }}" style="flex:none; height:34px; padding:0 14px; border:none; border-radius:9999px; background:#14325a; color:#fff; font-family:inherit; font-size:12px; font-weight:700; cursor:pointer">Remanejar</button>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ temDeficit }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:12px; background:#fff; border:1px solid rgba(239,108,0,0.32); border-radius:14px; padding:14px; display:flex; align-items:center; gap:11px">
+              <span style="width:32px; height:32px; flex:none; border-radius:9px; background:#ef6c00; color:#fff; display:flex; align-items:center; justify-content:center"><i class="ti ti-lock" style="font-size:18px"></i></span>
+              <div style="flex:1">
+                <div style="font-size:13px; font-weight:700; color:#ef6c00">{{ deficitStr }} do plano está bloqueado</div>
+                <div style="font-size:11.5px; color:#5b6675; margin-top:2px">Conta corrente + limite do cartão cobrem {{ lastroStr }}. A poupança está reservada para as metas.</div>
+              </div>
+            </div>
+          </sc-if>
+
+          <div style="display:flex; align-items:baseline; justify-content:space-between; margin:20px 2px 10px">
+            <div style="font-size:13px; font-weight:800; letter-spacing:0.02em">Categorias</div>
+            <div style="font-size:11px; font-weight:600; color:#8b94a3">disponível · teto mensal</div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:8px">
+            <sc-for list="{{ cats }}" as="c" hint-placeholder-count="6">
+              <button onClick="{{ c.lancar }}" style="width:100%; text-align:left; background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:14px; padding:13px 14px; font-family:inherit; color:#14325a; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.04)" style-hover="box-shadow:0 3px 12px rgba(0,0,0,0.10)">
+                <div style="display:flex; align-items:center; gap:11px">
+                  <div style="width:32px; height:32px; flex:none; border-radius:9px; display:flex; align-items:center; justify-content:center; color:#fff; background:{{ c.cor }}"><i class="ti {{ c.icone }}" style="font-size:18px"></i></div>
+                  <div style="flex:1; min-width:0">
+                    <div style="font-size:14px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ c.nome }}</div>
+                    <div style="font-size:11px; color:#8b94a3; margin-top:1px">{{ c.gastoLabel }}</div>
+                    <sc-if value="{{ c.temBloqueio }}" hint-placeholder-val="{{ false }}">
+                      <div style="font-size:10.5px; font-weight:700; color:#ef6c00; margin-top:2px">{{ c.bloqLabel }}</div>
+                    </sc-if>
+                  </div>
+                  <div style="text-align:right; flex:none">
+                    <div style="font-size:15px; font-weight:800; letter-spacing:-0.01em; color:{{ c.corValor }}">{{ c.disponivelStr }}</div>
+                    <div style="font-size:10px; font-weight:600; color:#8b94a3">{{ c.pctLabel }}</div>
+                  </div>
+                </div>
+                <sc-if value="{{ mostrarBarras }}" hint-placeholder-val="{{ true }}">
+                  <div style="height:5px; border-radius:9999px; background:#eceef1; margin-top:10px; overflow:hidden; display:flex">
+                    <div style="height:100%; flex:none; width:{{ c.pctStr }}; background:{{ c.corBarra }}"></div>
+                    <div style="height:100%; flex:none; width:{{ c.pctBloqStr }}; background:repeating-linear-gradient(135deg,#d7dce3 0 3px,#eceef1 3px 6px)"></div>
+                  </div>
+                </sc-if>
+              </button>
+            </sc-for>
+          </div>
+          <div style="height:12px"></div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isContas }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:6px 18px 24px">
+          <div style="font-size:19px; font-weight:800; letter-spacing:-0.01em; margin-bottom:4px">Contas</div>
+          <div style="font-size:12px; color:#8b94a3; margin-bottom:16px">Saldo real, não o previsto</div>
+
+          <div style="background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:16px; padding:16px; margin-bottom:14px">
+            <div style="font-size:11px; font-weight:700; letter-spacing:0.06em; color:#8b94a3">EM CONTA HOJE</div>
+            <div style="font-size:30px; font-weight:800; letter-spacing:-0.02em; margin-top:2px">{{ saldoTotal }}</div>
+            <div style="font-size:11.5px; color:#5b6675; margin-top:6px">{{ faturaAviso }}</div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:10px">
+            <sc-for list="{{ contas }}" as="a" hint-placeholder-count="3">
+              <div style="background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:14px; padding:14px">
+                <button onClick="{{ a.editar }}" style="width:100%; display:flex; align-items:center; gap:11px; background:none; border:none; padding:0; font-family:inherit; color:#14325a; text-align:left; cursor:pointer">
+                  <span style="width:34px; height:34px; flex:none; border-radius:10px; background:{{ a.cor }}; color:#fff; display:flex; align-items:center; justify-content:center"><i class="ti {{ a.icone }}" style="font-size:19px"></i></span>
+                  <span style="flex:1; min-width:0">
+                    <span style="display:block; font-size:14px; font-weight:700">{{ a.nome }}</span>
+                    <span style="display:block; font-size:11px; color:#8b94a3; margin-top:1px">{{ a.sub }}</span>
+                  </span>
+                  <span style="font-size:16px; font-weight:800; letter-spacing:-0.01em; color:{{ a.corValor }}">{{ a.valorStr }}</span>
+                  <i class="ti ti-chevron-right" style="font-size:16px; color:#c4cad3"></i>
+                </button>
+                <sc-if value="{{ a.ehCartao }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex; gap:8px; margin-top:12px">
+                    <button onClick="{{ a.verFatura }}" style="flex:1; height:36px; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-family:inherit; font-size:12px; font-weight:700; color:#14325a; cursor:pointer">Ver fatura</button>
+                    <button onClick="{{ a.pagarFatura }}" style="flex:1; height:36px; border:none; background:#14325a; color:#fff; border-radius:9999px; font-family:inherit; font-size:12px; font-weight:700; cursor:pointer">Pagar fatura</button>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-for>
+          </div>
+
+          <button onClick="{{ novaConta }}" style="width:100%; height:48px; margin-top:12px; border:1px dashed rgba(20,50,90,0.35); background:none; border-radius:14px; font-family:inherit; font-size:13.5px; font-weight:700; color:#14325a; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px"><i class="ti ti-plus" style="font-size:17px"></i>Cadastrar conta</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isExtrato }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:6px 18px 24px">
+          <div style="font-size:19px; font-weight:800; letter-spacing:-0.01em; margin-bottom:4px">Extrato</div>
+          <div style="font-size:12px; color:#8b94a3; margin-bottom:12px">{{ extratoResumo }}</div>
+
+          <div style="position:relative; margin-bottom:14px; z-index:30">
+            <button onClick="{{ toggleFiltro }}" style="width:100%; height:48px; padding:0 14px; display:flex; align-items:center; gap:10px; background:#fff; border:1px solid {{ bordaFiltro }}; border-radius:12px; font-family:inherit; color:#14325a; cursor:pointer; text-align:left">
+              <span style="width:28px; height:28px; flex:none; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; background:{{ filtroCor }}"><i class="ti {{ filtroIcone }}" style="font-size:16px"></i></span>
+              <span style="flex:1; min-width:0">
+                <span style="display:block; font-size:10px; font-weight:700; letter-spacing:0.06em; color:#8b94a3">CONTA</span>
+                <span style="display:block; font-size:13.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ filtroLabel }}</span>
+              </span>
+              <i class="ti {{ chevronFiltro }}" style="font-size:18px; color:#8b94a3"></i>
+            </button>
+            <sc-if value="{{ abertoFiltro }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute; top:100%; left:0; right:0; z-index:40; background:#fff; border:1px solid rgba(0,0,0,0.10); border-radius:12px; margin-top:6px; max-height:264px; overflow-y:auto; box-shadow:0 12px 30px rgba(10,25,50,0.22)">
+                <sc-for list="{{ filtrosConta }}" as="fc" hint-placeholder-count="4">
+                  <button onClick="{{ fc.usar }}" style="width:100%; height:52px; padding:0 14px; display:flex; align-items:center; gap:10px; background:{{ fc.linhaBg }}; border:none; border-top:1px solid rgba(0,0,0,0.06); font-family:inherit; color:#14325a; cursor:pointer; text-align:left">
+                    <span style="width:28px; height:28px; flex:none; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; background:{{ fc.cor }}"><i class="ti {{ fc.icone }}" style="font-size:16px"></i></span>
+                    <span style="flex:1; min-width:0">
+                      <span style="display:block; font-size:13.5px; font-weight:700">{{ fc.label }}</span>
+                      <span style="display:block; font-size:11px; color:#8b94a3">{{ fc.sub }}</span>
+                    </span>
+                    <i class="ti {{ fc.check }}" style="font-size:17px; color:#14325a"></i>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+
+          <sc-if value="{{ extratoVazio }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:14px; padding:16px; font-size:12.5px; color:#5b6675">Nenhum lançamento nessa conta em agosto.</div>
+          </sc-if>
+
+          <div style="display:flex; flex-direction:column; gap:16px">
+            <sc-for list="{{ dias }}" as="d" hint-placeholder-count="4">
+              <div>
+                <div style="font-size:11px; font-weight:800; letter-spacing:0.06em; color:#8b94a3; margin-bottom:7px">{{ d.label }}</div>
+                <div style="background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:14px; overflow:hidden">
+                  <sc-for list="{{ d.itens }}" as="e" hint-placeholder-count="2">
+                    <button onClick="{{ e.abrir }}" style="width:100%; display:flex; align-items:center; gap:11px; padding:12px 14px; background:#fff; border:none; border-top:1px solid rgba(0,0,0,0.05); font-family:inherit; color:#14325a; text-align:left; cursor:pointer">
+                      <div style="width:28px; height:28px; flex:none; border-radius:8px; background:{{ e.cor }}; color:#fff; display:flex; align-items:center; justify-content:center"><i class="ti {{ e.icone }}" style="font-size:15px"></i></div>
+                      <div style="flex:1; min-width:0">
+                        <div style="font-size:13.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ e.desc }}</div>
+                        <div style="font-size:11px; color:#8b94a3; margin-top:1px">{{ e.sub }}</div>
+                      </div>
+                      <div style="font-size:14px; font-weight:800; color:{{ e.corValor }}">{{ e.valorStr }}</div>
+                    </button>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isFatura }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:6px 18px 24px">
+          <button onClick="{{ voltarContas }}" style="background:none; border:none; padding:0; font-family:inherit; font-size:12px; font-weight:700; color:#8b94a3; cursor:pointer; margin-bottom:10px">‹ Contas</button>
+          <div style="background:#14325a; color:#fff; border-radius:16px; padding:18px">
+            <div style="font-size:11px; font-weight:700; letter-spacing:0.07em; opacity:0.62">{{ faturaNomeCartao }}</div>
+            <div style="font-size:34px; font-weight:800; letter-spacing:-0.02em; margin:3px 0 6px">{{ faturaTotal }}</div>
+            <div style="font-size:11.5px; opacity:0.72">{{ faturaDatas }}</div>
+          </div>
+          <div style="background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:14px; padding:13px 14px; margin-top:12px; font-size:11.5px; color:#5b6675; line-height:1.5">
+            Cada compra no crédito já saiu da categoria. O saldo da conta só muda quando a fatura é paga.
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px; margin-top:14px">
+            <sc-for list="{{ itensFatura }}" as="e" hint-placeholder-count="5">
+              <div style="background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:12px 13px; display:flex; align-items:center; gap:11px">
+                <div style="width:28px; height:28px; flex:none; border-radius:8px; background:{{ e.cor }}; color:#fff; display:flex; align-items:center; justify-content:center"><i class="ti {{ e.icone }}" style="font-size:15px"></i></div>
+                <div style="flex:1; min-width:0">
+                  <div style="font-size:13.5px; font-weight:700">{{ e.desc }}</div>
+                  <div style="font-size:11px; color:#8b94a3; margin-top:1px">{{ e.sub }}</div>
+                </div>
+                <div style="font-size:14px; font-weight:800">{{ e.valorStr }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <button onClick="{{ pagarFaturaFoco }}" style="width:100%; height:46px; margin-top:16px; border:none; border-radius:9999px; background:#14325a; color:#fff; font-family:inherit; font-size:14px; font-weight:700; cursor:pointer">Pagar fatura pela conta corrente</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isMetas }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:6px 18px 24px">
+          <div style="font-size:19px; font-weight:800; margin-bottom:4px">Metas e reservas</div>
+          <div style="font-size:12px; color:#8b94a3; margin-bottom:16px">Guardar sai do não alocado do mês</div>
+          <div style="display:flex; flex-direction:column; gap:10px">
+            <sc-for list="{{ metas }}" as="m" hint-placeholder-count="3">
+              <div style="background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:14px; padding:15px">
+                <div style="display:flex; align-items:baseline; justify-content:space-between">
+                  <div style="font-size:14px; font-weight:700">{{ m.nome }}</div>
+                  <div style="font-size:11px; font-weight:700; color:#8b94a3">{{ m.pctLabel }}</div>
+                </div>
+                <div style="font-size:20px; font-weight:800; letter-spacing:-0.02em; margin-top:4px">{{ m.atualStr }}</div>
+                <div style="font-size:11px; color:#8b94a3; margin-top:1px">de {{ m.alvoStr }}</div>
+                <div style="height:6px; border-radius:9999px; background:#eceef1; margin-top:10px; overflow:hidden">
+                  <div style="height:100%; background:#14325a; width:{{ m.pctStr }}"></div>
+                </div>
+                <div style="display:flex; gap:8px; margin-top:12px">
+                  <button onClick="{{ m.guardar100 }}" style="flex:1; height:34px; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-family:inherit; font-size:12px; font-weight:700; color:#14325a; cursor:pointer">Guardar 100</button>
+                  <button onClick="{{ m.guardar500 }}" style="flex:1; height:34px; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-family:inherit; font-size:12px; font-weight:700; color:#14325a; cursor:pointer">Guardar 500</button>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isFechamento }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:6px 18px 24px">
+          <div style="font-size:19px; font-weight:800; margin-bottom:4px">Fechamento de {{ mesCurto }}</div>
+          <div style="font-size:12px; color:#8b94a3; margin-bottom:16px">Dia 20 · faltam 11 dias</div>
+          <div style="background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:16px; padding:16px">
+            <div style="display:flex; justify-content:space-between; padding:7px 0; font-size:13px"><span style="color:#5b6675">Recebido</span><span style="font-weight:700">{{ recebido }}</span></div>
+            <div style="display:flex; justify-content:space-between; padding:7px 0; font-size:13px; border-top:1px solid rgba(0,0,0,0.06)"><span style="color:#5b6675">Planejado</span><span style="font-weight:700">{{ planejado }}</span></div>
+            <div style="display:flex; justify-content:space-between; padding:7px 0; font-size:13px; border-top:1px solid rgba(0,0,0,0.06)"><span style="color:#5b6675">Gasto até hoje</span><span style="font-weight:700">{{ gastoTotal }}</span></div>
+            <div style="display:flex; justify-content:space-between; padding:9px 0 3px; font-size:15px; border-top:1px solid rgba(0,0,0,0.10); margin-top:4px"><span style="font-weight:700">Sobra projetada</span><span style="font-weight:800; color:#2e7d32">{{ sobra }}</span></div>
+          </div>
+          <div style="font-size:11px; font-weight:800; letter-spacing:0.06em; color:#8b94a3; margin:18px 2px 8px">ONDE PASSOU DO TETO</div>
+          <sc-if value="{{ semEstouro }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:13px 14px; font-size:12.5px; color:#5b6675">Nenhuma categoria passou do teto neste mês.</div>
+          </sc-if>
+          <div style="display:flex; flex-direction:column; gap:8px">
+            <sc-for list="{{ estouros }}" as="c" hint-placeholder-count="1">
+              <div style="background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between">
+                <div style="font-size:13.5px; font-weight:700">{{ c.nome }}</div>
+                <div style="font-size:13.5px; font-weight:800; color:#c62828">{{ c.excedenteStr }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <button onClick="{{ fecharMes }}" style="width:100%; height:46px; margin-top:18px; border:none; border-radius:9999px; background:#14325a; color:#fff; font-family:inherit; font-size:14px; font-weight:700; cursor:pointer">Fechar mês e guardar a sobra</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isConfig }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:6px 18px 24px">
+          <div style="font-size:19px; font-weight:800; margin-bottom:4px">Orçamento do mês</div>
+          <div style="font-size:12px; color:#8b94a3; margin-bottom:16px">Categorias e tetos, do jeito de casa</div>
+
+          <div style="background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:14px; padding:15px; margin-bottom:16px">
+            <div style="font-size:12px; font-weight:700; color:#5b6675">Renda prevista no mês</div>
+            <div style="display:flex; align-items:center; gap:12px; margin-top:8px">
+              <button onClick="{{ rendaMenos }}" style="width:34px; height:34px; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-size:16px; font-weight:700; color:#14325a; cursor:pointer">−</button>
+              <div style="flex:1; text-align:center; font-size:20px; font-weight:800; letter-spacing:-0.02em">{{ previsto }}</div>
+              <button onClick="{{ rendaMais }}" style="width:34px; height:34px; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-size:16px; font-weight:700; color:#14325a; cursor:pointer">+</button>
+            </div>
+            <div style="font-size:11px; color:#8b94a3; margin-top:8px">Recebido até agora {{ recebido }}. Os tetos se ajustam sozinhos ao que entrou.</div>
+            <div style="display:flex; align-items:center; gap:12px; margin-top:14px; padding-top:14px; border-top:1px solid rgba(0,0,0,0.06)">
+              <div style="flex:1">
+                <div style="font-size:12px; font-weight:700; color:#5b6675">Limite dos cartões</div>
+                <div style="font-size:11px; color:#8b94a3; margin-top:2px">a parte livre entra no lastro</div>
+              </div>
+              <button onClick="{{ limiteMenos }}" style="width:34px; height:34px; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-size:16px; font-weight:700; color:#14325a; cursor:pointer">−</button>
+              <div style="min-width:104px; text-align:right; font-size:16px; font-weight:800">{{ limiteCartaoStr }}</div>
+              <button onClick="{{ limiteMais }}" style="width:34px; height:34px; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-size:16px; font-weight:700; color:#14325a; cursor:pointer">+</button>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:8px">
+            <sc-for list="{{ cats }}" as="c" hint-placeholder-count="6">
+              <div style="background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:11px 12px; display:flex; align-items:center; gap:10px">
+                <button onClick="{{ c.editar }}" style="flex:1; min-width:0; display:flex; align-items:center; gap:10px; background:none; border:none; padding:0; font-family:inherit; color:#14325a; text-align:left; cursor:pointer">
+                  <span style="width:28px; height:28px; flex:none; border-radius:8px; background:{{ c.cor }}; color:#fff; display:flex; align-items:center; justify-content:center"><i class="ti {{ c.icone }}" style="font-size:15px"></i></span>
+                  <span style="flex:1; min-width:0">
+                    <span style="display:block; font-size:13.5px; font-weight:700">{{ c.nome }}</span>
+                    <span style="display:block; font-size:11px; color:#8b94a3">teto {{ c.tetoStr }} · ícone e cor</span>
+                  </span>
+                </button>
+                <button onClick="{{ c.menos }}" style="width:30px; height:30px; flex:none; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-size:15px; font-weight:700; color:#14325a; cursor:pointer">−</button>
+                <button onClick="{{ c.mais }}" style="width:30px; height:30px; flex:none; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-size:15px; font-weight:700; color:#14325a; cursor:pointer">+</button>
+                <button onClick="{{ c.remover }}" style="width:30px; height:30px; flex:none; border:none; background:none; font-size:14px; color:#b9c0ca; cursor:pointer">✕</button>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:flex; gap:8px; margin-top:14px">
+            <input value="{{ novaCat }}" onChange="{{ novaCatChange }}" placeholder="Nova categoria" style="flex:1; height:42px; border:1px solid rgba(0,0,0,0.22); border-radius:10px; padding:0 13px; font-family:inherit; font-size:14px; color:#14325a; outline:none">
+            <button onClick="{{ addCat }}" style="flex:none; height:42px; padding:0 18px; border:none; border-radius:10px; background:#14325a; color:#fff; font-family:inherit; font-size:13px; font-weight:700; cursor:pointer">Criar</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isMais }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:6px 18px 24px">
+          <div style="font-size:19px; font-weight:800; margin-bottom:16px">Mais</div>
+          <div style="background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:14px; overflow:hidden">
+            <sc-for list="{{ maisItens }}" as="m" hint-placeholder-count="4">
+              <button onClick="{{ m.ir }}" style="width:100%; display:flex; align-items:center; justify-content:space-between; padding:15px 16px; background:#fff; border:none; border-top:1px solid rgba(0,0,0,0.05); font-family:inherit; text-align:left; cursor:pointer; color:#14325a">
+                <div>
+                  <div style="font-size:14px; font-weight:700">{{ m.titulo }}</div>
+                  <div style="font-size:11.5px; color:#8b94a3; margin-top:2px">{{ m.sub }}</div>
+                </div>
+                <span style="color:#b9c0ca; font-size:16px">›</span>
+              </button>
+            </sc-for>
+          </div>
+          <div style="font-size:11px; color:#8b94a3; text-align:center; margin-top:20px; line-height:1.6">Ana e Bruno · mês civil, dia 1 ao 30<br>dados de exemplo, tudo editável</div>
+        </div>
+      </sc-if>
+
+    </div>
+
+    <div style="flex:none; height:74px; background:#fff; border-top:1px solid rgba(0,0,0,0.08); display:grid; grid-template-columns:1fr 1fr 76px 1fr 1fr; align-items:center; padding-bottom:10px">
+      <sc-for list="{{ nav }}" as="n" hint-placeholder-count="5">
+        <sc-if value="{{ n.ehCentro }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex; justify-content:center">
+            <button onClick="{{ abrirLancamento }}" style="width:56px; height:56px; border:none; border-radius:9999px; background:#14325a; color:#fff; font-size:26px; font-weight:600; cursor:pointer; box-shadow:0 6px 18px rgba(20,50,90,0.32); line-height:1; margin-top:-14px">+</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ n.ehAba }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ n.ir }}" style="background:none; border:none; padding:0; font-family:inherit; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:5px; color:{{ n.cor }}">
+            <i class="ti {{ n.icone }}" style="font-size:23px"></i>
+            <span style="font-size:10.5px; font-weight:700">{{ n.label }}</span>
+          </button>
+        </sc-if>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{ sheetLanc }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute; inset:0; background:rgba(12,22,40,0.42); display:flex; flex-direction:column; justify-content:flex-end">
+        <div onClick="{{ fecharSheet }}" style="flex:1"></div>
+        <div style="background:#f6f7f9; border-radius:22px 22px 0 0; padding:16px 18px 18px; animation:upIn 0.22s ease-out; max-height:90%; overflow-y:auto; flex:none">
+          <div onClick="{{ fecharDd }}" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px">
+            <div style="font-size:14px; font-weight:800">Novo lançamento</div>
+            <button onClick="{{ fecharSheet }}" style="background:none; border:none; font-size:15px; color:#8b94a3; cursor:pointer; padding:0">✕</button>
+          </div>
+
+          <div style="display:flex; gap:8px; margin-bottom:12px">
+            <button onClick="{{ recibo }}" style="flex:1; height:34px; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-family:inherit; font-size:11.5px; font-weight:700; color:#14325a; cursor:pointer">Foto do recibo</button>
+            <button onClick="{{ importar }}" style="flex:1; height:34px; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-family:inherit; font-size:11.5px; font-weight:700; color:#14325a; cursor:pointer">Importar extrato</button>
+          </div>
+
+          <div onClick="{{ fecharDd }}" style="background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:16px; padding:14px 16px">
+            <div style="font-size:10.5px; font-weight:700; letter-spacing:0.06em; color:#8b94a3">VALOR</div>
+            <div style="font-size:36px; font-weight:800; letter-spacing:-0.03em; color:{{ corValorDigitado }}">{{ valorDigitado }}</div>
+            <div style="font-size:11.5px; color:#8b94a3; margin-top:2px">{{ resumoLanc }}</div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:8px; margin:12px 0">
+
+            <div style="position:relative">
+              <button onClick="{{ toggleAtalhos }}" style="width:100%; height:48px; padding:0 14px; display:flex; align-items:center; gap:10px; background:#fff; border:1px solid {{ bordaAtalhos }}; border-radius:12px; font-family:inherit; color:#14325a; cursor:pointer; text-align:left">
+                <i class="ti ti-bolt" style="font-size:18px; color:#8b94a3"></i>
+                <span style="flex:1; min-width:0">
+                  <span style="display:block; font-size:10px; font-weight:700; letter-spacing:0.06em; color:#8b94a3">LANÇAMENTO RÁPIDO</span>
+                  <span style="display:block; font-size:13.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ atalhoLabel }}</span>
+                </span>
+                <i class="ti {{ chevronAtalhos }}" style="font-size:18px; color:#8b94a3"></i>
+              </button>
+              <sc-if value="{{ abertoAtalhos }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute; top:100%; left:0; right:0; z-index:40; background:#fff; border:1px solid rgba(0,0,0,0.10); border-radius:12px; margin-top:6px; max-height:224px; overflow-y:auto; box-shadow:0 12px 30px rgba(10,25,50,0.22)">
+                  <sc-for list="{{ atalhos }}" as="a" hint-placeholder-count="5">
+                    <button onClick="{{ a.usar }}" style="width:100%; height:46px; padding:0 14px; display:flex; align-items:center; gap:10px; background:#fff; border:none; border-top:1px solid rgba(0,0,0,0.06); font-family:inherit; font-size:13.5px; font-weight:700; color:#14325a; cursor:pointer; text-align:left">
+                      <i class="ti {{ a.icone }}" style="font-size:17px; color:#8b94a3"></i>
+                      <span style="flex:1">{{ a.nome }}</span>
+                      <span style="font-size:12.5px; font-weight:700; color:#8b94a3">{{ a.valorStr }}</span>
+                    </button>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+
+            <div style="position:relative">
+              <button onClick="{{ toggleCats }}" style="width:100%; height:48px; padding:0 14px; display:flex; align-items:center; gap:10px; background:#fff; border:1px solid {{ bordaCats }}; border-radius:12px; font-family:inherit; color:#14325a; cursor:pointer; text-align:left">
+                <span style="width:28px; height:28px; flex:none; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; background:{{ catSelCor }}"><i class="ti {{ catSelIcone }}" style="font-size:16px"></i></span>
+                <span style="flex:1; min-width:0">
+                  <span style="display:block; font-size:10px; font-weight:700; letter-spacing:0.06em; color:#8b94a3">CATEGORIA</span>
+                  <span style="display:block; font-size:13.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:{{ catSelTextoCor }}">{{ catSelLabel }}</span>
+                </span>
+                <i class="ti {{ chevronCats }}" style="font-size:18px; color:#8b94a3"></i>
+              </button>
+              <sc-if value="{{ abertoCats }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute; top:100%; left:0; right:0; z-index:40; background:#fff; border:1px solid rgba(0,0,0,0.10); border-radius:12px; margin-top:6px; max-height:248px; overflow-y:auto; box-shadow:0 12px 30px rgba(10,25,50,0.22)">
+                  <sc-for list="{{ cats }}" as="c" hint-placeholder-count="6">
+                    <button onClick="{{ c.selecionar }}" style="width:100%; height:52px; padding:0 14px; display:flex; align-items:center; gap:10px; background:{{ c.corLinhaBg }}; border:none; border-top:1px solid rgba(0,0,0,0.06); font-family:inherit; color:#14325a; cursor:pointer; text-align:left">
+                      <span style="width:28px; height:28px; flex:none; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; background:{{ c.cor }}"><i class="ti {{ c.icone }}" style="font-size:16px"></i></span>
+                      <span style="flex:1; min-width:0">
+                        <span style="display:block; font-size:13.5px; font-weight:700">{{ c.nome }}</span>
+                        <span style="display:block; font-size:11px; color:#8b94a3">disponível {{ c.disponivelStr }}</span>
+                      </span>
+                      <i class="ti {{ c.check }}" style="font-size:17px; color:#14325a"></i>
+                    </button>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+
+            <div style="position:relative">
+              <button onClick="{{ toggleContas }}" style="width:100%; height:48px; padding:0 14px; display:flex; align-items:center; gap:10px; background:#fff; border:1px solid {{ bordaContas }}; border-radius:12px; font-family:inherit; color:#14325a; cursor:pointer; text-align:left">
+                <span style="width:28px; height:28px; flex:none; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; background:{{ contaSelCor }}"><i class="ti {{ contaSelIcone }}" style="font-size:16px"></i></span>
+                <span style="flex:1; min-width:0">
+                  <span style="display:block; font-size:10px; font-weight:700; letter-spacing:0.06em; color:#8b94a3">CONTA</span>
+                  <span style="display:block; font-size:13.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis">{{ contaSelLabel }}</span>
+                </span>
+                <i class="ti {{ chevronContas }}" style="font-size:18px; color:#8b94a3"></i>
+              </button>
+              <sc-if value="{{ abertoContas }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute; top:100%; left:0; right:0; z-index:40; background:#fff; border:1px solid rgba(0,0,0,0.10); border-radius:12px; margin-top:6px; overflow:hidden; box-shadow:0 12px 30px rgba(10,25,50,0.22)">
+                  <sc-for list="{{ contasSel }}" as="a" hint-placeholder-count="3">
+                    <button onClick="{{ a.selecionar }}" style="width:100%; height:52px; padding:0 14px; display:flex; align-items:center; gap:10px; background:{{ a.corLinhaBg }}; border:none; border-top:1px solid rgba(0,0,0,0.06); font-family:inherit; color:#14325a; cursor:pointer; text-align:left">
+                      <span style="width:28px; height:28px; flex:none; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; background:{{ a.cor }}"><i class="ti {{ a.icone }}" style="font-size:16px"></i></span>
+                      <span style="flex:1; min-width:0">
+                        <span style="display:block; font-size:13.5px; font-weight:700">{{ a.curto }}</span>
+                        <span style="display:block; font-size:11px; color:#8b94a3">{{ a.sub }}</span>
+                      </span>
+                      <i class="ti {{ a.check }}" style="font-size:17px; color:#14325a"></i>
+                    </button>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+
+            <div style="display:flex; gap:8px; margin-top:8px">
+              <label style="flex:1; min-width:0; height:48px; padding:0 12px; display:flex; align-items:center; gap:9px; background:#fff; border:1px solid rgba(0,0,0,0.12); border-radius:12px">
+                <i class="ti ti-calendar-event" style="font-size:17px; color:#8b94a3"></i>
+                <span style="flex:1; min-width:0">
+                  <span style="display:block; font-size:9.5px; font-weight:700; letter-spacing:0.06em; color:#8b94a3">DATA</span>
+                  <input type="date" value="{{ dataISO }}" onChange="{{ dataChange }}" min="2026-06-01" max="2026-08-20" style="width:100%; border:none; outline:none; background:none; font-family:inherit; font-size:13px; font-weight:700; color:#14325a; padding:0">
+                </span>
+              </label>
+
+              <div style="flex:1; min-width:0; height:48px; padding:0 6px 0 12px; display:flex; align-items:center; gap:8px; background:#fff; border:1px solid rgba(0,0,0,0.12); border-radius:12px">
+                <span style="flex:1; min-width:0">
+                  <span style="display:block; font-size:9.5px; font-weight:700; letter-spacing:0.06em; color:#8b94a3">PARCELAS</span>
+                  <span style="display:flex; align-items:baseline; gap:2px">
+                    <input value="{{ parcTexto }}" onChange="{{ parcChange }}" inputmode="numeric" placeholder="1" style="width:26px; border:none; outline:none; background:none; font-family:inherit; font-size:13px; font-weight:700; color:#14325a; padding:0; text-align:right">
+                    <span style="font-size:13px; font-weight:700; color:#14325a">×</span>
+                  </span>
+                </span>
+                <button onClick="{{ parcMenos }}" style="width:30px; height:30px; flex:none; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-family:inherit; font-size:15px; font-weight:700; color:#14325a; cursor:pointer">−</button>
+                <button onClick="{{ parcMais }}" style="width:30px; height:30px; flex:none; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-family:inherit; font-size:15px; font-weight:700; color:#14325a; cursor:pointer">+</button>
+              </div>
+            </div>
+
+            <div style="font-size:11.5px; color:{{ corDataHint }}; margin-top:8px; line-height:1.45">{{ dataHint }}</div>
+
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px">
+            <sc-for list="{{ teclas }}" as="t" hint-placeholder-count="12">
+              <button onClick="{{ t.press }}" style="height:46px; border:none; border-radius:12px; background:#fff; font-family:inherit; font-size:21px; font-weight:700; color:#14325a; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.06)">{{ t.label }}</button>
+            </sc-for>
+          </div>
+
+          <button onClick="{{ salvar }}" style="width:100%; height:50px; margin-top:12px; border:none; border-radius:9999px; background:{{ corSalvar }}; color:#fff; font-family:inherit; font-size:15px; font-weight:700; cursor:pointer">{{ labelSalvar }}</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ sheetRemanejar }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute; inset:0; background:rgba(12,22,40,0.42); display:flex; flex-direction:column; justify-content:flex-end">
+        <div onClick="{{ fecharSheet }}" style="flex:1"></div>
+        <div style="background:#f6f7f9; border-radius:22px 22px 0 0; padding:18px; animation:upIn 0.22s ease-out">
+          <div style="font-size:15px; font-weight:800">{{ estouroTitulo }}</div>
+          <div style="font-size:12px; color:#5b6675; margin:4px 0 14px">Escolha de onde tirar. O teto muda só neste mês.</div>
+          <sc-if value="{{ semFonte }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:13px 14px; font-size:12.5px; color:#5b6675">Nenhuma categoria tem sobra este mês. Dá para deixar negativo e ajustar no fechamento.</div>
+          </sc-if>
+
+          <div style="background:#14325a; color:#fff; border-radius:14px; padding:13px 15px; display:flex; align-items:center; gap:12px; margin-bottom:10px">
+            <div style="flex:1">
+              <div style="font-size:10px; font-weight:700; letter-spacing:0.06em; opacity:0.62">SELECIONADO</div>
+              <div style="font-size:20px; font-weight:800; letter-spacing:-0.02em; margin-top:1px">{{ remSomaStr }}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:10px; font-weight:700; letter-spacing:0.06em; opacity:0.62">{{ remFaltaLabel }}</div>
+              <div style="font-size:15px; font-weight:800; margin-top:2px; color:{{ remFaltaCor }}">{{ remFaltaStr }}</div>
+            </div>
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:8px">
+            <sc-for list="{{ fontes }}" as="f" hint-placeholder-count="4">
+              <div style="background:#fff; border:1px solid {{ f.borda }}; border-radius:12px; padding:12px 14px">
+                <div style="display:flex; align-items:center; gap:10px">
+                  <span style="width:28px; height:28px; flex:none; border-radius:8px; display:flex; align-items:center; justify-content:center; color:#fff; background:{{ f.cor }}"><i class="ti {{ f.icone }}" style="font-size:16px"></i></span>
+                  <span style="flex:1; min-width:0">
+                    <span style="display:block; font-size:13.5px; font-weight:700">{{ f.nome }}</span>
+                    <span style="display:block; font-size:11px; color:#8b94a3; margin-top:1px">sobra {{ f.restanteStr }}</span>
+                  </span>
+                  <span style="flex:none; font-size:15px; font-weight:800; color:{{ f.corValor }}">{{ f.valorStr }}</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:11px">
+                  <button onClick="{{ f.menos }}" style="width:36px; height:36px; flex:none; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-size:17px; font-weight:700; color:#14325a; cursor:pointer">−</button>
+                  <input type="range" min="0" max="{{ f.max }}" step="10" value="{{ f.valor }}" onChange="{{ f.mudar }}" style="flex:1; accent-color:#14325a; height:36px">
+                  <button onClick="{{ f.mais }}" style="width:36px; height:36px; flex:none; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-size:17px; font-weight:700; color:#14325a; cursor:pointer">+</button>
+                  <sc-if value="{{ f.podeAtalho }}" hint-placeholder-val="{{ true }}">
+                    <button onClick="{{ f.tudo }}" style="flex:none; height:36px; padding:0 12px; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-family:inherit; font-size:11.5px; font-weight:700; color:#14325a; cursor:pointer">{{ f.tudoLabel }}</button>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <button onClick="{{ confirmarRemanejo }}" style="width:100%; height:48px; margin-top:14px; border:none; border-radius:9999px; background:{{ remCorBotao }}; color:#fff; font-family:inherit; font-size:14px; font-weight:700; cursor:pointer">{{ remLabelBotao }}</button>
+          <button onClick="{{ fecharSheet }}" style="width:100%; height:44px; margin-top:8px; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-family:inherit; font-size:13px; font-weight:700; color:#14325a; cursor:pointer">Deixar negativo</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ detalhe }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute; inset:0; background:rgba(12,22,40,0.42); display:flex; align-items:center; justify-content:center; padding:24px">
+        <div style="background:#fff; border-radius:18px; padding:20px; width:100%; box-shadow:0 4px 18px rgba(0,0,0,0.18)">
+          <div style="font-size:11px; font-weight:800; letter-spacing:0.06em; color:#8b94a3">LANÇAMENTO</div>
+          <div style="font-size:17px; font-weight:800; margin-top:4px">{{ detalhe.desc }}</div>
+          <div style="font-size:30px; font-weight:800; letter-spacing:-0.02em; margin:8px 0 12px; color:{{ detalhe.corValor }}">{{ detalhe.valorStr }}</div>
+          <div style="display:flex; justify-content:space-between; font-size:12.5px; padding:6px 0; border-top:1px solid rgba(0,0,0,0.06)"><span style="color:#8b94a3">Categoria</span><span style="font-weight:700">{{ detalhe.catNome }}</span></div>
+          <div style="display:flex; justify-content:space-between; font-size:12.5px; padding:6px 0; border-top:1px solid rgba(0,0,0,0.06)"><span style="color:#8b94a3">Conta</span><span style="font-weight:700">{{ detalhe.contaNome }}</span></div>
+          <div style="display:flex; justify-content:space-between; font-size:12.5px; padding:6px 0; border-top:1px solid rgba(0,0,0,0.06)"><span style="color:#8b94a3">Data</span><span style="font-weight:700">{{ detalhe.dataStr }}</span></div>
+          <div style="display:flex; justify-content:space-between; font-size:12.5px; padding:6px 0; border-top:1px solid rgba(0,0,0,0.06)"><span style="color:#8b94a3">Lançado por</span><span style="font-weight:700">{{ detalhe.quem }}</span></div>
+          <sc-if value="{{ detalhe.temParcela }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; justify-content:space-between; font-size:12.5px; padding:6px 0; border-top:1px solid rgba(0,0,0,0.06)"><span style="color:#8b94a3">Parcelamento</span><span style="font-weight:700">{{ detalhe.parcelaStr }}</span></div>
+          </sc-if>
+          <div style="display:flex; gap:8px; margin-top:16px">
+            <button onClick="{{ excluirDetalhe }}" style="flex:1; height:42px; border:1px solid rgba(198,40,40,0.3); background:#fff; border-radius:9999px; font-family:inherit; font-size:13px; font-weight:700; color:#c62828; cursor:pointer">Excluir</button>
+            <button onClick="{{ fecharDetalhe }}" style="flex:1; height:42px; border:none; background:#14325a; border-radius:9999px; font-family:inherit; font-size:13px; font-weight:700; color:#fff; cursor:pointer">Fechar</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ sheetConta }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute; inset:0; background:rgba(12,22,40,0.42); display:flex; flex-direction:column; justify-content:flex-end">
+        <div onClick="{{ fecharSheet }}" style="flex:1"></div>
+        <div style="background:#f6f7f9; border-radius:22px 22px 0 0; padding:18px; animation:upIn 0.22s ease-out; max-height:92%; overflow-y:auto; flex:none">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px">
+            <div style="font-size:14px; font-weight:800">{{ contaTitulo }}</div>
+            <button onClick="{{ fecharSheet }}" style="background:none; border:none; font-size:15px; color:#8b94a3; cursor:pointer; padding:0">✕</button>
+          </div>
+
+          <input value="{{ contaNome }}" onChange="{{ contaNomeChange }}" placeholder="Nome da conta" style="width:100%; height:46px; border:1px solid rgba(0,0,0,0.22); border-radius:10px; padding:0 13px; font-family:inherit; font-size:15px; font-weight:600; color:#14325a; outline:none">
+
+          <div style="font-size:11px; font-weight:800; letter-spacing:0.06em; color:#8b94a3; margin:16px 2px 8px">TIPO</div>
+          <div style="display:flex; gap:8px">
+            <sc-for list="{{ tiposConta }}" as="t" hint-placeholder-count="3">
+              <button onClick="{{ t.usar }}" style="flex:1; height:60px; border-radius:12px; border:none; cursor:pointer; font-family:inherit; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; background:{{ t.bg }}; color:{{ t.fg }}; box-shadow:{{ t.anel }}">
+                <i class="ti {{ t.icone }}" style="font-size:19px"></i>
+                <span style="font-size:11.5px; font-weight:700">{{ t.label }}</span>
+              </button>
+            </sc-for>
+          </div>
+
+          <div style="background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:14px; margin-top:16px">
+            <div style="font-size:12px; font-weight:700; color:#5b6675">{{ contaValorLabel }}</div>
+            <div style="font-size:11px; color:#8b94a3; margin-top:2px">{{ contaValorSub }}</div>
+            <div style="display:flex; align-items:center; gap:12px; margin-top:10px">
+              <button onClick="{{ contaValorMenos }}" style="width:36px; height:36px; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-size:17px; font-weight:700; color:#14325a; cursor:pointer">−</button>
+              <div style="flex:1; text-align:center; font-size:20px; font-weight:800; letter-spacing:-0.02em">{{ contaValorStr }}</div>
+              <button onClick="{{ contaValorMais }}" style="width:36px; height:36px; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-size:17px; font-weight:700; color:#14325a; cursor:pointer">+</button>
+            </div>
+          </div>
+
+          <sc-if value="{{ contaEhCartao }}" hint-placeholder-val="{{ false }}">
+            <div style="background:#fff; border:1px solid rgba(0,0,0,0.06); border-radius:12px; padding:14px; margin-top:10px">
+              <div style="display:flex; align-items:center; gap:12px">
+                <div style="flex:1">
+                  <div style="font-size:12px; font-weight:700; color:#5b6675">Vencimento da fatura</div>
+                  <div style="font-size:11px; color:#8b94a3; margin-top:2px">dia do débito na conta</div>
+                </div>
+                <button onClick="{{ vencMenos }}" style="width:34px; height:34px; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-size:16px; font-weight:700; color:#14325a; cursor:pointer">−</button>
+                <div style="min-width:62px; text-align:right; font-size:15px; font-weight:800">{{ contaVencStr }}</div>
+                <button onClick="{{ vencMais }}" style="width:34px; height:34px; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-size:16px; font-weight:700; color:#14325a; cursor:pointer">+</button>
+              </div>
+              <div style="display:flex; align-items:center; gap:12px; margin-top:12px; padding-top:12px; border-top:1px solid rgba(0,0,0,0.06)">
+                <div style="flex:1">
+                  <div style="font-size:12px; font-weight:700; color:#5b6675">Fechamento</div>
+                  <div style="font-size:11px; color:#8b94a3; margin-top:2px">até quando as compras entram nesta fatura</div>
+                </div>
+                <button onClick="{{ fechMenos }}" style="width:34px; height:34px; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-size:16px; font-weight:700; color:#14325a; cursor:pointer">−</button>
+                <div style="min-width:62px; text-align:right; font-size:15px; font-weight:800">{{ contaFechStr }}</div>
+                <button onClick="{{ fechMais }}" style="width:34px; height:34px; border:1px solid rgba(0,0,0,0.12); background:#fff; border-radius:9999px; font-size:16px; font-weight:700; color:#14325a; cursor:pointer">+</button>
+              </div>
+            </div>
+          </sc-if>
+
+          <div style="font-size:11px; font-weight:800; letter-spacing:0.06em; color:#8b94a3; margin:16px 2px 8px">ÍCONE</div>
+          <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:8px">
+            <sc-for list="{{ iconesConta }}" as="o" hint-placeholder-count="12">
+              <button onClick="{{ o.usar }}" style="height:46px; border-radius:11px; cursor:pointer; border:none; padding:0; display:flex; align-items:center; justify-content:center; background:{{ o.bg }}; color:{{ o.fg }}; box-shadow:{{ o.anel }}"><i class="ti {{ o.icone }}" style="font-size:20px"></i></button>
+            </sc-for>
+          </div>
+
+          <button onClick="{{ salvarConta }}" style="width:100%; height:50px; margin-top:18px; border:none; border-radius:9999px; background:{{ contaCorBotao }}; color:#fff; font-family:inherit; font-size:14px; font-weight:700; cursor:pointer">{{ contaLabelBotao }}</button>
+          <sc-if value="{{ contaPodeExcluir }}" hint-placeholder-val="{{ false }}">
+            <button onClick="{{ excluirConta }}" style="width:100%; height:44px; margin-top:8px; border:1px solid rgba(198,40,40,0.3); background:#fff; border-radius:9999px; font-family:inherit; font-size:13px; font-weight:700; color:#c62828; cursor:pointer">Excluir conta</button>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ sheetEditCat }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute; inset:0; background:rgba(12,22,40,0.42); display:flex; flex-direction:column; justify-content:flex-end">
+        <div onClick="{{ fecharSheet }}" style="flex:1"></div>
+        <div style="background:#f6f7f9; border-radius:22px 22px 0 0; padding:18px; animation:upIn 0.22s ease-out; max-height:90%; overflow-y:auto; flex:none">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px">
+            <div style="font-size:14px; font-weight:800">Categoria</div>
+            <button onClick="{{ fecharSheet }}" style="background:none; border:none; font-size:15px; color:#8b94a3; cursor:pointer; padding:0">✕</button>
+          </div>
+          <input value="{{ editNome }}" onChange="{{ editNomeChange }}" placeholder="Nome da categoria" style="width:100%; height:44px; border:1px solid rgba(0,0,0,0.22); border-radius:10px; padding:0 13px; font-family:inherit; font-size:15px; font-weight:600; color:#14325a; outline:none">
+          <div style="font-size:11px; font-weight:800; letter-spacing:0.06em; color:#8b94a3; margin:16px 2px 8px">COR</div>
+          <div style="display:flex; flex-wrap:wrap; gap:10px">
+            <sc-for list="{{ coresOpcoes }}" as="k" hint-placeholder-count="8">
+              <button onClick="{{ k.usar }}" style="width:38px; height:38px; border-radius:9999px; cursor:pointer; border:none; padding:0; display:flex; align-items:center; justify-content:center; color:#fff; background:{{ k.cor }}; box-shadow:{{ k.anel }}"><i class="ti {{ k.check }}" style="font-size:18px"></i></button>
+            </sc-for>
+          </div>
+          <div style="font-size:11px; font-weight:800; letter-spacing:0.06em; color:#8b94a3; margin:16px 2px 8px">ÍCONE</div>
+          <div style="display:grid; grid-template-columns:repeat(6,1fr); gap:8px">
+            <sc-for list="{{ iconesOpcoes }}" as="o" hint-placeholder-count="18">
+              <button onClick="{{ o.usar }}" style="height:46px; border-radius:11px; cursor:pointer; border:none; padding:0; display:flex; align-items:center; justify-content:center; background:{{ o.bg }}; color:{{ o.fg }}; box-shadow:{{ o.anel }}"><i class="ti {{ o.icone }}" style="font-size:20px"></i></button>
+            </sc-for>
+          </div>
+          <button onClick="{{ fecharSheet }}" style="width:100%; height:48px; margin-top:16px; border:none; border-radius:9999px; background:#14325a; color:#fff; font-family:inherit; font-size:14px; font-weight:700; cursor:pointer">Concluir</button>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute; left:18px; right:18px; bottom:92px; background:#14325a; color:#fff; border-radius:12px; padding:13px 15px; font-size:12.5px; font-weight:600; box-shadow:0 6px 20px rgba(10,25,50,0.3); animation:upIn 0.2s ease-out">{{ toast }}</div>
+    </sc-if>
+
+  </div>
+</div>
+</sc-if>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:430,&quot;height&quot;:900},&quot;cenarioSemLastro&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Cenário&quot;},&quot;mostrarQuemLancou&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Comportamento&quot;},&quot;cartaoAbateSaldoNaHora&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Comportamento&quot;},&quot;mostrarBarrasProgresso&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Aparência&quot;}}">
+const CORES = ['#14325a','#2e6b8f','#4c7d5a','#8a5a2b','#6b4a7d','#2f6f6f','#a04a4a','#3d5a8a'];
+const ICONES_CONTA = ['ti-building-bank','ti-credit-card','ti-pig-money','ti-wallet','ti-cash','ti-coins','ti-chart-line','ti-briefcase','ti-device-mobile','ti-ticket','ti-shield-check','ti-star'];
+const TIPOS_CONTA = [
+  { id:'debito', label:'Conta', icone:'ti-building-bank' },
+  { id:'credito', label:'Cartão', icone:'ti-credit-card' },
+  { id:'reserva', label:'Reserva', icone:'ti-pig-money' }
+];
+const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const ICONES = ['ti-shopping-cart','ti-home','ti-school','ti-gas-station','ti-heartbeat','ti-glass-full','ti-device-tv','ti-shirt','ti-paw','ti-plane','ti-barbell','ti-tools','ti-gift','ti-pill','ti-bus','ti-wifi','ti-scissors','ti-tag'];
+
+class Component extends DCLogic {
+  state = {
+    auth: 'login',
+    authPasso: 1,
+    authNome: '', authEmail: '', authSenha: '', authCasa: '', authConvite: '', authCiclo: 'Dia 1',
+    verSenha: false, authErro: '',
+    tela: 'home',
+    sheet: null,
+    dd: null,
+    detalheId: null,
+    editCatId: null,
+    remanejo: {},
+    contaForm: null,
+    filtroConta: 'todas',
+    cheiosOk: null,
+    toast: null,
+    centavos: 0,
+    catSel: null,
+    contaSel: 'cred',
+    dataISO: '2026-08-20',
+    parcelas: 1,
+    desc: '',
+    novaCat: '',
+    previsto: 8000,
+    faturaContaId: 'cred',
+    cats: [
+      { id:'merc', nome:'Mercado', teto:1400, icone:'ti-shopping-cart', cor:'#14325a' },
+      { id:'casa', nome:'Casa', teto:2100, icone:'ti-home', cor:'#2e6b8f' },
+      { id:'esc', nome:'Escola', teto:980, icone:'ti-school', cor:'#4c7d5a' },
+      { id:'gas', nome:'Gasolina', teto:400, icone:'ti-gas-station', cor:'#8a5a2b' },
+      { id:'sau', nome:'Saúde', teto:300, icone:'ti-heartbeat', cor:'#a04a4a' },
+      { id:'laz', nome:'Lazer', teto:500, icone:'ti-glass-full', cor:'#6b4a7d' },
+      { id:'ass', nome:'Assinaturas', teto:120, icone:'ti-device-tv', cor:'#2f6f6f' },
+      { id:'ves', nome:'Vestuário', teto:250, icone:'ti-shirt', cor:'#3d5a8a' }
+    ],
+    contas: [
+      { id:'cc', nome:'Conta corrente · 0412', curto:'Corrente', tipo:'debito', base:1240, icone:'ti-building-bank' },
+      { id:'cred', nome:'Cartão de crédito · 8891', curto:'Crédito', tipo:'credito', limite:6000, vencimento:8, fechamento:30, icone:'ti-credit-card' },
+      { id:'pou', nome:'Poupança', curto:'Poupança', tipo:'reserva', base:18400, icone:'ti-pig-money' }
+    ],
+    metas: [
+      { id:'res', nome:'Reserva de emergência', alvo:30000, atual:18400 },
+      { id:'via', nome:'Viagem de julho', alvo:8000, atual:2150 },
+      { id:'car', nome:'Troca do carro', alvo:25000, atual:4900 }
+    ],
+    lancs: [
+      { id:1, dia:20, desc:'Feira do mês', cat:'merc', conta:'cred', v:312.40, quem:'Ana' },
+      { id:2, dia:19, desc:'Corrida de app', cat:'laz', conta:'cred', v:28.90, quem:'Bruno' },
+      { id:3, dia:18, desc:'Farmácia', cat:'sau', conta:'cc', v:74.30, quem:'Ana' },
+      { id:4, dia:17, desc:'Mercado do bairro', cat:'merc', conta:'cc', v:268.15, quem:'Bruno' },
+      { id:5, dia:15, desc:'Gasolina', cat:'gas', conta:'cred', v:260.00, quem:'Bruno' },
+      { id:6, dia:14, desc:'Assinaturas de streaming', cat:'ass', conta:'cred', v:89.80, quem:'Ana' },
+      { id:7, dia:12, desc:'Recebimento PJ', cat:null, conta:'cc', v:-2850, quem:'Bruno' },
+      { id:8, dia:12, desc:'Escola — mensalidade', cat:'esc', conta:'cc', v:980.00, quem:'Ana' },
+      { id:9, dia:10, desc:'Aluguel', cat:'casa', conta:'cc', v:1850.00, quem:'Ana' },
+      { id:10, dia:9, desc:'Luz', cat:'casa', conta:'cc', v:187.40, quem:'Bruno' },
+      { id:11, dia:8, desc:'Restaurante', cat:'laz', conta:'cred', v:143.60, quem:'Ana' },
+      { id:12, dia:7, desc:'Mercado da semana', cat:'merc', conta:'cred', v:419.75, quem:'Bruno' },
+      { id:13, dia:6, desc:'Padaria e açougue', cat:'merc', conta:'cc', v:205.30, quem:'Ana' },
+      { id:14, dia:5, desc:'Salário Ana', cat:null, conta:'cc', v:-4200, quem:'Ana' },
+      { id:15, dia:4, desc:'Tênis da Lívia', cat:'ves', conta:'cred', v:219.90, quem:'Ana' },
+      { id:16, dia:3, desc:'Mercado da semana', cat:'merc', conta:'cc', v:380.60, quem:'Bruno' }
+    ]
+  };
+
+  m(v) { return 'R$ ' + Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 }); }
+  cor(i) { return CORES[i % CORES.length]; }
+  gastoDe(id) { return this.state.lancs.filter(l => l.cat === id && !l.mesRel).reduce((s, l) => s + l.v, 0); }
+  mesRelDe(iso) { const p = String(iso).split('-'); return (Number(p[0]) * 12 + Number(p[1])) - (2026 * 12 + 8); }
+  aviso(t) { this.setState({ toast:t }); clearTimeout(this._t); this._t = setTimeout(() => this.setState({ toast:null }), 2600); }
+  ir(tela) { this.setState({ tela, sheet:null, dd:null }); }
+  toggleDd(k) { this.setState(st => ({ dd: st.dd === k ? null : k })); }
+  componentDidMount() {
+    // mede cada variante "-filled": só existe se o ::before tiver glifo
+    const testar = () => {
+      const alvos = ['ti-layout-grid-filled','ti-wallet-filled','ti-list-details','ti-dots-circle-horizontal-filled'];
+      const sonda = document.createElement('div');
+      sonda.style.cssText = 'position:absolute;left:-9999px;top:0;visibility:hidden';
+      document.body.appendChild(sonda);
+      const ok = {};
+      alvos.forEach(n => {
+        const el = document.createElement('i');
+        el.className = 'ti ' + n;
+        sonda.appendChild(el);
+        const c = getComputedStyle(el, '::before').content;
+        ok[n] = !!c && c !== 'none' && c !== 'normal' && c !== '""';
+      });
+      document.body.removeChild(sonda);
+      this.setState({ cheiosOk: ok });
+    };
+    testar();
+    this._fontTry = setTimeout(testar, 900);
+  }
+  componentWillUnmount() { clearTimeout(this._fontTry); clearTimeout(this._t); }
+  patchConta(patch) { this.setState(st => ({ contaForm: { ...st.contaForm, ...patch } })); }
+  patchCat(id, patch) { this.setState(st => ({ cats: st.cats.map(c => c.id === id ? { ...c, ...patch } : c) })); }
+
+  salvarLanc = () => {
+    const { centavos, catSel, contaSel, desc, lancs, dataISO, parcelas } = this.state;
+    if (!centavos || !catSel) { this.aviso('Digite o valor e escolha a categoria.'); return; }
+    const cat = this.state.cats.find(c => c.id === catSel);
+    const conta = this.state.contas.find(a => a.id === contaSel);
+    const total = centavos / 100;
+    const n = Math.min(48, Math.max(1, Number(parcelas) || 1));
+    const v = Math.round((total / n) * 100) / 100;
+    const iso = dataISO || '2026-08-20';
+    const dia = Number(String(iso).split('-')[2]) || 20;
+    const mesRel = this.mesRelDe(iso);
+    const novo = {
+      id:Date.now(), dia, mesRel, desc: desc || cat.nome, cat:catSel, conta:contaSel, v, quem:'Ana',
+      parc: n > 1 ? 1 : null, parcTotal: n > 1 ? n : null, totalParc: n > 1 ? total : null
+    };
+    const extra = conta.tipo === 'credito' && !this.props.cartaoAbateSaldoNaHora
+      ? ' Saldo da conta só muda ao pagar a fatura.' : '';
+    const extraParc = n > 1 ? ' Parcela 1 de ' + n + '; as demais entram nos próximos meses.' : '';
+    const extraRetro = mesRel < 0 ? ' Mês anterior — não afeta o orçamento de agosto.' : '';
+    this.setState({ lancs:[novo, ...lancs], sheet:null, dd:null, centavos:0, catSel:null, desc:'', parcelas:1, dataISO:'2026-08-20' });
+    this.aviso(this.m(v) + ' em ' + cat.nome + '.' + extra + extraParc + extraRetro);
+  };
+
+  renderVals() {
+    const s = this.state;
+    const sen = s.authSenha || '';
+    const forca = sen.length === 0 ? 0 : (sen.length < 8 ? 1 : (/[0-9]/.test(sen) && /[^a-zA-Z0-9]/.test(sen) ? 3 : 2));
+    const mostrarQuem = this.props.mostrarQuemLancou ?? false;
+    const abateNaHora = this.props.cartaoAbateSaldoNaHora ?? false;
+    const nomeConta = id => (s.contas.find(a => a.id === id) || {}).nome || '—';
+    const nomeCat = id => (s.cats.find(c => c.id === id) || {}).nome || 'Receita';
+    const catDe = id => s.cats.find(c => c.id === id);
+    const corDe = id => (catDe(id) || {}).cor || '#8b94a3';
+    const iconeDe = id => (catDe(id) || {}).icone || 'ti-tag';
+
+    const cats = s.cats.map((c, i) => {
+      const gasto = this.gastoDe(c.id);
+      const restante = c.teto - gasto;
+      const pct = Math.max(0, Math.min(100, (gasto / Math.max(1, c.teto)) * 100));
+      const over = restante < 0;
+      const sel = s.catSel === c.id;
+      return {
+        ...c, i, gasto, restante, excedente: -restante,
+        inicial: c.nome.charAt(0).toUpperCase(),
+        icone: c.icone || 'ti-tag',
+        cor: c.cor || this.cor(i),
+        corBarra: over ? '#c62828' : (pct > 85 ? '#ef6c00' : '#14325a'),
+        corValor: over ? '#c62828' : '#14325a',
+        restanteStr: (over ? '−' : '') + this.m(restante),
+        excedenteStr: '+' + this.m(-restante),
+        tetoStr: this.m(c.teto),
+        gastoLabel: this.m(gasto) + ' de ' + this.m(c.teto),
+        pctLabel: over ? 'estourou' : Math.round(pct) + '%',
+        pctStr: pct + '%',
+        corSelBg: sel ? '#14325a' : '#fff',
+        corSelTexto: sel ? '#fff' : '#14325a',
+        corSelBorda: sel ? '#14325a' : 'rgba(0,0,0,0.12)',
+        lancar: () => this.setState({ sheet:'lanc', catSel:c.id, dd:null }),
+        selecionar: () => this.setState({ catSel:c.id, dd:null }),
+        check: s.catSel === c.id ? 'ti-check' : 'ti-blank',
+        corLinhaBg: s.catSel === c.id ? '#f2f5f9' : '#fff',
+        menos: () => this.setState({ cats: s.cats.map(x => x.id === c.id ? { ...x, teto:Math.max(0, x.teto - 50) } : x) }),
+        mais: () => this.setState({ cats: s.cats.map(x => x.id === c.id ? { ...x, teto:x.teto + 50 } : x) }),
+        remover: () => this.setState({ cats: s.cats.filter(x => x.id !== c.id) }),
+        editar: () => this.setState({ sheet:'editcat', editCatId:c.id })
+      };
+    });
+
+    const recebido = -s.lancs.filter(l => l.v < 0 && !l.mesRel).reduce((a, l) => a + l.v, 0);
+    const gastoTotal = s.lancs.filter(l => l.v > 0 && !l.mesRel).reduce((a, l) => a + l.v, 0);
+    const planejado = s.cats.reduce((a, c) => a + c.teto, 0);
+    const disponivel = planejado - gastoTotal;
+    const naoAlocado = recebido - planejado;
+    const faturaDe = id => s.lancs.filter(l => l.conta === id && l.v > 0 && !l.mesRel).reduce((a, l) => a + l.v, 0);
+    const contaPagadora = (s.contas.find(a => a.tipo === 'debito') || {}).id;
+    const pagar = id => {
+      const val = faturaDe(id);
+      if (!val) { this.aviso('Não há fatura em aberto nesse cartão.'); return; }
+      const nomeCartao = (s.contas.find(a => a.id === id) || {}).nome || 'cartão';
+      this.setState({
+        contas: s.contas.map(a => a.id === contaPagadora ? { ...a, base:a.base - val } : a),
+        lancs: s.lancs.map(l => l.conta === id ? { ...l, conta:contaPagadora } : l)
+      });
+      this.aviso('Fatura de ' + this.m(val) + ' (' + nomeCartao + ') paga pela conta corrente.');
+    };
+    const estouros = cats.filter(c => c.restante < 0);
+    const est = estouros[0];
+
+    const contas = s.contas.map((a, i) => {
+      const ehCartao = a.tipo === 'credito';
+      const ehReserva = a.tipo === 'reserva';
+      const faturaConta = ehCartao ? faturaDe(a.id) : 0;
+      const mov = ehCartao ? [] : s.lancs.filter(l => l.conta === a.id && !l.mesRel);
+      const saldo = ehCartao ? faturaConta : (a.base - mov.reduce((t, l) => t + l.v, 0));
+      const limiteLivreConta = ehCartao ? Math.max(0, (a.limite || 0) - faturaConta) : 0;
+      return {
+        ...a, ehCartao, ehReserva, saldo, faturaConta, limiteLivreConta,
+        inicial: a.curto.charAt(0),
+        icone: a.icone || 'ti-wallet',
+        cor: ehCartao ? '#8a5a2b' : this.cor(i),
+        valorStr: (ehCartao ? '−' : '') + this.m(saldo),
+        corValor: ehCartao ? '#c62828' : '#14325a',
+        sub: ehCartao ? 'limite ' + this.m(a.limite || 0) + ' · livre ' + this.m(limiteLivreConta) + ' · vence dia ' + (a.vencimento || 1) : (ehReserva ? 'reserva e metas · fora do orçamento' : 'entra no lastro do mês'),
+        corSelBg: s.contaSel === a.id ? '#14325a' : '#fff',
+        corSelTexto: s.contaSel === a.id ? '#fff' : '#14325a',
+        corSelBorda: s.contaSel === a.id ? '#14325a' : 'rgba(0,0,0,0.12)',
+        selecionar: () => this.setState({ contaSel:a.id, dd:null }),
+        editar: () => this.setState({ sheet:'conta', contaForm:{ ...a, valor: ehCartao ? (a.limite || 0) : (a.base || 0), vencimento:a.vencimento || 8, fechamento:a.fechamento || 30, novo:false } }),
+        verFatura: () => this.setState({ tela:'fatura', faturaContaId:a.id, sheet:null }),
+        pagarFatura: () => pagar(a.id),
+        check: s.contaSel === a.id ? 'ti-check' : 'ti-blank',
+        corLinhaBg: s.contaSel === a.id ? '#f2f5f9' : '#fff'
+      };
+    });
+    const saldoTotal = contas.filter(a => !a.ehCartao).reduce((t, a) => t + a.saldo, 0);
+    const cenarioSemLastro = this.props.cenarioSemLastro ?? false;
+    const limiteTotal = contas.reduce((t, a) => t + (a.ehCartao ? (a.limite || 0) : 0), 0);
+    const limiteLivre = contas.reduce((t, a) => t + a.limiteLivreConta, 0);
+    // dinheiro da poupança está comprometido com as metas: não entra no lastro do mês
+    const caixaReal = contas.filter(a => !a.ehCartao && !a.ehReserva).reduce((t, a) => t + Math.max(0, a.saldo), 0);
+    const restanteTotal = cats.reduce((a, c) => a + Math.max(0, c.restante), 0);
+    // cenário de demonstração: caixa e limite juntos cobrem só 55% do que resta no plano
+    const lastroReal = caixaReal + limiteLivre;
+    const lastro = cenarioSemLastro ? Math.min(lastroReal, restanteTotal * 0.55) : lastroReal;
+    const caixaLivre = Math.max(0, lastro - limiteLivre);
+    const deficit = Math.max(0, restanteTotal - lastro);
+    const catsV = cats.map(c => {
+      const rest = Math.max(0, c.restante);
+      const bloq = restanteTotal > 0 ? Math.round(rest * deficit / restanteTotal * 100) / 100 : 0;
+      const livre = rest - bloq;
+      const over = c.restante < 0;
+      return {
+        ...c, liberado: over ? c.restante : livre, bloqueado: bloq,
+        disponivelStr: over ? '−' + this.m(c.restante) : this.m(livre),
+        temBloqueio: bloq > 0.004,
+        bloqLabel: this.m(bloq) + ' bloqueado por falta de lastro',
+        pctBloqStr: Math.max(0, Math.min(100, bloq / Math.max(1, c.teto) * 100)) + '%',
+        pctLabel: over ? 'estourou' : (bloq > 0.004 ? 'parcial' : c.pctLabel)
+      };
+    });
+
+    const mapLanc = l => ({
+      ...l,
+      desc: l.desc,
+      inicial: l.v < 0 ? '+' : nomeCat(l.cat).charAt(0).toUpperCase(),
+      icone: l.v < 0 ? 'ti-arrow-down-left' : iconeDe(l.cat),
+      cor: l.v < 0 ? '#2e7d32' : corDe(l.cat),
+      valorStr: (l.v < 0 ? '+' : '−') + this.m(l.v),
+      corValor: l.v < 0 ? '#2e7d32' : '#14325a',
+      sub: nomeCat(l.cat) + ' · ' + (l.conta === 'cred' ? 'crédito' : (l.conta === 'pou' ? 'poupança' : 'corrente')) + (mostrarQuem ? ' · ' + l.quem : '') + (l.parcTotal ? ' · parcela ' + l.parc + '/' + l.parcTotal : ''),
+      abrir: () => this.setState({ detalheId:l.id })
+    });
+
+    const lancsFiltrados = s.filtroConta === 'todas' ? s.lancs : s.lancs.filter(l => l.conta === s.filtroConta);
+    const chaveDia = l => (l.mesRel || 0) * 100 + l.dia;
+    const diasOrd = [...new Set(lancsFiltrados.map(chaveDia))].sort((a, b) => b - a);
+    const dias = diasOrd.map(k => {
+      const rel = Math.floor(k / 100), d = k - rel * 100;
+      return {
+        label: (rel === 0 && d === 20 ? 'Hoje · ' : '') + String(d).padStart(2, '0') + ' de ' + MESES[(7 + rel + 12) % 12] + (rel < 0 ? ' · mês anterior' : ''),
+        itens: lancsFiltrados.filter(l => chaveDia(l) === k).map(mapLanc)
+      };
+    });
+    const contarEm = id => id === 'todas' ? s.lancs.length : s.lancs.filter(l => l.conta === id).length;
+    const opcoesFiltro = [{ id:'todas', label:'Todas as contas', icone:'ti-layers-subtract', cor:'#5b6675' }]
+      .concat(s.contas.map(a => ({ id:a.id, label:a.nome, icone:a.icone || 'ti-wallet', cor:a.tipo === 'credito' ? '#8a5a2b' : '#14325a' })));
+    const filtroAtual = opcoesFiltro.find(o => o.id === s.filtroConta) || opcoesFiltro[0];
+    const filtrosConta = opcoesFiltro.map(o => {
+      const n = contarEm(o.id);
+      return {
+        ...o,
+        sub: n + (n === 1 ? ' lançamento' : ' lançamentos'),
+        check: s.filtroConta === o.id ? 'ti-check' : 'ti-blank',
+        linhaBg: s.filtroConta === o.id ? '#f2f5f9' : '#fff',
+        usar: () => this.setState({ filtroConta:o.id, dd:null })
+      };
+    });
+
+    const fontesBase = catsV
+      .filter(c => c.liberado >= 10 && (!est || c.id !== est.id))
+      .sort((a, b) => b.liberado - a.liberado);
+    const remVal = id => Math.max(0, Math.min(Math.floor((fontesBase.find(c => c.id === id) || {}).liberado || 0), s.remanejo[id] || 0));
+    const remSoma = fontesBase.reduce((t, c) => t + remVal(c.id), 0);
+    const faltaRem = est ? est.excedente : 0;
+
+    const cf = s.contaForm;
+    const cartaoFoco = contas.find(a => a.id === s.faturaContaId && a.ehCartao) || contas.find(a => a.ehCartao);
+    const faturaFoco = cartaoFoco ? cartaoFoco.faturaConta : 0;
+    const faturaTotalGeral = contas.reduce((t, a) => t + a.faturaConta, 0);
+
+    const catEd = s.cats.find(c => c.id === s.editCatId);
+    const d = s.lancs.find(l => l.id === s.detalheId);
+    const detalhe = d ? {
+      desc: d.desc, valorStr: (d.v < 0 ? '+' : '−') + this.m(d.v),
+      corValor: d.v < 0 ? '#2e7d32' : '#14325a',
+      catNome: nomeCat(d.cat), contaNome: nomeConta(d.conta),
+      dataStr: String(d.dia).padStart(2, '0') + '/' + String(8 + (d.mesRel || 0)).padStart(2, '0') + '/2026', quem: d.quem,
+      temParcela: !!d.parcTotal,
+      parcelaStr: d.parcTotal ? 'Parcela ' + d.parc + ' de ' + d.parcTotal + ' · total ' + this.m(d.totalParc || d.v * d.parcTotal) : ''
+    } : null;
+
+    const teclas = ['1','2','3','4','5','6','7','8','9',',','0','⌫'].map(k => ({
+      label: k,
+      press: () => {
+        if (k === '⌫') this.setState({ centavos: Math.floor(s.centavos / 10) });
+        else if (k === ',') this.aviso('Os centavos entram sozinhos.');
+        else this.setState({ centavos: Math.min(99999999, s.centavos * 10 + Number(k)) });
+      }
+    }));
+
+    const atalhos = [
+      { nome:'Mercado', cat:'merc', v:15000, desc:'Mercado' },
+      { nome:'Gasolina', cat:'gas', v:10000, desc:'Gasolina' },
+      { nome:'Escola — mensalidade', cat:'esc', v:98000, desc:'Escola — mensalidade' },
+      { nome:'Farmácia', cat:'sau', v:6000, desc:'Farmácia' },
+      { nome:'Almoço', cat:'laz', v:4500, desc:'Almoço' }
+    ].map(a => ({
+      nome: a.nome, valorStr: this.m(a.v / 100), icone: iconeDe(a.cat),
+      usar: () => this.setState({ catSel:a.cat, centavos:a.v, desc:a.desc, dd:null })
+    }));
+
+    const catSelNome = s.catSel ? nomeCat(s.catSel) : 'escolha a categoria';
+    const contaSelNome = (s.contas.find(a => a.id === s.contaSel) || {}).curto || '';
+
+    const ativoNav = id => s.tela === id
+      || (id === 'contas' && s.tela === 'fatura')
+      || (id === 'mais' && ['metas','fechamento','config'].indexOf(s.tela) >= 0);
+    // sem variante cheia disponível → mantém o ícone de linha
+    const cheioOuBase = (cheio, base) => (cheio && cheio !== base && s.cheiosOk && s.cheiosOk[cheio]) ? cheio : base;
+
+    const nav = [
+      { id:'home', label:'Mês', icone:'ti-layout-grid', cheio:'ti-layout-grid-filled' },
+      { id:'contas', label:'Contas', icone:'ti-wallet', cheio:'ti-wallet-filled' },
+      { centro:true },
+      { id:'extrato', label:'Extrato', icone:'ti-list-details', cheio:'ti-list-details' },
+      { id:'mais', label:'Mais', icone:'ti-dots', cheio:'ti-dots-circle-horizontal-filled' }
+    ].map(n => ({
+      ...n, ehCentro: !!n.centro, ehAba: !n.centro,
+      icone: ativoNav(n.id) ? cheioOuBase(n.cheio, n.icone) : n.icone,
+      cor: ativoNav(n.id) ? '#14325a' : '#8b94a3',
+      corBarra: s.tela === n.id ? '#14325a' : 'transparent',
+      ir: () => this.ir(n.id)
+    }));
+
+    const maisItens = [
+      { titulo:'Orçamento e categorias', sub:'tetos do mês, criar e apagar', t:'config' },
+      { titulo:'Contas cadastradas', sub:s.contas.length + ' contas · cadastrar e editar', t:'contas' },
+      { titulo:'Fatura do cartão', sub:this.m(faturaTotalGeral) + ' em aberto', t:'fatura' },
+      { titulo:'Metas e reservas', sub:'3 metas ativas', t:'metas' },
+      { titulo:'Fechamento do mês', sub:'sobra projetada ' + this.m(disponivel), t:'fechamento' }
+    ].map(x => ({ ...x, ir: () => this.ir(x.t) }));
+
+    return {
+      mesCurto:'Agosto', mesLongo:'Agosto 2026',
+      isHome: s.tela === 'home', isContas: s.tela === 'contas', isExtrato: s.tela === 'extrato',
+      isFatura: s.tela === 'fatura', isMetas: s.tela === 'metas', isFechamento: s.tela === 'fechamento',
+      isConfig: s.tela === 'config', isMais: s.tela === 'mais',
+      mostrarBarras: this.props.mostrarBarrasProgresso ?? true,
+      cats: catsV, contas, dias, teclas, atalhos, nav, maisItens, detalhe,
+      temDeficit: deficit > 0.004,
+      deficitStr: this.m(deficit),
+      lastroStr: this.m(lastro),
+      contasSel: contas,
+      toast: s.toast,
+      disponivel: this.m(Math.max(0, restanteTotal - deficit)), recebido: this.m(recebido), previsto: this.m(s.previsto),
+      planejado: this.m(planejado), gastoTotal: this.m(gastoTotal), sobra: this.m(disponivel),
+      naoAlocado: (naoAlocado < 0 ? '−' : '') + this.m(naoAlocado),
+      alocLabel: naoAlocado < 0 ? 'FALTA COBRIR' : 'NÃO ALOCADO',
+      saldoTotal: this.m(saldoTotal),
+      faturaTotal: this.m(faturaFoco),
+      faturaNomeCartao: cartaoFoco ? cartaoFoco.nome : 'Cartão',
+      faturaDatas: cartaoFoco
+        ? 'Fecha dia ' + (cartaoFoco.fechamento || 30) + ' · vence dia ' + (cartaoFoco.vencimento || 8) + ' · limite livre ' + this.m(cartaoFoco.limiteLivreConta)
+        : '',
+      faturaAviso: faturaTotalGeral > 0 ? 'Faturas de ' + this.m(faturaTotalGeral) + ' ainda não debitadas' : 'Nenhuma fatura em aberto',
+      limiteLivre: this.m(limiteLivre),
+      filtrosConta,
+      filtroLabel: filtroAtual.label, filtroIcone: filtroAtual.icone, filtroCor: filtroAtual.cor,
+      abertoFiltro: s.dd === 'filtro',
+      chevronFiltro: s.dd === 'filtro' ? 'ti-chevron-up' : 'ti-chevron-down',
+      bordaFiltro: s.dd === 'filtro' ? '#14325a' : 'rgba(0,0,0,0.12)',
+      toggleFiltro: () => this.toggleDd('filtro'),
+      extratoVazio: lancsFiltrados.length === 0,
+      extratoResumo: lancsFiltrados.length + (lancsFiltrados.length === 1 ? ' lançamento' : ' lançamentos')
+        + (s.filtroConta === 'todas' ? ' em agosto' : ' · ' + ((s.contas.find(a => a.id === s.filtroConta) || {}).nome || ''))
+        + (s.filtroConta === 'todas' ? '' : ' · ' + this.m(lancsFiltrados.filter(l => l.v > 0).reduce((t, l) => t + l.v, 0)) + ' em gastos'),
+      itensFatura: s.lancs.filter(l => cartaoFoco && l.conta === cartaoFoco.id && l.v > 0).map(mapLanc),
+      metas: s.metas.map(x => {
+        const pct = Math.min(100, (x.atual / x.alvo) * 100);
+        return { ...x, atualStr:this.m(x.atual), alvoStr:this.m(x.alvo), pctStr:pct + '%', pctLabel:Math.round(pct) + '%',
+          guardar100: () => { this.setState({ metas: s.metas.map(y => y.id === x.id ? { ...y, atual:y.atual + 100 } : y) }); this.aviso('R$ 100,00 guardados em ' + x.nome + '.'); },
+          guardar500: () => { this.setState({ metas: s.metas.map(y => y.id === x.id ? { ...y, atual:y.atual + 500 } : y) }); this.aviso('R$ 500,00 guardados em ' + x.nome + '.'); } };
+      }),
+      estouros,
+      temEstouro: estouros.length > 0,
+      semEstouro: estouros.length === 0,
+      estouroTitulo: est ? est.nome + ' passou ' + this.m(est.excedente) + ' do teto' : '',
+      fontes: fontesBase.map(c => {
+        const val = remVal(c.id);
+        const max = Math.round(c.liberado * 100) / 100;
+        const restanteFalta = Math.max(0, faltaRem - remSoma + val);
+        const sugerido = Math.round(Math.min(max, restanteFalta) * 100) / 100;
+        const setVal = v => {
+          const novo = Math.max(0, Math.min(max, Math.round(v * 100) / 100));
+          this.setState(st => ({ remanejo: { ...st.remanejo, [c.id]: novo } }));
+        };
+        const podeAtalho = sugerido > 0.004 || val > 0;
+        return {
+          nome: c.nome, icone: c.icone, cor: c.cor,
+          restanteStr: this.m(c.liberado),
+          valor: val, max,
+          valorStr: val > 0 ? this.m(val) : '—',
+          corValor: val > 0 ? '#14325a' : '#c4cad3',
+          borda: val > 0 ? 'rgba(20,50,90,0.45)' : 'rgba(0,0,0,0.06)',
+          podeAtalho,
+          tudoLabel: val >= sugerido - 0.004 && val > 0 ? 'Zerar' : 'Usar ' + this.m(sugerido),
+          menos: () => setVal(val - 50),
+          mais: () => setVal(Math.min(val + 50, max)),
+          tudo: () => { if (podeAtalho) setVal(val >= sugerido - 0.004 && val > 0 ? 0 : sugerido); },
+          mudar: e => setVal(Number(e.target.value))
+        };
+      }),
+      remSomaStr: this.m(Math.round(remSoma * 100) / 100),
+      remFaltaLabel: remSoma > faltaRem ? 'PASSOU DO NECESSÁRIO' : 'AINDA FALTA',
+      remFaltaStr: this.m(Math.max(0, Math.round(Math.abs(faltaRem - remSoma) * 100) / 100)),
+      remFaltaCor: remSoma > faltaRem ? '#ffb74d' : (remSoma >= faltaRem ? '#a5d6a7' : '#fff'),
+      remCorBotao: remSoma > 0 ? '#14325a' : '#aab2be',
+      remLabelBotao: remSoma > 0 ? 'Transferir ' + this.m(remSoma) + ' para ' + (est ? est.nome : '') : 'Escolha quanto tirar de cada uma',
+      confirmarRemanejo: () => {
+        if (!est || remSoma <= 0) { this.aviso('Defina o valor que sai de cada categoria.'); return; }
+        const usados = fontesBase.filter(c => remVal(c.id) > 0);
+        this.setState({
+          sheet: null, remanejo: {},
+          cats: s.cats.map(x => {
+            const u = usados.find(c => c.id === x.id);
+            if (u) return { ...x, teto: x.teto - remVal(u.id) };
+            if (x.id === est.id) return { ...x, teto: x.teto + remSoma };
+            return x;
+          })
+        });
+        const sobra = faltaRem - remSoma;
+        this.aviso(this.m(remSoma) + ' de ' + usados.length + (usados.length > 1 ? ' categorias' : ' categoria') + ' para ' + est.nome +
+          (sobra > 0.005 ? '. Ainda faltam ' + this.m(sobra) + '.' : '.'));
+      },
+      semFonte: fontesBase.length === 0,
+      logado: !s.auth,
+      telaLogin: s.auth === 'login',
+      telaCadastro: s.auth === 'cadastro',
+      authEmail: s.authEmail, authSenha: s.authSenha, authNome: s.authNome, authCasa: s.authCasa, authConvite: s.authConvite,
+      setAuthEmail: e => this.setState({ authEmail: e.target.value, authErro: '' }),
+      setAuthSenha: e => this.setState({ authSenha: e.target.value, authErro: '' }),
+      setAuthNome: e => this.setState({ authNome: e.target.value, authErro: '' }),
+      setAuthCasa: e => this.setState({ authCasa: e.target.value }),
+      setAuthConvite: e => this.setState({ authConvite: e.target.value }),
+      authErro: s.authErro,
+      corAuthErro: /enviado/.test(s.authErro) ? '#4c7d5a' : '#a04a4a',
+      iconeAuthErro: /enviado/.test(s.authErro) ? 'ti-mail-check' : 'ti-alert-circle',
+      tipoSenha: s.verSenha ? 'text' : 'password',
+      iconeSenha: s.verSenha ? 'ti-eye-off' : 'ti-eye',
+      toggleSenha: () => this.setState({ verSenha: !s.verSenha }),
+      entrar: () => {
+        if (!s.authEmail.includes('@')) { this.setState({ authErro: 'Digite um e-mail válido.' }); return; }
+        if (s.authSenha.length < 4) { this.setState({ authErro: 'Senha muito curta.' }); return; }
+        this.setState({ auth: null, authErro: '' });
+      },
+      entrarSocial: () => this.setState({ auth: null, authErro: '' }),
+      irEsqueci: () => this.setState({ authErro: s.authEmail.includes('@') ? 'Link de redefinição enviado para ' + s.authEmail + '.' : 'Digite seu e-mail e tocaremos o link para você.' }),
+      irCadastro: () => this.setState({ auth: 'cadastro', authPasso: 1, authErro: '' }),
+      irLogin: () => (s.authPasso === 2 ? this.setState({ authPasso: 1, authErro: '' }) : this.setState({ auth: 'login', authErro: '' })),
+      passo1: s.authPasso === 1,
+      passo2: s.authPasso === 2,
+      passoStr: s.authPasso + ' de 2',
+      passos: [1, 2].map(n => ({ bg: n <= s.authPasso ? '#14325a' : 'rgba(0,0,0,0.10)' })),
+      cadTitulo: s.authPasso === 1 ? 'Criar sua conta' : 'Sobre a casa',
+      cadSub: s.authPasso === 1
+        ? 'Uma conta por pessoa; o orçamento é compartilhado entre vocês.'
+        : 'Só o essencial para começar — categorias e contas você monta depois.',
+      cadBotao: s.authPasso === 1 ? 'Continuar' : 'Criar conta e entrar',
+      forcaBarras: [0, 1, 2].map(i => ({ bg: i < forca ? (forca === 1 ? '#a04a4a' : forca === 2 ? '#8a5a2b' : '#4c7d5a') : 'rgba(0,0,0,0.10)' })),
+      forcaLabel: forca === 0 ? '' : forca === 1 ? 'fraca' : forca === 2 ? 'média' : 'forte',
+      opcoesCiclo: ['Dia 1', 'Dia 5', 'Dia 10'].map(c => ({
+        label: c, usar: () => this.setState({ authCiclo: c }),
+        bg: s.authCiclo === c ? '#14325a' : '#fff',
+        fg: s.authCiclo === c ? '#fff' : '#14325a',
+        borda: s.authCiclo === c ? '#14325a' : 'rgba(0,0,0,0.12)'
+      })),
+      avancarCadastro: () => {
+        if (s.authPasso === 1) {
+          if (!s.authNome.trim()) { this.setState({ authErro: 'Diga como quer ser chamada.' }); return; }
+          if (!s.authEmail.includes('@')) { this.setState({ authErro: 'Digite um e-mail válido.' }); return; }
+          if (s.authSenha.length < 8) { this.setState({ authErro: 'A senha precisa de pelo menos 8 caracteres.' }); return; }
+          this.setState({ authPasso: 2, authErro: '' });
+        } else {
+          this.setState({ auth: null, authErro: '' });
+          this.aviso(s.authConvite ? 'Conta criada. Convite enviado para ' + s.authConvite + '.' : 'Conta criada. Bem-vinda!');
+        }
+      },
+      sheetLanc: s.sheet === 'lanc', sheetRemanejar: s.sheet === 'remanejar',
+      dataISO: s.dataISO || '2026-08-20',
+      dataChange: e => this.setState({ dataISO: e.target.value || '2026-08-20' }),
+      dataHint: (() => {
+        const iso = s.dataISO || '2026-08-20';
+        const rel = this.mesRelDe(iso);
+        const dia = Number(String(iso).split('-')[2]) || 20;
+        const n = Number(s.parcelas) || 1;
+        const base = rel < 0
+          ? 'Data em ' + MESES[(7 + rel + 12) % 12] + ': não consome o teto de agosto.'
+          : (dia === 20 ? 'Hoje.' : 'Retroativo: ' + (20 - dia) + (20 - dia === 1 ? ' dia atrás' : ' dias atrás') + '.');
+        return n > 1
+          ? base + ' ' + n + '× de ' + this.m(Math.round((s.centavos / 100 / n) * 100) / 100) + ' — só a 1ª parcela pesa neste mês.'
+          : base;
+      })(),
+      corDataHint: this.mesRelDe(s.dataISO || '2026-08-20') < 0 ? '#8a5a2b' : '#8b94a3',
+      parcTexto: String(s.parcelas === '' ? '' : (s.parcelas || 1)),
+      parcChange: e => {
+        const n = parseInt(String(e.target.value).replace(/\D/g, ''), 10);
+        this.setState({ parcelas: isNaN(n) ? '' : Math.min(48, Math.max(1, n)) });
+      },
+      parcMenos: () => this.setState({ parcelas: Math.max(1, (Number(s.parcelas) || 1) - 1) }),
+      parcMais: () => this.setState({ parcelas: Math.min(48, (Number(s.parcelas) || 1) + 1) }),
+      parcLabel: (Number(s.parcelas) || 1) > 1 ? 'de ' + this.m(Math.round((s.centavos / 100 / Number(s.parcelas)) * 100) / 100) : 'à vista',
+      sheetEditCat: s.sheet === 'editcat' && !!catEd,
+      editNome: catEd ? catEd.nome : '',
+      editNomeChange: e => this.patchCat(s.editCatId, { nome:e.target.value }),
+      coresOpcoes: CORES.map(cor => ({
+        cor,
+        anel: catEd && catEd.cor === cor ? '0 0 0 2px #f6f7f9, 0 0 0 4px #14325a' : 'inset 0 0 0 1px rgba(0,0,0,0.10)',
+        check: catEd && catEd.cor === cor ? 'ti-check' : 'ti-blank',
+        usar: () => this.patchCat(s.editCatId, { cor })
+      })),
+      iconesOpcoes: ICONES.map(icone => {
+        const sel = catEd && catEd.icone === icone;
+        return {
+          icone,
+          bg: sel ? (catEd.cor || '#14325a') : '#fff',
+          fg: sel ? '#fff' : '#5b6675',
+          anel: sel ? '0 0 0 2px #f6f7f9, 0 0 0 4px #14325a' : 'inset 0 0 0 1px rgba(0,0,0,0.10)',
+          usar: () => this.patchCat(s.editCatId, { icone })
+        };
+      }),
+      abertoAtalhos: s.dd === 'atalhos', abertoCats: s.dd === 'cats', abertoContas: s.dd === 'contas',
+      chevronAtalhos: s.dd === 'atalhos' ? 'ti-chevron-up' : 'ti-chevron-down',
+      chevronCats: s.dd === 'cats' ? 'ti-chevron-up' : 'ti-chevron-down',
+      chevronContas: s.dd === 'contas' ? 'ti-chevron-up' : 'ti-chevron-down',
+      bordaAtalhos: s.dd === 'atalhos' ? '#14325a' : 'rgba(0,0,0,0.12)',
+      bordaCats: s.dd === 'cats' ? '#14325a' : (s.catSel ? 'rgba(0,0,0,0.12)' : 'rgba(239,108,0,0.45)'),
+      bordaContas: s.dd === 'contas' ? '#14325a' : 'rgba(0,0,0,0.12)',
+      toggleAtalhos: () => this.toggleDd('atalhos'),
+      toggleCats: () => this.toggleDd('cats'),
+      toggleContas: () => this.toggleDd('contas'),
+      atalhoLabel: s.desc || 'Escolher um gasto frequente',
+      catSelLabel: s.catSel ? catSelNome : 'Escolher categoria',
+      catSelTextoCor: s.catSel ? '#14325a' : '#8b94a3',
+      catSelCor: s.catSel ? (catDe(s.catSel).cor || '#14325a') : '#c4cad3',
+      catSelIcone: s.catSel ? iconeDe(s.catSel) : 'ti-tag',
+      contaSelLabel: (s.contas.find(a => a.id === s.contaSel) || {}).nome || '',
+      contaSelCor: s.contaSel === 'cred' ? '#8a5a2b' : '#14325a',
+      contaSelIcone: (s.contas.find(a => a.id === s.contaSel) || {}).icone || 'ti-wallet',
+      valorDigitado: this.m(s.centavos / 100),
+      corValorDigitado: s.centavos ? '#14325a' : '#c4cad3',
+      resumoLanc: catSelNome + ' · ' + contaSelNome,
+      corSalvar: (s.centavos && s.catSel) ? '#14325a' : '#aab2be',
+      labelSalvar: s.centavos && s.catSel ? 'Salvar em ' + catSelNome : 'Salvar',
+      novaCat: s.novaCat,
+      sheetConta: s.sheet === 'conta' && !!cf,
+      contaTitulo: cf && cf.novo ? 'Nova conta' : 'Editar conta',
+      contaNome: cf ? cf.nome : '',
+      contaNomeChange: e => this.patchConta({ nome:e.target.value }),
+      tiposConta: TIPOS_CONTA.map(t => ({
+        ...t,
+        bg: cf && cf.tipo === t.id ? '#14325a' : '#fff',
+        fg: cf && cf.tipo === t.id ? '#fff' : '#5b6675',
+        anel: cf && cf.tipo === t.id ? '0 0 0 2px #f6f7f9, 0 0 0 4px #14325a' : 'inset 0 0 0 1px rgba(0,0,0,0.10)',
+        usar: () => this.patchConta({ tipo:t.id, icone: (cf && cf.novo) ? t.icone : cf.icone })
+      })),
+      contaValorLabel: cf && cf.tipo === 'credito' ? 'Limite do cartão' : 'Saldo atual',
+      contaValorSub: cf && cf.tipo === 'credito' ? 'entra no lastro junto com a conta' : (cf && cf.tipo === 'reserva' ? 'reservado para metas, fora do lastro' : 'saldo real de hoje'),
+      contaValorStr: this.m(cf ? cf.valor : 0),
+      contaValorMenos: () => this.patchConta({ valor: Math.max(0, (cf.valor || 0) - 100) }),
+      contaValorMais: () => this.patchConta({ valor: (cf.valor || 0) + 100 }),
+      iconesConta: ICONES_CONTA.map(icone => {
+        const sel = cf && cf.icone === icone;
+        return {
+          icone,
+          bg: sel ? '#14325a' : '#fff',
+          fg: sel ? '#fff' : '#5b6675',
+          anel: sel ? '0 0 0 2px #f6f7f9, 0 0 0 4px #14325a' : 'inset 0 0 0 1px rgba(0,0,0,0.10)',
+          usar: () => this.patchConta({ icone })
+        };
+      }),
+      contaCorBotao: cf && cf.nome && cf.nome.trim() ? '#14325a' : '#aab2be',
+      contaLabelBotao: cf && cf.novo ? 'Cadastrar conta' : 'Salvar alterações',
+      contaPodeExcluir: !!cf && !cf.novo && s.contas.length > 1,
+      novaConta: () => this.setState({ sheet:'conta', contaForm:{ id:'a' + Date.now(), nome:'', curto:'', tipo:'debito', icone:'ti-building-bank', valor:0, vencimento:8, fechamento:30, novo:true } }),
+      contaEhCartao: !!cf && cf.tipo === 'credito',
+      contaVencStr: cf ? 'dia ' + (cf.vencimento || 8) : '',
+      contaFechStr: cf ? 'dia ' + (cf.fechamento || 30) : '',
+      vencMenos: () => this.patchConta({ vencimento: ((cf.vencimento || 8) + 27) % 28 + 1 }),
+      vencMais: () => this.patchConta({ vencimento: (cf.vencimento || 8) % 28 + 1 }),
+      fechMenos: () => this.patchConta({ fechamento: ((cf.fechamento || 30) + 27) % 28 + 1 }),
+      fechMais: () => this.patchConta({ fechamento: (cf.fechamento || 30) % 28 + 1 }),
+      salvarConta: () => {
+        if (!cf || !cf.nome.trim()) { this.aviso('Dê um nome para a conta.'); return; }
+        const curto = cf.nome.trim().split(' ')[0];
+        const reg = { id:cf.id, nome:cf.nome.trim(), curto, tipo:cf.tipo, icone:cf.icone,
+          base: cf.tipo === 'credito' ? 0 : cf.valor, limite: cf.tipo === 'credito' ? cf.valor : 0,
+          vencimento: cf.vencimento || 8, fechamento: cf.fechamento || 30 };
+        this.setState({
+          sheet:null, contaForm:null,
+          contas: cf.novo ? [...s.contas, reg] : s.contas.map(a => a.id === cf.id ? { ...a, ...reg } : a)
+        });
+        this.aviso(cf.novo ? reg.nome + ' cadastrada.' : reg.nome + ' atualizada.');
+      },
+      excluirConta: () => {
+        if (s.lancs.some(l => l.conta === cf.id)) { this.aviso('Essa conta tem lançamentos. Mova-os antes de excluir.'); return; }
+        const resto = s.contas.filter(a => a.id !== cf.id);
+        this.setState({ sheet:null, contaForm:null, contas:resto, contaSel: s.contaSel === cf.id ? resto[0].id : s.contaSel });
+        this.aviso(cf.nome + ' excluída.');
+      },
+      abrirLancamento: () => this.setState({ sheet:'lanc', dd:null }),
+      abrirRemanejar: () => this.setState({ sheet:'remanejar', remanejo:{} }),
+      fecharSheet: () => this.setState({ sheet:null, dd:null, contaForm:null }),
+      fecharDd: () => { if (s.dd) this.setState({ dd:null }); },
+      fecharDetalhe: () => this.setState({ detalheId:null }),
+      excluirDetalhe: () => { this.setState({ lancs:s.lancs.filter(l => l.id !== s.detalheId), detalheId:null }); this.aviso('Lançamento excluído.'); },
+      salvar: this.salvarLanc,
+      prevMes: () => this.aviso('Julho fechado com sobra de R$ 640,00.'),
+      nextMes: () => this.aviso('Setembro ainda não começou.'),
+      voltarContas: () => this.ir('contas'),
+      pagarFaturaFoco: () => { if (cartaoFoco) pagar(cartaoFoco.id); },
+      recibo: () => this.aviso('Câmera abriria aqui para ler o recibo.'),
+      importar: () => this.aviso('Importação de extrato: 6 lançamentos para revisar.'),
+      limiteCartaoStr: this.m(limiteTotal),
+      limiteMenos: () => { if (cartaoFoco) this.setState({ contas: s.contas.map(a => a.id === cartaoFoco.id ? { ...a, limite:Math.max(0, (a.limite || 0) - 500) } : a) }); },
+      limiteMais: () => { if (cartaoFoco) this.setState({ contas: s.contas.map(a => a.id === cartaoFoco.id ? { ...a, limite:(a.limite || 0) + 500 } : a) }); },
+      rendaMenos: () => this.setState({ previsto: Math.max(0, s.previsto - 250) }),
+      rendaMais: () => this.setState({ previsto: s.previsto + 250 }),
+      novaCatChange: e => this.setState({ novaCat:e.target.value }),
+      addCat: () => { const n = s.novaCat.trim(); if (!n) return; this.setState({ novaCat:'', cats:[...s.cats, { id:'c' + Date.now(), nome:n, teto:200, icone:'ti-tag', cor:CORES[s.cats.length % CORES.length] }] }); this.aviso(n + ' criada. Toque nela para escolher ícone e cor.'); },
+      fecharMes: () => this.aviso('Agosto fechado. ' + this.m(disponivel) + ' movidos para a Reserva.')
+    };
+  }
+}
+
+</script>
+</body>
+</html>

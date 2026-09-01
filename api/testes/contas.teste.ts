@@ -209,11 +209,280 @@ describe('RN-07 — RESERVA fica fora do total "em conta hoje"', () => {
   });
 });
 
-describe('RN-06 — conta com lançamento não pode ser excluída', () => {
-  it('hoje NUNCA existe lançamento (a tabela é da EF-04): a checagem sempre libera a exclusão', async () => {
-    // Prova direta do ponto de extensão que a EF-04 vai preencher — ver o
-    // comentário de `contaPodeSerExcluida` em `modulos/contas/servico.ts`.
-    await expect(contaPodeSerExcluida(db, 'qualquer-id')).resolves.toBe(true);
+describe('saldo derivado — soma real de lançamentos (EF-04, tarefa #52)', () => {
+  it('RECEITA soma, DESPESA subtrai, numa conta DEBITO', async () => {
+    const familia = await criarFamiliaComMembro('Família saldo derivado A');
+    const cookie = await cookieDeSessao(familia.membroId);
+    const conta = await request(app)
+      .post('/contas')
+      .set('Cookie', cookie)
+      .send({ ...contaDebito, saldoInicialCentavos: 100000 });
+    const categoria = await request(app)
+      .post('/categorias')
+      .set('Cookie', cookie)
+      .send({ nome: 'Categoria saldo', icone: 'x', cor: '#000' });
+
+    await request(app).post('/lancamentos').set('Cookie', cookie).send({
+      tipo: 'RECEITA',
+      descricao: 'Salário',
+      valorCentavos: 50000,
+      data: '2026-08-01',
+      contaId: conta.body.id,
+    });
+    await request(app).post('/lancamentos').set('Cookie', cookie).send({
+      tipo: 'DESPESA',
+      descricao: 'Mercado',
+      valorCentavos: 20000,
+      data: '2026-08-02',
+      contaId: conta.body.id,
+      categoriaId: categoria.body.id,
+    });
+
+    const leitura = await request(app).get('/contas').set('Cookie', cookie);
+    const linha = leitura.body.contas.find((c: { id: string }) => c.id === conta.body.id);
+    expect(linha.saldoCentavos).toBe(100000 + 50000 - 20000);
+  });
+
+  it('TRANSFERENCIA move as duas pontas: origem perde, destino ganha (RN-17 — não é despesa)', async () => {
+    const familia = await criarFamiliaComMembro('Família saldo derivado B');
+    const cookie = await cookieDeSessao(familia.membroId);
+    const origem = await request(app)
+      .post('/contas')
+      .set('Cookie', cookie)
+      .send({ ...contaDebito, nome: 'Origem', saldoInicialCentavos: 30000 });
+    const destino = await request(app)
+      .post('/contas')
+      .set('Cookie', cookie)
+      .send({ ...contaReserva, nome: 'Destino', saldoInicialCentavos: 0 });
+
+    await request(app).post('/lancamentos').set('Cookie', cookie).send({
+      tipo: 'TRANSFERENCIA',
+      descricao: 'Guardar em meta',
+      valorCentavos: 12000,
+      data: '2026-08-03',
+      contaId: origem.body.id,
+      contaDestinoId: destino.body.id,
+    });
+
+    const leitura = await request(app).get('/contas').set('Cookie', cookie);
+    const linhaOrigem = leitura.body.contas.find((c: { id: string }) => c.id === origem.body.id);
+    const linhaDestino = leitura.body.contas.find((c: { id: string }) => c.id === destino.body.id);
+    expect(linhaOrigem.saldoCentavos).toBe(30000 - 12000);
+    expect(linhaDestino.saldoCentavos).toBe(0 + 12000);
+  });
+
+  it('EF-05/RN-25 — DESPESA numa conta CREDITO move o saldo derivado dela PARA NEGATIVO (dívida)', async () => {
+    // Até a EF-05 este teste esperava `saldoCentavos === 0` — CREDITO ficava
+    // travado em 0 de propósito, com um comentário apontando esta EF (ver
+    // `modulos/contas/servico.ts#expressaoSaldoDerivado`). A EF-05 ESTENDE
+    // esse ponto: agora uma DESPESA no cartão move `saldoCentavos` para
+    // NEGATIVO — é exatamente RN-25/D1, "o saldo exibido do cartão é a soma
+    // das faturas em aberto" (`.preator/skills/negocio/faturas-e-ciclo-do-cartao/SKILL.md`).
+    const familia = await criarFamiliaComMembro('Família saldo derivado C');
+    const cookie = await cookieDeSessao(familia.membroId);
+    const cartao = await request(app).post('/contas').set('Cookie', cookie).send(contaCredito);
+    const categoria = await request(app)
+      .post('/categorias')
+      .set('Cookie', cookie)
+      .send({ nome: 'Categoria RN-18', icone: 'x', cor: '#000' });
+
+    await request(app).post('/lancamentos').set('Cookie', cookie).send({
+      tipo: 'DESPESA',
+      descricao: 'Compra no crédito',
+      valorCentavos: 15000,
+      data: '2026-08-04',
+      contaId: cartao.body.id,
+      categoriaId: categoria.body.id,
+    });
+
+    const leitura = await request(app).get('/contas').set('Cookie', cookie);
+    const linha = leitura.body.contas.find((c: { id: string }) => c.id === cartao.body.id);
+    expect(linha.saldoCentavos).toBe(-15000);
+  });
+
+  it('EF-05/RN-24 — pagar (TRANSFERENCIA para o cartão) devolve o saldo da CREDITO para 0', async () => {
+    const familia = await criarFamiliaComMembro('Família saldo derivado D');
+    const cookie = await cookieDeSessao(familia.membroId);
+    const cartao = await request(app).post('/contas').set('Cookie', cookie).send(contaCredito);
+    const corrente = await request(app)
+      .post('/contas')
+      .set('Cookie', cookie)
+      .send({ ...contaDebito, nome: 'Corrente do pagamento', saldoInicialCentavos: 100000 });
+    const categoria = await request(app)
+      .post('/categorias')
+      .set('Cookie', cookie)
+      .send({ nome: 'Categoria pagamento', icone: 'x', cor: '#000' });
+
+    await request(app).post('/lancamentos').set('Cookie', cookie).send({
+      tipo: 'DESPESA',
+      descricao: 'Compra a pagar',
+      valorCentavos: 15000,
+      data: '2026-08-04',
+      contaId: cartao.body.id,
+      categoriaId: categoria.body.id,
+    });
+    // O pagamento em si é só uma TRANSFERENCIA comum — RN-24 não é mecânica
+    // nova de conta, é a MESMA transferência que já move as duas pontas.
+    await request(app).post('/lancamentos').set('Cookie', cookie).send({
+      tipo: 'TRANSFERENCIA',
+      descricao: 'Pagamento de fatura',
+      valorCentavos: 15000,
+      data: '2026-08-10',
+      contaId: corrente.body.id,
+      contaDestinoId: cartao.body.id,
+    });
+
+    const leitura = await request(app).get('/contas').set('Cookie', cookie);
+    const linhaCartao = leitura.body.contas.find((c: { id: string }) => c.id === cartao.body.id);
+    const linhaCorrente = leitura.body.contas.find((c: { id: string }) => c.id === corrente.body.id);
+    expect(linhaCartao.saldoCentavos).toBe(0);
+    expect(linhaCorrente.saldoCentavos).toBe(100000 - 15000);
+  });
+});
+
+describe('RN-07 (revisitada, EF-05) — o total "em conta hoje" continua ignorando a dívida do cartão', () => {
+  it('uma CREDITO com dívida (saldoCentavos negativo) NÃO reduz totalEmContaHojeCentavos', async () => {
+    // Guarda de regressão: `expressaoSaldoDerivado` mudou nesta EF (CREDITO
+    // deixou de estar travado em 0), mas RN-07 (EF-02, já mesclada) não é
+    // desta tarefa para alterar — o total precisa continuar igual ao que
+    // seria SEM a dívida do cartão (ver o comentário em
+    // `modulos/contas/servico.ts#totalEmContaHoje`).
+    const familia = await criarFamiliaComMembro('Família RN-07 revisitada');
+    const cookie = await cookieDeSessao(familia.membroId);
+    await request(app)
+      .post('/contas')
+      .set('Cookie', cookie)
+      .send({ ...contaDebito, saldoInicialCentavos: 10000 });
+    const cartao = await request(app).post('/contas').set('Cookie', cookie).send(contaCredito);
+    const categoria = await request(app)
+      .post('/categorias')
+      .set('Cookie', cookie)
+      .send({ nome: 'RN-07 revisitada categoria', icone: 'x', cor: '#000' });
+
+    await request(app).post('/lancamentos').set('Cookie', cookie).send({
+      tipo: 'DESPESA',
+      descricao: 'Compra grande no crédito',
+      valorCentavos: 999999,
+      data: '2026-08-04',
+      contaId: cartao.body.id,
+      categoriaId: categoria.body.id,
+    });
+
+    const resposta = await request(app).get('/contas').set('Cookie', cookie);
+    // Só a DEBITO (10000) — a dívida do cartão (−999999) NÃO entra aqui.
+    expect(resposta.body.totalEmContaHojeCentavos).toBe(10000);
+  });
+});
+
+describe('RN-06 — conta com lançamento não pode ser excluída (EF-02 §2, tarefa #52)', () => {
+  it('contaPodeSerExcluida devolve false quando a conta é ORIGEM/afetada de um lançamento', async () => {
+    const familia = await criarFamiliaComMembro('Família RN-06 origem');
+    const cookie = await cookieDeSessao(familia.membroId);
+    const conta = await request(app)
+      .post('/contas')
+      .set('Cookie', cookie)
+      .send({ ...contaDebito, nome: 'RN-06 conta com lançamento' });
+    const categoria = await request(app)
+      .post('/categorias')
+      .set('Cookie', cookie)
+      .send({ nome: 'RN-06 categoria', icone: 'x', cor: '#000' });
+
+    await request(app).post('/lancamentos').set('Cookie', cookie).send({
+      tipo: 'DESPESA',
+      descricao: 'RN-06 gasto',
+      valorCentavos: 100,
+      data: '2026-08-01',
+      contaId: conta.body.id,
+      categoriaId: categoria.body.id,
+    });
+
+    await expect(contaPodeSerExcluida(db, conta.body.id as string)).resolves.toBe(false);
+  });
+
+  it('contaPodeSerExcluida devolve false quando a conta é DESTINO de uma transferência', async () => {
+    const familia = await criarFamiliaComMembro('Família RN-06 destino');
+    const cookie = await cookieDeSessao(familia.membroId);
+    const origem = await request(app)
+      .post('/contas')
+      .set('Cookie', cookie)
+      .send({ ...contaDebito, nome: 'RN-06 origem' });
+    const destino = await request(app)
+      .post('/contas')
+      .set('Cookie', cookie)
+      .send({ ...contaReserva, nome: 'RN-06 destino' });
+
+    await request(app).post('/lancamentos').set('Cookie', cookie).send({
+      tipo: 'TRANSFERENCIA',
+      descricao: 'RN-06 transferência',
+      valorCentavos: 100,
+      data: '2026-08-01',
+      contaId: origem.body.id,
+      contaDestinoId: destino.body.id,
+    });
+
+    // A conta ORIGEM também não pode ser excluída — a checagem cobre as duas.
+    await expect(contaPodeSerExcluida(db, origem.body.id as string)).resolves.toBe(false);
+    // E a conta DESTINO — o cascade de `conta_destino_id` apagaria o mesmo
+    // lançamento em silêncio se esta checagem não existisse.
+    await expect(contaPodeSerExcluida(db, destino.body.id as string)).resolves.toBe(false);
+  });
+
+  it('DELETE /contas/:id de uma conta COM lançamento responde 409, e o lançamento continua lá', async () => {
+    const familia = await criarFamiliaComMembro('Família RN-06 HTTP');
+    const cookie = await cookieDeSessao(familia.membroId);
+    const conta = await request(app)
+      .post('/contas')
+      .set('Cookie', cookie)
+      .send({ ...contaDebito, nome: 'RN-06 conta HTTP' });
+    const categoria = await request(app)
+      .post('/categorias')
+      .set('Cookie', cookie)
+      .send({ nome: 'RN-06 categoria HTTP', icone: 'x', cor: '#000' });
+    const lancamento = await request(app).post('/lancamentos').set('Cookie', cookie).send({
+      tipo: 'DESPESA',
+      descricao: 'RN-06 gasto HTTP',
+      valorCentavos: 100,
+      data: '2026-08-01',
+      contaId: conta.body.id,
+      categoriaId: categoria.body.id,
+    });
+    const idDoLancamento = (lancamento.body.lancamentos as { id: string }[])[0]?.id;
+
+    const exclusao = await request(app).delete(`/contas/${conta.body.id}`).set('Cookie', cookie);
+    expect(exclusao.status).toBe(409);
+    expect(exclusao.body.erro).toBe('conta_com_lancamentos');
+
+    // A conta continua lá...
+    const contas = await request(app).get('/contas').set('Cookie', cookie);
+    expect((contas.body.contas as { id: string }[]).map(c => c.id)).toContain(conta.body.id);
+    // ...e o lançamento também — o cascade NÃO rodou.
+    const detalhe = await request(app).get(`/lancamentos/${idDoLancamento}`).set('Cookie', cookie);
+    expect(detalhe.status).toBe(200);
+  });
+
+  it('DELETE /contas/:id de uma conta que é DESTINO de transferência também responde 409', async () => {
+    const familia = await criarFamiliaComMembro('Família RN-06 HTTP destino');
+    const cookie = await cookieDeSessao(familia.membroId);
+    const origem = await request(app)
+      .post('/contas')
+      .set('Cookie', cookie)
+      .send({ ...contaDebito, nome: 'RN-06 HTTP origem' });
+    const destino = await request(app)
+      .post('/contas')
+      .set('Cookie', cookie)
+      .send({ ...contaReserva, nome: 'RN-06 HTTP destino' });
+    await request(app).post('/lancamentos').set('Cookie', cookie).send({
+      tipo: 'TRANSFERENCIA',
+      descricao: 'RN-06 transferência HTTP',
+      valorCentavos: 100,
+      data: '2026-08-01',
+      contaId: origem.body.id,
+      contaDestinoId: destino.body.id,
+    });
+
+    const exclusao = await request(app).delete(`/contas/${destino.body.id}`).set('Cookie', cookie);
+    expect(exclusao.status).toBe(409);
+    expect(exclusao.body.erro).toBe('conta_com_lancamentos');
   });
 
   it('uma conta sem lançamentos é excluída com 204', async () => {

@@ -1,20 +1,20 @@
 /**
- * RECUPERAR A SENHA ESQUECIDA — RN-12 a RN-16 (EF-01).
+ * RECUPERAR A SENHA ESQUECIDA — RN-52 a RN-56 (EF-01).
  *
  * O fluxo é o mesmo de sempre nesta EF: um código de 6 dígitos por email,
- * validado junto do email e com teto de tentativas (RN-10/RN-11). O que muda
+ * validado junto do email e com teto de tentativas (RN-50/RN-51). O que muda
  * são três coisas que a decisão do humano fechou, e cada uma tem consequência
  * neste arquivo:
  *
- *   RN-13  o PEDIDO nunca revela se a conta existe. Por isso `pedirRecuperacao`
+ *   RN-53  o PEDIDO nunca revela se a conta existe. Por isso `pedirRecuperacao`
  *          devolve `null` em vez de lançar quando não há ninguém — quem responde
  *          igual nos dois casos é a rota, e ela não tem como escorregar se aqui
  *          não houver erro para propagar.
- *   RN-15  quem só tinha Google ganha a identidade de SENHA aqui, com segredo
+ *   RN-55  quem só tinha Google ganha a identidade de SENHA aqui, com segredo
  *          nulo. Não é uma porta aberta: `conferirSenha(…, null)` é `false`,
  *          então essa linha não loga enquanto a recuperação não terminar.
- *   RN-16  concluir a recuperação PROVA o email — o código chegou nele. Se a
- *          identidade ainda estava por confirmar (RN-06), sai confirmada.
+ *   RN-56  concluir a recuperação PROVA o email — o código chegou nele. Se a
+ *          identidade ainda estava por confirmar (RN-46), sai confirmada.
  */
 import { and, eq } from 'drizzle-orm';
 

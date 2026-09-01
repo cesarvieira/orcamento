@@ -356,7 +356,7 @@
           },
           "expiraEm": {
             "type": "string",
-            "description": "ISO 8601 — quando o convite deixa de valer (RN-03)."
+            "description": "ISO 8601 — quando o convite deixa de valer (RN-43)."
           }
         },
         "required": [
@@ -377,7 +377,7 @@
           },
           "expiraEm": {
             "type": "string",
-            "description": "ISO 8601 — quando o convite deixa de valer (RN-03)."
+            "description": "ISO 8601 — quando o convite deixa de valer (RN-43)."
           }
         },
         "required": [
@@ -403,7 +403,7 @@
                 },
                 "expiraEm": {
                   "type": "string",
-                  "description": "ISO 8601 — quando o convite deixa de valer (RN-03)."
+                  "description": "ISO 8601 — quando o convite deixa de valer (RN-43)."
                 }
               },
               "required": [
@@ -1100,6 +1100,18 @@
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
             "description": "RN-10: teto − gasto. Negativo significa que a categoria estourou."
+          },
+          "liberadoCentavos": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "EF-06 RN-29/RN-32 (tarefa #76): disponível − bloqueado, depois do rateio pró-rata do déficit de lastro (EF-06 §5: bloqueado nunca excede o disponível, então isto nunca é negativo). O front NUNCA recalcula isto (CONTEXT.md, regra inviolável #4)."
+          },
+          "bloqueadoCentavos": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "EF-06 RN-29 (tarefa #76): fração do disponível \"congelada\" pró-rata pelo déficit de lastro. Nunca excede o disponível da categoria (piso em max(0, disponível), EF-06 §2)."
           }
         },
         "required": [
@@ -1109,7 +1121,9 @@
           "cor",
           "tetoCentavos",
           "gastoCentavos",
-          "disponivelCentavos"
+          "disponivelCentavos",
+          "liberadoCentavos",
+          "bloqueadoCentavos"
         ],
         "additionalProperties": false
       },
@@ -1142,6 +1156,24 @@
             "minimum": -9007199254740991,
             "maximum": 9007199254740991,
             "description": "RN-11: recebido − planejado."
+          },
+          "lastroCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "EF-06 §2 (tarefa #76): caixaReal (contas DEBITO) + limiteLivre (cartões). A base do cálculo de bloqueio de plano."
+          },
+          "deficitCentavos": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "EF-06 §2 (tarefa #76): max(0, restanteTotal das categorias − lastro)."
+          },
+          "liberadoTotalCentavos": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "EF-06 RN-30 (tarefa #76): max(0, restanteTotal − déficit). O número em destaque da home — o app nunca mostra o plano cheio como gastável quando há déficit."
           },
           "categorias": {
             "type": "array",
@@ -1177,6 +1209,18 @@
                   "minimum": -9007199254740991,
                   "maximum": 9007199254740991,
                   "description": "RN-10: teto − gasto. Negativo significa que a categoria estourou."
+                },
+                "liberadoCentavos": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "description": "EF-06 RN-29/RN-32 (tarefa #76): disponível − bloqueado, depois do rateio pró-rata do déficit de lastro (EF-06 §5: bloqueado nunca excede o disponível, então isto nunca é negativo). O front NUNCA recalcula isto (CONTEXT.md, regra inviolável #4)."
+                },
+                "bloqueadoCentavos": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "description": "EF-06 RN-29 (tarefa #76): fração do disponível \"congelada\" pró-rata pelo déficit de lastro. Nunca excede o disponível da categoria (piso em max(0, disponível), EF-06 §2)."
                 }
               },
               "required": [
@@ -1186,7 +1230,9 @@
                 "cor",
                 "tetoCentavos",
                 "gastoCentavos",
-                "disponivelCentavos"
+                "disponivelCentavos",
+                "liberadoCentavos",
+                "bloqueadoCentavos"
               ],
               "additionalProperties": false
             }
@@ -1198,6 +1244,9 @@
           "planejadoCentavos",
           "recebidoCentavos",
           "naoAlocadoCentavos",
+          "lastroCentavos",
+          "deficitCentavos",
+          "liberadoTotalCentavos",
           "categorias"
         ],
         "additionalProperties": false
@@ -1265,6 +1314,948 @@
           "valorCentavos",
           "autorMembroId",
           "criadoEm"
+        ],
+        "additionalProperties": false
+      },
+      "NovoLancamento": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "tipo": {
+                "type": "string",
+                "enum": [
+                  "RECEITA"
+                ]
+              },
+              "descricao": {
+                "type": "string",
+                "minLength": 1,
+                "description": "O que foi lançado, em texto livre."
+              },
+              "valorCentavos": {
+                "type": "integer",
+                "minimum": 0,
+                "exclusiveMinimum": true,
+                "maximum": 9007199254740991,
+                "description": "Inteiro em centavos (D-06). Em DESPESA parcelada, é o TOTAL da compra — o motor de parcelamento divide (RN-20/RN-21)."
+              },
+              "data": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "AAAA-MM-DD — quando aconteceu (distinta da competência, RN-15)."
+              },
+              "contaId": {
+                "type": "string",
+                "description": "A conta afetada (origem, em TRANSFERENCIA)."
+              }
+            },
+            "required": [
+              "tipo",
+              "descricao",
+              "valorCentavos",
+              "data",
+              "contaId"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "tipo": {
+                "type": "string",
+                "enum": [
+                  "DESPESA"
+                ]
+              },
+              "descricao": {
+                "type": "string",
+                "minLength": 1,
+                "description": "O que foi lançado, em texto livre."
+              },
+              "valorCentavos": {
+                "type": "integer",
+                "minimum": 0,
+                "exclusiveMinimum": true,
+                "maximum": 9007199254740991,
+                "description": "Inteiro em centavos (D-06). Em DESPESA parcelada, é o TOTAL da compra — o motor de parcelamento divide (RN-20/RN-21)."
+              },
+              "data": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "AAAA-MM-DD — quando aconteceu (distinta da competência, RN-15)."
+              },
+              "contaId": {
+                "type": "string",
+                "description": "A conta afetada (origem, em TRANSFERENCIA)."
+              },
+              "categoriaId": {
+                "type": "string",
+                "description": "Obrigatório em DESPESA (EF-04 §1)."
+              },
+              "quantidadeParcelas": {
+                "description": "RN-20 — até 48×. Ausente (ou 1, que esta forma nem aceita) é despesa avulsa, sem SerieParcelas.",
+                "type": "integer",
+                "minimum": 2,
+                "maximum": 48
+              }
+            },
+            "required": [
+              "tipo",
+              "descricao",
+              "valorCentavos",
+              "data",
+              "contaId",
+              "categoriaId"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "tipo": {
+                "type": "string",
+                "enum": [
+                  "TRANSFERENCIA"
+                ]
+              },
+              "descricao": {
+                "type": "string",
+                "minLength": 1,
+                "description": "O que foi lançado, em texto livre."
+              },
+              "valorCentavos": {
+                "type": "integer",
+                "minimum": 0,
+                "exclusiveMinimum": true,
+                "maximum": 9007199254740991,
+                "description": "Inteiro em centavos (D-06). Em DESPESA parcelada, é o TOTAL da compra — o motor de parcelamento divide (RN-20/RN-21)."
+              },
+              "data": {
+                "type": "string",
+                "format": "date",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+                "description": "AAAA-MM-DD — quando aconteceu (distinta da competência, RN-15)."
+              },
+              "contaId": {
+                "type": "string",
+                "description": "A conta afetada (origem, em TRANSFERENCIA)."
+              },
+              "contaDestinoId": {
+                "type": "string",
+                "description": "Para onde o dinheiro vai. Não pode ser igual a contaId (fork 3/#52 — 400, validação de entrada)."
+              }
+            },
+            "required": [
+              "tipo",
+              "descricao",
+              "valorCentavos",
+              "data",
+              "contaId",
+              "contaDestinoId"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "Lancamento": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "tipo": {
+            "type": "string",
+            "enum": [
+              "RECEITA",
+              "DESPESA",
+              "TRANSFERENCIA"
+            ]
+          },
+          "descricao": {
+            "type": "string"
+          },
+          "valorCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "data": {
+            "type": "string",
+            "description": "AAAA-MM-DD."
+          },
+          "competencia": {
+            "type": "string",
+            "description": "AAAA-MM — calculada na escrita (RN-15)."
+          },
+          "categoriaId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "contaId": {
+            "type": "string"
+          },
+          "contaDestinoId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "criadoPorMembroId": {
+            "type": "string",
+            "description": "RN-16 — imutável."
+          },
+          "serieParcelaId": {
+            "nullable": true,
+            "description": "RN-20/RN-21 — nulo fora de parcelamento.",
+            "type": "string"
+          },
+          "numeroParcela": {
+            "nullable": true,
+            "description": "1-baseado; nulo fora de parcelamento.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "quantidadeParcelas": {
+            "nullable": true,
+            "description": "O total de parcelas da série (series_parcelas.quantidade) — a CONTAGEM da compra original (RN-20/RN-21), imutável à exclusão de parcela (#52), igual a criadoPorMembroId (RN-16). Nulo fora de parcelamento, igual a numeroParcela/serieParcelaId.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "criadoEm": {
+            "type": "string",
+            "description": "ISO 8601."
+          }
+        },
+        "required": [
+          "id",
+          "tipo",
+          "descricao",
+          "valorCentavos",
+          "data",
+          "competencia",
+          "categoriaId",
+          "contaId",
+          "contaDestinoId",
+          "criadoPorMembroId",
+          "serieParcelaId",
+          "numeroParcela",
+          "quantidadeParcelas",
+          "criadoEm"
+        ],
+        "additionalProperties": false
+      },
+      "LancamentosListados": {
+        "type": "object",
+        "properties": {
+          "lancamentos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "tipo": {
+                  "type": "string",
+                  "enum": [
+                    "RECEITA",
+                    "DESPESA",
+                    "TRANSFERENCIA"
+                  ]
+                },
+                "descricao": {
+                  "type": "string"
+                },
+                "valorCentavos": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "data": {
+                  "type": "string",
+                  "description": "AAAA-MM-DD."
+                },
+                "competencia": {
+                  "type": "string",
+                  "description": "AAAA-MM — calculada na escrita (RN-15)."
+                },
+                "categoriaId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "contaId": {
+                  "type": "string"
+                },
+                "contaDestinoId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "criadoPorMembroId": {
+                  "type": "string",
+                  "description": "RN-16 — imutável."
+                },
+                "serieParcelaId": {
+                  "nullable": true,
+                  "description": "RN-20/RN-21 — nulo fora de parcelamento.",
+                  "type": "string"
+                },
+                "numeroParcela": {
+                  "nullable": true,
+                  "description": "1-baseado; nulo fora de parcelamento.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "quantidadeParcelas": {
+                  "nullable": true,
+                  "description": "O total de parcelas da série (series_parcelas.quantidade) — a CONTAGEM da compra original (RN-20/RN-21), imutável à exclusão de parcela (#52), igual a criadoPorMembroId (RN-16). Nulo fora de parcelamento, igual a numeroParcela/serieParcelaId.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "criadoEm": {
+                  "type": "string",
+                  "description": "ISO 8601."
+                }
+              },
+              "required": [
+                "id",
+                "tipo",
+                "descricao",
+                "valorCentavos",
+                "data",
+                "competencia",
+                "categoriaId",
+                "contaId",
+                "contaDestinoId",
+                "criadoPorMembroId",
+                "serieParcelaId",
+                "numeroParcela",
+                "quantidadeParcelas",
+                "criadoEm"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "lancamentos"
+        ],
+        "additionalProperties": false
+      },
+      "ModoDeExclusao": {
+        "type": "string",
+        "enum": [
+          "esta",
+          "todas",
+          "a-partir-desta"
+        ]
+      },
+      "ItemDeFatura": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "descricao": {
+            "type": "string"
+          },
+          "valorCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "data": {
+            "type": "string",
+            "description": "AAAA-MM-DD."
+          },
+          "categoriaId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "numeroParcela": {
+            "nullable": true,
+            "description": "1-baseado; nulo fora de parcelamento.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "quantidadeParcelas": {
+            "nullable": true,
+            "description": "O total de parcelas da série (RN-20/RN-21). Nulo fora de parcelamento.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "descricao",
+          "valorCentavos",
+          "data",
+          "categoriaId",
+          "numeroParcela",
+          "quantidadeParcelas"
+        ],
+        "additionalProperties": false
+      },
+      "Fatura": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "contaId": {
+            "type": "string"
+          },
+          "abreEm": {
+            "type": "string",
+            "description": "AAAA-MM-DD — primeiro dia do ciclo."
+          },
+          "fechaEm": {
+            "type": "string",
+            "description": "AAAA-MM-DD — RN-23: dia em que o ciclo encerra."
+          },
+          "venceEm": {
+            "type": "string",
+            "description": "AAAA-MM-DD — dia em que a fatura deve ser paga."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ABERTA",
+              "FECHADA",
+              "PAGA"
+            ]
+          },
+          "totalCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Derivado: Σ dos lançamentos DESPESA da conta com data em [abreEm, fechaEm]. Nunca materializado."
+          },
+          "pagaEm": {
+            "nullable": true,
+            "description": "ISO 8601. RN-24 — só preenchido quando status = PAGA.",
+            "type": "string"
+          },
+          "pagaComContaId": {
+            "nullable": true,
+            "description": "RN-24/D3 — a conta escolhida pelo usuário ao pagar.",
+            "type": "string"
+          },
+          "itens": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "descricao": {
+                  "type": "string"
+                },
+                "valorCentavos": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "data": {
+                  "type": "string",
+                  "description": "AAAA-MM-DD."
+                },
+                "categoriaId": {
+                  "nullable": true,
+                  "type": "string"
+                },
+                "numeroParcela": {
+                  "nullable": true,
+                  "description": "1-baseado; nulo fora de parcelamento.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "quantidadeParcelas": {
+                  "nullable": true,
+                  "description": "O total de parcelas da série (RN-20/RN-21). Nulo fora de parcelamento.",
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "id",
+                "descricao",
+                "valorCentavos",
+                "data",
+                "categoriaId",
+                "numeroParcela",
+                "quantidadeParcelas"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "id",
+          "contaId",
+          "abreEm",
+          "fechaEm",
+          "venceEm",
+          "status",
+          "totalCentavos",
+          "pagaEm",
+          "pagaComContaId",
+          "itens"
+        ],
+        "additionalProperties": false
+      },
+      "FaturasDoCartao": {
+        "type": "object",
+        "properties": {
+          "contaId": {
+            "type": "string"
+          },
+          "limiteCentavos": {
+            "nullable": true,
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "limiteLivreCentavos": {
+            "nullable": true,
+            "description": "RN-26: limite − Σ(fatura em aberto, D1 — ABERTA + FECHADA, nunca só o ciclo corrente).",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "faturas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "contaId": {
+                  "type": "string"
+                },
+                "abreEm": {
+                  "type": "string",
+                  "description": "AAAA-MM-DD — primeiro dia do ciclo."
+                },
+                "fechaEm": {
+                  "type": "string",
+                  "description": "AAAA-MM-DD — RN-23: dia em que o ciclo encerra."
+                },
+                "venceEm": {
+                  "type": "string",
+                  "description": "AAAA-MM-DD — dia em que a fatura deve ser paga."
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "ABERTA",
+                    "FECHADA",
+                    "PAGA"
+                  ]
+                },
+                "totalCentavos": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Derivado: Σ dos lançamentos DESPESA da conta com data em [abreEm, fechaEm]. Nunca materializado."
+                },
+                "pagaEm": {
+                  "nullable": true,
+                  "description": "ISO 8601. RN-24 — só preenchido quando status = PAGA.",
+                  "type": "string"
+                },
+                "pagaComContaId": {
+                  "nullable": true,
+                  "description": "RN-24/D3 — a conta escolhida pelo usuário ao pagar.",
+                  "type": "string"
+                },
+                "itens": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "descricao": {
+                        "type": "string"
+                      },
+                      "valorCentavos": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "data": {
+                        "type": "string",
+                        "description": "AAAA-MM-DD."
+                      },
+                      "categoriaId": {
+                        "nullable": true,
+                        "type": "string"
+                      },
+                      "numeroParcela": {
+                        "nullable": true,
+                        "description": "1-baseado; nulo fora de parcelamento.",
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      },
+                      "quantidadeParcelas": {
+                        "nullable": true,
+                        "description": "O total de parcelas da série (RN-20/RN-21). Nulo fora de parcelamento.",
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "descricao",
+                      "valorCentavos",
+                      "data",
+                      "categoriaId",
+                      "numeroParcela",
+                      "quantidadeParcelas"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              },
+              "required": [
+                "id",
+                "contaId",
+                "abreEm",
+                "fechaEm",
+                "venceEm",
+                "status",
+                "totalCentavos",
+                "pagaEm",
+                "pagaComContaId",
+                "itens"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "contaId",
+          "limiteCentavos",
+          "limiteLivreCentavos",
+          "faturas"
+        ],
+        "additionalProperties": false
+      },
+      "PagarFatura": {
+        "type": "object",
+        "properties": {
+          "pagaComContaId": {
+            "type": "string",
+            "description": "D3 — a conta escolhida pelo usuário para pagar esta fatura."
+          },
+          "data": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+            "description": "AAAA-MM-DD — quando o pagamento aconteceu, do CLIENTE (D6). Decide a competência (RN-15)."
+          }
+        },
+        "required": [
+          "pagaComContaId",
+          "data"
+        ],
+        "additionalProperties": false
+      },
+      "NovaMeta": {
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Nome do cofrinho, escolhido pela família."
+          },
+          "alvoCentavos": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991,
+            "description": "Quanto a família pretende juntar (D-06 — inteiro em centavos). EF-07 §1."
+          }
+        },
+        "required": [
+          "nome",
+          "alvoCentavos"
+        ],
+        "additionalProperties": false
+      },
+      "AtualizarMeta": {
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Nome do cofrinho, escolhido pela família."
+          },
+          "alvoCentavos": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991,
+            "description": "Quanto a família pretende juntar (D-06 — inteiro em centavos). EF-07 §1."
+          }
+        },
+        "required": [
+          "nome",
+          "alvoCentavos"
+        ],
+        "additionalProperties": false
+      },
+      "Meta": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "alvoCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "contaReservaId": {
+            "type": "string",
+            "description": "D3 — a conta RESERVA própria deste cofrinho, 1:1."
+          },
+          "acumuladoCentavos": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991,
+            "description": "Derivado: soma das TRANSFERENCIA cujo contaDestinoId é contaReservaId. Nunca materializado (EF-07 §1)."
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "alvoCentavos",
+          "contaReservaId",
+          "acumuladoCentavos"
+        ],
+        "additionalProperties": false
+      },
+      "MetasListadas": {
+        "type": "object",
+        "properties": {
+          "metas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "nome": {
+                  "type": "string"
+                },
+                "alvoCentavos": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "contaReservaId": {
+                  "type": "string",
+                  "description": "D3 — a conta RESERVA própria deste cofrinho, 1:1."
+                },
+                "acumuladoCentavos": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991,
+                  "description": "Derivado: soma das TRANSFERENCIA cujo contaDestinoId é contaReservaId. Nunca materializado (EF-07 §1)."
+                }
+              },
+              "required": [
+                "id",
+                "nome",
+                "alvoCentavos",
+                "contaReservaId",
+                "acumuladoCentavos"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "metas"
+        ],
+        "additionalProperties": false
+      },
+      "Guardar": {
+        "type": "object",
+        "properties": {
+          "contaOrigemId": {
+            "type": "string",
+            "description": "D2 — a conta DEBITO escolhida pelo usuário para guardar."
+          },
+          "valorCentavos": {
+            "type": "integer",
+            "minimum": 0,
+            "exclusiveMinimum": true,
+            "maximum": 9007199254740991,
+            "description": "Quanto guardar (D-06 — inteiro em centavos). Sujeito ao teto de RN-34/D1."
+          },
+          "data": {
+            "type": "string",
+            "format": "date",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$",
+            "description": "AAAA-MM-DD — quando o ato aconteceu, do CLIENTE (D6). A competência de RN-34/D1 é calculada a partir DESTA data (RN-15), nunca do relógio do servidor."
+          }
+        },
+        "required": [
+          "contaOrigemId",
+          "valorCentavos",
+          "data"
+        ],
+        "additionalProperties": false
+      },
+      "CategoriaEstourada": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "nome": {
+            "type": "string"
+          },
+          "disponivelCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "id",
+          "nome",
+          "disponivelCentavos"
+        ],
+        "additionalProperties": false
+      },
+      "ResumoFechamento": {
+        "type": "object",
+        "properties": {
+          "competencia": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}$"
+          },
+          "recebidoCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "planejadoCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "gastoCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "sobraProjetadaCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "categoriasEstouradas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "nome": {
+                  "type": "string"
+                },
+                "disponivelCentavos": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "id",
+                "nome",
+                "disponivelCentavos"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "aberto",
+              "fechado"
+            ]
+          },
+          "fechadoEm": {
+            "nullable": true,
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "autorMembroId": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "competencia",
+          "recebidoCentavos",
+          "planejadoCentavos",
+          "gastoCentavos",
+          "sobraProjetadaCentavos",
+          "categoriasEstouradas",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "FechamentoMes": {
+        "type": "object",
+        "properties": {
+          "competencia": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}$"
+          },
+          "sobraCentavos": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "fechadoEm": {
+            "type": "string",
+            "format": "date-time",
+            "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$"
+          },
+          "autorMembroId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "competencia",
+          "sobraCentavos",
+          "fechadoEm",
+          "autorMembroId"
         ],
         "additionalProperties": false
       }
@@ -1644,7 +2635,7 @@
             }
           },
           "401": {
-            "description": "Código do convite incorreto (RN-10), código do Google inválido ou email não verificado",
+            "description": "Código do convite incorreto (RN-50), código do Google inválido ou email não verificado",
             "content": {
               "application/json": {
                 "schema": {
@@ -1674,7 +2665,7 @@
             }
           },
           "410": {
-            "description": "Convite expirado (RN-03)",
+            "description": "Convite expirado (RN-43)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1694,7 +2685,7 @@
             }
           },
           "429": {
-            "description": "Código invalidado por excesso de tentativas (RN-11)",
+            "description": "Código invalidado por excesso de tentativas (RN-51)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1788,7 +2779,7 @@
             }
           },
           "401": {
-            "description": "Código incorreto (RN-10)",
+            "description": "Código incorreto (RN-50)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1808,7 +2799,7 @@
             }
           },
           "410": {
-            "description": "Código expirado (RN-09)",
+            "description": "Código expirado (RN-49)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1828,7 +2819,7 @@
             }
           },
           "429": {
-            "description": "Código invalidado por excesso de tentativas (RN-11)",
+            "description": "Código invalidado por excesso de tentativas (RN-51)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1863,7 +2854,7 @@
             "description": "Convite recusado"
           },
           "401": {
-            "description": "Código incorreto (RN-10)",
+            "description": "Código incorreto (RN-50)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1893,7 +2884,7 @@
             }
           },
           "410": {
-            "description": "Convite expirado (RN-03)",
+            "description": "Convite expirado (RN-43)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1913,7 +2904,7 @@
             }
           },
           "429": {
-            "description": "Código invalidado por excesso de tentativas (RN-11)",
+            "description": "Código invalidado por excesso de tentativas (RN-51)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1945,7 +2936,7 @@
         "security": [],
         "responses": {
           "202": {
-            "description": "Pedido aceito — resposta idêntica exista ou não a conta (RN-13)",
+            "description": "Pedido aceito — resposta idêntica exista ou não a conta (RN-53)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1997,7 +2988,7 @@
             }
           },
           "401": {
-            "description": "Código incorreto (RN-12)",
+            "description": "Código incorreto (RN-52)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2037,7 +3028,7 @@
             }
           },
           "429": {
-            "description": "Código invalidado por excesso de tentativas (RN-11)",
+            "description": "Código invalidado por excesso de tentativas (RN-51)",
             "content": {
               "application/json": {
                 "schema": {
@@ -2749,6 +3740,896 @@
           },
           "422": {
             "description": "Corpo ou competência inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lancamentos": {
+      "post": {
+        "summary": "Registra um lançamento (RECEITA, DESPESA ou TRANSFERENCIA) na família da sessão. DESPESA com quantidadeParcelas > 1 gera uma SerieParcelas e N lançamentos (RN-20/RN-21).",
+        "tags": [
+          "lancamentos"
+        ],
+        "operationId": "post_lancamentos",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovoLancamento"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Lançamento(s) criado(s)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LancamentosListados"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "contaId igual a contaDestinoId (fork 3/#52)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conta ou categoria inexistente nesta família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Competência selada (RN-22, EF-08)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "Lista os lançamentos da família da sessão (extrato), com filtro opcional de competência e conta",
+        "tags": [
+          "lancamentos"
+        ],
+        "operationId": "get_lancamentos",
+        "parameters": [
+          {
+            "name": "competencia",
+            "in": "query",
+            "required": false,
+            "description": "Filtra o extrato pela competência, no formato AAAA-MM.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "contaId",
+            "in": "query",
+            "required": false,
+            "description": "Filtra o extrato pelos lançamentos desta conta.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Os lançamentos da família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LancamentosListados"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Competência fora do formato AAAA-MM",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/lancamentos/{id}": {
+      "get": {
+        "summary": "O detalhe de um lançamento da família da sessão",
+        "tags": [
+          "lancamentos"
+        ],
+        "operationId": "get_lancamentos__id_",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "O lançamento",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Lancamento"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lançamento inexistente nesta família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Apaga um lançamento da família da sessão. ?modo escolhe o alcance quando ele é parcela de uma série: esta (default) · todas · a-partir-desta (fork 1/#52)",
+        "tags": [
+          "lancamentos"
+        ],
+        "operationId": "delete_lancamentos__id_",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "modo",
+            "in": "query",
+            "required": false,
+            "description": "Alcance da exclusão quando o lançamento é parcela de uma série: esta (default) · todas · a-partir-desta (fork 1/#52).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "esta",
+                "todas",
+                "a-partir-desta"
+              ]
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Lançamento(s) apagado(s)"
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Lançamento inexistente nesta família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "modo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/faturas": {
+      "get": {
+        "summary": "A(s) fatura(s) em aberto (D1: status ABERTA + FECHADA, nunca PAGA) do cartão informado — ciclo, itens e limite livre (RN-23/RN-25/RN-26)",
+        "tags": [
+          "faturas"
+        ],
+        "operationId": "get_faturas",
+        "parameters": [
+          {
+            "name": "contaId",
+            "in": "query",
+            "required": true,
+            "description": "O cartão (conta CREDITO) cuja fatura se quer ver.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "hoje",
+            "in": "query",
+            "required": true,
+            "description": "AAAA-MM-DD — o dia corrente do CLIENTE (D6, tarefa #91), que decide ABERTA/FECHADA. Nunca inferido do relógio do servidor.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A view de fatura do cartão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FaturasDoCartao"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conta inexistente nesta família, ou não é um cartão (CREDITO)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "contaId ausente, ou hoje ausente/fora do formato AAAA-MM-DD",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/faturas/{id}/pagar": {
+      "post": {
+        "summary": "Paga uma fatura — gera uma TRANSFERENCIA da conta escolhida (D3) para o cartão (RN-24); os lançamentos originais mantêm sua conta (não reatribui nada).",
+        "tags": [
+          "faturas"
+        ],
+        "operationId": "post_faturas__id__pagar",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PagarFatura"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Fatura paga",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Fatura"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A conta pagadora é o próprio cartão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Fatura ou conta pagadora inexistente nesta família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Fatura já paga, ou sem valor a pagar",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metas": {
+      "get": {
+        "summary": "Os cofrinhos da família da sessão, com o acumulado derivado (EF-07 §1)",
+        "tags": [
+          "metas"
+        ],
+        "operationId": "get_metas",
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Os cofrinhos da família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetasListadas"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Cria um cofrinho na família da sessão — D3: junto, cria a conta RESERVA dele (saldo inicial 0)",
+        "tags": [
+          "metas"
+        ],
+        "operationId": "post_metas",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NovaMeta"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Cofrinho criado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meta"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metas/{id}": {
+      "patch": {
+        "summary": "Atualiza nome e alvo de um cofrinho da família da sessão (a conta RESERVA vinculada nunca muda, D3)",
+        "tags": [
+          "metas"
+        ],
+        "operationId": "patch_metas__id_",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AtualizarMeta"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cofrinho atualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meta"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Cofrinho inexistente nesta família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Apaga um cofrinho da família da sessão e a conta RESERVA vinculada, se nunca recebeu transferência",
+        "tags": [
+          "metas"
+        ],
+        "operationId": "delete_metas__id_",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Cofrinho apagado"
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Cofrinho inexistente nesta família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "O cofrinho já recebeu alguma transferência (guardou ≥ 1 vez) e não pode ser apagado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/metas/{id}/guardar": {
+      "post": {
+        "summary": "Guarda dinheiro num cofrinho — gera uma TRANSFERENCIA real (RN-33) da conta DEBITO escolhida (D2) para a conta RESERVA do cofrinho, dentro do não alocado da competência (RN-34/D1)",
+        "tags": [
+          "metas"
+        ],
+        "operationId": "post_metas__id__guardar",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Guardar"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Guardado — o cofrinho com o acumulado atualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Meta"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A conta de origem informada não é uma conta DEBITO",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Cofrinho ou conta de origem inexistente nesta família",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "RN-34/D1 — o valor excede o não alocado da competência (ou o não alocado já é ≤ 0)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Corpo inválido",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/competencias/{competencia}/fechamento": {
+      "get": {
+        "summary": "Resumo da competência para o fechamento (recebido, planejado, gasto, sobra projetada, categorias estouradas e status)",
+        "tags": [
+          "fechamento"
+        ],
+        "operationId": "get_competencias__competencia__fechamento",
+        "parameters": [
+          {
+            "name": "competencia",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resumo do fechamento da competência",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResumoFechamento"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Competência fora do formato AAAA-MM",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/competencias/{competencia}/fechar": {
+      "post": {
+        "summary": "Realiza o fechamento da competência, selando-a e apurando a sobra que vai para o lastro do próximo mês.",
+        "tags": [
+          "fechamento"
+        ],
+        "operationId": "post_competencias__competencia__fechar",
+        "parameters": [
+          {
+            "name": "competencia",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "cookieDeSessao": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Competência fechada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FechamentoMes"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Competência já se encontra fechada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Sem sessão",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Erro"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Competência fora do formato AAAA-MM",
             "content": {
               "application/json": {
                 "schema": {

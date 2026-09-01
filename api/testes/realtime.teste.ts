@@ -108,6 +108,46 @@ describe('tempo real', () => {
     expect(recebidoPorB).toHaveLength(0);
   });
 
+  it('os DOIS clientes da MESMA família recebem o evento, sem refresh', async () => {
+    // Duas SESSÕES distintas do mesmo membro — dois cookies, dois sockets
+    // reais. O ponto não é "o mesmo socket duas vezes": é provar que a sala
+    // `familia:<id>` propaga para todo mundo dentro dela, não só para quem
+    // a invalidação "pertence".
+    const cookieOutraSessao = await cookieDeSessao(familiaA.membroId);
+
+    const socket1 = conectar(cookieA);
+    const socket2 = conectar(cookieOutraSessao);
+    await Promise.all([esperarConexao(socket1), esperarConexao(socket2)]);
+
+    const recebidoPor1: Record<string, unknown>[] = [];
+    const recebidoPor2: Record<string, unknown>[] = [];
+    socket1.on('recurso.alterado', e => recebidoPor1.push(e));
+    socket2.on('recurso.alterado', e => recebidoPor2.push(e));
+
+    emitirInvalidacao({
+      familiaId: familiaA.familiaId,
+      recurso: 'lancamentos',
+      competencia: '2026-08',
+      // R5: o `origemClienteId` é filtrado no CLIENTE, não no servidor — o
+      // servidor não sabe (nem deve saber) qual socket "é" este cliente.
+      // Por isso os DOIS recebem, mesmo o que "seria" a origem.
+      origemClienteId: 'cliente-que-agiu',
+    });
+
+    await new Promise(r => setTimeout(r, 400));
+
+    expect(recebidoPor1).toHaveLength(1);
+    expect(recebidoPor2).toHaveLength(1);
+    expect(recebidoPor1[0]).toMatchObject({
+      recurso: 'lancamentos',
+      competencia: '2026-08',
+    });
+    expect(recebidoPor2[0]).toMatchObject({
+      recurso: 'lancamentos',
+      competencia: '2026-08',
+    });
+  });
+
   it('o evento carrega INVALIDAÇÃO, não estado derivado (R3)', async () => {
     const socket = conectar(cookieA);
     await esperarConexao(socket);
