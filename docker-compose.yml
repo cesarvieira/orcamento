@@ -53,6 +53,14 @@ services:
       SEMEAR: ${SEMEAR:-true}
       PREATOR_TEST_USER: ${PREATOR_TEST_USER:-ana@exemplo.test}
       PREATOR_TEST_PASS: ${PREATOR_TEST_PASS:-orcamento-teste}
+      # Segunda barreira contra a guarda de NODE_ENV=production (história
+      # #120): a stack de prova É a de produção (D-02) e roda com
+      # SEMEAR=true de propósito. Default `false` é a decisão — produção usa
+      # este mesmo arquivo e nunca define esta variável, então fica
+      # protegida por código; só quem sobe a stack de PROVA a liga, e é o
+      # COMANDO do gate quem declara isso (preator-perfil.sh), nunca este
+      # arquivo versionado.
+      AMBIENTE_DE_PROVA: ${AMBIENTE_DE_PROVA:-false}
     depends_on:
       postgres:
         condition: service_healthy

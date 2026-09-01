@@ -264,7 +264,13 @@ echo "preator-perfil.sh: banco de teste derivado = ${BANCO_TESTE_DERIVADO} (orig
 
 unset __pf_dir __pf_pasta __pf_proj_raw __pf_base __pf_n __pf_hash __pf_origem __pf_porta __pf_dono __pf_banco_sufixo
 
-STACK_UP_CMD="API_PORT=$API_PORT FRONT_PORT=$FRONT_PORT POSTGRES_PORT=$POSTGRES_PORT API_BASE_PUBLICA=http://localhost:$API_PORT ORIGEM_WEB=http://localhost:$FRONT_PORT docker compose -f $COMPOSE -p $PROJETO_COMPOSE up -d --build"
+# AMBIENTE_DE_PROVA=true: segunda barreira contra a guarda de
+# NODE_ENV=production (história #120, D-09). A stack que os gates sobem É a
+# de produção (D-02) e roda com SEMEAR=true de propósito — sem isto o
+# `migrate` cairia na guarda como se fosse produção de verdade. Quem declara
+# a stack de prova é este COMANDO, nunca o docker-compose.yml versionado: o
+# default lá é `false`.
+STACK_UP_CMD="API_PORT=$API_PORT FRONT_PORT=$FRONT_PORT POSTGRES_PORT=$POSTGRES_PORT API_BASE_PUBLICA=http://localhost:$API_PORT ORIGEM_WEB=http://localhost:$FRONT_PORT AMBIENTE_DE_PROVA=true docker compose -f $COMPOSE -p $PROJETO_COMPOSE up -d --build"
 STACK_DOWN_CMD="docker compose -f $COMPOSE -p $PROJETO_COMPOSE down"
 
 # ---------------------------------------------------------------------------
