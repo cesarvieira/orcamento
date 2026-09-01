@@ -54,6 +54,19 @@ materializado criaria uma segunda verdade que diverge no primeiro lançamento re
 O rótulo do campo de valor muda com o tipo: _Saldo atual_ para débito e reserva, _Limite do
 cartão_ para crédito.
 
+**No item de conta `CREDITO`, a tela tem duas portas para a [EF-05](EF-05-faturas.md)** — estão no
+mockup desde sempre e foram construídas pela história #74:
+
+| Porta          | Para onde vai                                                                  |
+| -------------- | ------------------------------------------------------------------------------ |
+| _Ver fatura_   | `/faturas?contaId=<id>` — o cartão clicado, nunca o fallback "primeiro cartão" |
+| _Pagar fatura_ | paga sem trocar de tela, pela conta que o usuário escolher (RN-24 · D3)        |
+
+O card "EM CONTA HOJE" mostra ainda o aviso de fatura (_"Faturas de X ainda não debitadas"_ /
+_"Nenhuma fatura em aberto"_), lido do saldo já derivado — **nada disso é regra desta EF**: o
+comportamento das duas portas é da EF-05, e esta seção só registra que a tela que as hospeda é
+desta. O as-built está em [MANUAL-02](../manual/MANUAL-02-contas.md).
+
 ---
 
 ## §4 — O que não se copia do protótipo
