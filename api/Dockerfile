@@ -37,7 +37,12 @@ RUN pnpm --filter @orcamento/api run build
 FROM node:22-alpine AS producao
 WORKDIR /app
 
+# O release é o SHA do commit — conhecido no build (Actions), desconhecido no
+# Portainer (D-09). Cravado na imagem ele está sempre certo; o SENTRY_RELEASE
+# do env do stack vira override opcional, não a fonte.
+ARG SENTRY_RELEASE=""
 ENV NODE_ENV=production
+ENV SENTRY_RELEASE=${SENTRY_RELEASE}
 
 RUN corepack enable && corepack prepare pnpm@11.10.0 --activate
 

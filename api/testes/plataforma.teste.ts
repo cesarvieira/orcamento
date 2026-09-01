@@ -7,7 +7,7 @@
  * lugares onde a soma das partes tem de fechar com o todo.
  */
 import { sql } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { db, fecharBanco } from '../src/db';
 import { semear } from '../src/db/semear';
@@ -139,5 +139,59 @@ describe('seed', () => {
     } finally {
       process.env.PREATOR_TEST_USER = usuario;
     }
+  });
+});
+
+// D-09: o compose deixa de ter defaults inocentes — em produção, um segredo de
+// sessão fraco ou um SEMEAR esquecido ligado não vira aviso no log, derruba o
+// processo. As duas recusas moram aqui, ao lado do 'seed' acima, e não num
+// arquivo à parte: `ambiente.ts` valida no import (efeito de módulo), então a
+// prova precisa reimportá-lo — dinamicamente, com `vi.resetModules()` — sob
+// NODE_ENV=production, e checar que a promessa do import REJEITA.
+describe('ambiente — recusa em produção (D-09)', () => {
+  const nodeEnvOriginal = process.env.NODE_ENV;
+  const segredoOriginal = process.env.SESSAO_SEGREDO;
+  const semearOriginal = process.env.SEMEAR;
+
+  afterEach(() => {
+    if (nodeEnvOriginal === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = nodeEnvOriginal;
+    if (segredoOriginal === undefined) delete process.env.SESSAO_SEGREDO;
+    else process.env.SESSAO_SEGREDO = segredoOriginal;
+    if (semearOriginal === undefined) delete process.env.SEMEAR;
+    else process.env.SEMEAR = semearOriginal;
+    vi.resetModules();
+  });
+
+  it('recusa subir com SESSAO_SEGREDO ausente, no default de dev, ou curto demais, sob NODE_ENV=production', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.SEMEAR = 'false';
+
+    delete process.env.SESSAO_SEGREDO;
+    vi.resetModules();
+    await expect(import('../src/config/ambiente')).rejects.toThrow(/SESSAO_SEGREDO/);
+
+    process.env.SESSAO_SEGREDO = 'curto-demais';
+    vi.resetModules();
+    await expect(import('../src/config/ambiente')).rejects.toThrow(/SESSAO_SEGREDO/);
+
+    // Controle: 32 caracteres, o mínimo, sobe sem lançar.
+    process.env.SESSAO_SEGREDO = 'x'.repeat(32);
+    vi.resetModules();
+    await expect(import('../src/config/ambiente')).resolves.toBeDefined();
+  });
+
+  it('recusa subir com SEMEAR=true sob NODE_ENV=production', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.SESSAO_SEGREDO = 'x'.repeat(32);
+
+    process.env.SEMEAR = 'true';
+    vi.resetModules();
+    await expect(import('../src/config/ambiente')).rejects.toThrow(/SEMEAR/);
+
+    // Controle: SEMEAR=false, mesmo segredo, sobe sem lançar.
+    process.env.SEMEAR = 'false';
+    vi.resetModules();
+    await expect(import('../src/config/ambiente')).resolves.toBeDefined();
   });
 });
