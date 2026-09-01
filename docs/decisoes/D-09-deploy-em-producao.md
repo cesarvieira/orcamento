@@ -1,6 +1,6 @@
 # D-09 — Deploy em produção: uma imagem, dois subdomínios, e o release que vem do build
 
-- **Status:** proposta
+- **Status:** aceita
 - **Data:** 2026-09-01
 
 ## Contexto
