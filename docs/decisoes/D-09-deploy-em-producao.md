@@ -21,8 +21,10 @@ Quatro restrições reais moldaram o que segue. Nenhuma delas é preferência.
 | `app.orcamento.localhost` → `api.orcamento.localhost` | login 201, sessão 200 ✅ |
 | `orcamento.localhost` → `localhost`                   | login 201, sessão 401 ❌ |
 
-Ou seja: subdomínios irmãos funcionam, domínios registráveis diferentes não. Escolher hospedagem sem
-olhar para isto é escolher o arranjo em que a pessoa entra e a requisição seguinte já não a conhece.
+Ou seja: **o que o cookie cobra é o domínio registrável ser o mesmo.** Quaisquer dois hosts sob
+`cesarvieira.dev` servem — irmãos ou aninhados um sob o outro, tanto faz; domínios registráveis
+diferentes, não. Escolher hospedagem sem olhar para isto é escolher o arranjo em que a pessoa entra
+e a requisição seguinte já não a conhece.
 
 **2 · O servidor não é folha em branco.** É um Ubuntu com Portainer e um Traefik já no ar terminando
 TLS para outras coisas. A decisão precisa caber nele, não pedir que ele seja reconstruído.
@@ -41,15 +43,18 @@ mexer nisso é publicar as armadilhas junto.
 
 ## Decisão
 
-**O front é `app.cesarvieira.dev` e a API é `api.cesarvieira.dev`. A imagem é construída uma vez no
-CI, publicada no GHCR, e é ela — a mesma que o gate prova — que roda em produção.**
+**O front é `orcamento.cesarvieira.dev` e a API é `api.orcamento.cesarvieira.dev`. A imagem é
+construída uma vez no CI, publicada no GHCR, e é ela — a mesma que o gate prova — que roda em
+produção.**
 
 Cinco partes, e as cinco são a decisão:
 
-**1 · Subdomínios irmãos, por imposição do cookie.** `app.cesarvieira.dev` e `api.cesarvieira.dev`.
-Não é escolha estética: é a única topologia de dois hosts que a restrição da seção anterior permite.
-O `ORIGEM_WEB` aponta para o front em `https://`, que é também o que faz o cookie virar `Secure` — a
-condição está no mesmo `sessao-servico.ts:189`.
+**1 · Dois hosts sob o mesmo domínio registrável, e a API aninhada sob o produto.** Os dois **não**
+são irmãos — e não precisam ser: o que o cookie cobra é o domínio registrável (`cesarvieira.dev`)
+ser o mesmo, e `api.orcamento.cesarvieira.dev` satisfaz isso tanto quanto um irmão satisfaria. O
+aninhamento é deliberado: `cesarvieira.dev` hospeda outros projetos, e cada produto ocupa um rótulo
+seu com o que for dele pendurado embaixo. O `ORIGEM_WEB` aponta para o front em `https://`, que é
+também o que faz o cookie virar `Secure` — a condição está no mesmo `sessao-servico.ts:189`.
 
 **2 · A imagem é o release, e se constrói uma vez.** O GitHub Actions builda `api` e `web` e publica
 em `ghcr.io/cesarvieira/orcamento-{api,web}` com **duas tags**: `latest`, que se move, e
@@ -64,8 +69,8 @@ porta publicada — vive num `docker-compose.producao.yml` aplicado por cima.
 
 **4 · O Actions publica; o Portainer puxa.** O workflow dispara um webhook do Portainer, que re-puxa
 as imagens e sobe o stack. Não existe chave SSH. E o job **verifica**:
-`GET https://api.cesarvieira.dev/health` em retry até responder, senão falha. Deploy disparado não é
-deploy provado — é a mesma régua do Portão B aplicada à publicação.
+`GET https://api.orcamento.cesarvieira.dev/health` em retry até responder, senão falha. Deploy
+disparado não é deploy provado — é a mesma régua do Portão B aplicada à publicação.
 
 **5 · O release é o SHA, cravado na imagem no build.** O `SENTRY_RELEASE` da API e o do front entram
 como `ARG`/`ENV` no build, onde o SHA é conhecido. O env do stack vira override opcional, não a
@@ -124,6 +129,15 @@ falha em silêncio e cujo sintoma (404 numa rota que existe) não aponta para el
 `SameSite=None` + `Secure`, que é afrouxar uma defesa contra CSRF por conveniência de hospedagem.
 Decisão de segurança não se toma como efeito colateral de escolha de fornecedor.
 
+**`api.cesarvieira.dev`, no segundo nível, ao lado do front.** Funcionaria — é o arranjo de irmãos
+que a medição cobre diretamente. Descartado porque `cesarvieira.dev` hospeda outros projetos, e
+`api.` é um nome genérico: o primeiro produto a tomá-lo obriga todos os seguintes a inventar um nome
+pior. O rótulo do produto vem primeiro, e o que é dele pendura embaixo.
+
+**`orcamento-api.cesarvieira.dev`, achatado.** A alternativa viva ao aninhamento, e a única razão
+para preferi-la é de certificado (ver Consequências) — não de nome. Fica registrada porque é o plano
+B do playbook, não porque foi descartada por mérito.
+
 **Deixar o `SENTRY_RELEASE` ser digitado no env do stack.** Descartado: o release é o SHA e muda a
 cada deploy; digitado à mão ele congela no primeiro valor e passa a mentir. **Release errado é pior
 que release vazio** — agrupa erro novo dentro de versão velha e faz a tela de regressão apontar para
@@ -147,6 +161,13 @@ diagnóstico pela metade. O custo está registrado abaixo.
   de produção.
 - **A URL do webhook é credencial.** Quem a tem redeploya o stack. Ela é secret do Actions como
   qualquer outro.
+- **O host da API é de terceiro nível, e isso toca o certificado.** Um curinga `*.cesarvieira.dev`
+  cobre `orcamento.cesarvieira.dev` e **não** cobre `api.orcamento.cesarvieira.dev` — curinga cobre
+  um rótulo, não uma árvore. Com o Traefik emitindo por host (desafio HTTP-01) isso é um
+  não-assunto; com um curinga único obtido por DNS-01 servindo tudo, o host da API fica sem
+  certificado e o sintoma aparece só no primeiro acesso. **É item de verificação do playbook**, e o
+  plano B é achatar para `orcamento-api.cesarvieira.dev`, que qualquer curinga de
+  `*.cesarvieira.dev` cobre.
 - **Todo `pnpm install` deste monorepo passa a baixar o `@sentry/cli`** (~20 MB), inclusive em cada
   worktree que o condutor abre. Era exatamente o custo que o comentário do `pnpm-workspace.yaml`
   evitava; agora é pago de propósito, em troca de stack trace legível do front. O comentário de lá é
@@ -161,4 +182,5 @@ diagnóstico pela metade. O custo está registrado abaixo.
 - **O Traefik e a instância do Sentry não são provados por gate nenhum daqui.** Mesmo contrato que a
   D-08 assinou: o gate prova que o produto funciona **sem** eles; operá-los é assunto de playbook.
 - **Nada nesta decisão cobre perda de dado.** Backup e restore são a história #117, e a dependência
-  é dura: enquanto ela estiver aberta, `app.cesarvieira.dev` é ambiente de verificação, não de uso.
+  é dura: enquanto ela estiver aberta, `orcamento.cesarvieira.dev` é ambiente de verificação, não de
+  uso.
