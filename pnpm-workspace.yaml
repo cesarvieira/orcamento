@@ -7,16 +7,18 @@ allowBuilds:
   # de arquivo do Vite/Nuxt e o compilador do esbuild. Sem rodar o postinstall,
   # o build falha ou produz artefato incompleto.
   '@parcel/watcher': true
-  # O binário que SOBE SOURCE MAP para a instância do Sentry. Falso de
-  # propósito: o upload é opt-in e só acontece quando SENTRY_AUTH_TOKEN existe
-  # no build (ver .preator/playbooks/sentry.md). Sem isso, todo `pnpm install`
-  # — inclusive o de cada worktree que o condutor abre — baixaria um binário
-  # de ~20 MB de um CDN externo para nada. `nuxt build` NÃO precisa dele:
-  # sem token, o plugin do Sentry pula o upload e segue.
+  # O binário que SOBE SOURCE MAP para a instância do Sentry. Ligado de
+  # propósito desde a D-09: stack trace minificado do front era diagnóstico
+  # pela metade, e a #114 existiu justamente para não ter diagnóstico pela
+  # metade. Todo `pnpm install` deste monorepo — inclusive o de cada
+  # worktree que o condutor abre — baixa este binário (~20 MB) de um CDN
+  # externo, e este é o custo pago em troca do stack trace legível.
   #
-  # Vai ligar o upload? São DUAS coisas, juntas: este flag em `true` (com
-  # `pnpm install` de novo) e o token no ambiente. Uma sem a outra não sobe.
-  '@sentry/cli': false
+  # O UPLOAD em si continua opt-in: só acontece quando SENTRY_AUTH_TOKEN
+  # existe no build (ver .preator/playbooks/sentry.md). Este flag só decide
+  # se o binário É BAIXADO — sem token, o plugin do Sentry pula o upload e
+  # segue, mesmo com o binário presente.
+  '@sentry/cli': true
   esbuild: true
   # Transitiva de `svgtofont`, dentro de `@tabler/icons-webfont` — só é usada
   # se ELE regenerar fontes a partir de SVG. Consumimos o `dist/` já
