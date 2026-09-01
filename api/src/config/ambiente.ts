@@ -18,16 +18,52 @@ carregarAmbiente();
 const esquema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
 
+  /**
+   * A barreira 1 das duas que a D-09 exige (emenda de 2026-09-01): sem ela,
+   * `NODE_ENV=production` sozinho não distingue produção real da stack de
+   * PROVA que o gate sobe — a mesma imagem, D-02 — e que precisa semear a
+   * família de teste para o gate de navegação ter área logada.
+   *
+   * `false` por padrão, inclusive em produção real: lá ninguém liga esta
+   * chave. Quem liga é o COMANDO do gate (`STACK_UP_CMD` em
+   * `preator-perfil.sh`), nunca o `docker-compose.yml` — arquivo não
+   * distingue quem o está rodando, comando distingue.
+   *
+   * Chaveia as DUAS guardas abaixo (SESSAO_SEGREDO e SEMEAR) — de propósito:
+   * antes desta variável, a guarda de SESSAO_SEGREDO só passava no gate
+   * porque o default do compose (`troque-este-segredo-fora-do-gate`) tem
+   * exatamente 32 caracteres. Coincidência não é projeto.
+   */
+  AMBIENTE_DE_PROVA: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform(v => v === 'true'),
+
   DATABASE_URL: z.string().min(1, 'DATABASE_URL é obrigatória'),
 
   API_PORT: z.coerce.number().int().positive().default(3000),
 
   /**
-   * Assina o cookie de sessão. Em produção é obrigatório; em dev e teste há um
-   * default explícito para não travar o loop local.
+   * Assina o cookie de sessão. Em produção é obrigatório (a checagem abaixo
+   * derruba o processo se estiver ausente, no default de desenvolvimento, ou
+   * curto demais); em dev e teste há um default explícito para não travar o
+   * loop local.
    */
   SESSAO_SEGREDO: z.string().default('segredo-de-desenvolvimento'),
   SESSAO_TTL_HORAS: z.coerce.number().int().positive().default(720),
+
+  /**
+   * Semeia a família de teste (`PREATOR_TEST_USER`) depois de migrar — é o
+   * que dá ao gate de navegação uma área logada para percorrer (D-09). NUNCA
+   * em produção: a checagem abaixo derruba o processo se `SEMEAR=true`
+   * chegar com `NODE_ENV=production`, porque semear ali colocaria a família
+   * de teste no banco real. Lido cru como `process.env.SEMEAR` antes desta
+   * tarefa — trazido para o schema para não escapar da validação.
+   */
+  SEMEAR: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform(v => v === 'true'),
 
   /**
    * Origem do front autorizada a mandar cookie (CORS com credenciais). É UMA:
@@ -148,14 +184,41 @@ if (!analise.success) {
 
 export const ambiente = analise.data;
 
-if (
-  ambiente.NODE_ENV === 'production' &&
-  ambiente.SESSAO_SEGREDO === 'segredo-de-desenvolvimento'
-) {
-  // eslint-disable-next-line no-console
-  console.warn(
-    '[ambiente] SESSAO_SEGREDO não foi definido em produção — defina-o no ambiente.',
-  );
+/**
+ * O mínimo de caracteres que `SESSAO_SEGREDO` precisa ter em produção — o
+ * tamanho do digest de um HMAC-SHA256 (32 bytes), o algoritmo que
+ * `sessao-servico.ts` usa para assinar o cookie. Abaixo disso o segredo é
+ * mais curto que o próprio hash que ele assina.
+ */
+const SESSAO_SEGREDO_TAMANHO_MINIMO = 32;
+
+// As duas guardas abaixo disparam sob PRODUÇÃO REAL — não sob a stack de
+// prova que o gate sobe (mesmo NODE_ENV=production, D-02): AMBIENTE_DE_PROVA
+// é o que separa as duas (emenda à D-09, 2026-09-01). NODE_ENV sozinho não
+// bastava — foi medido: derrubava o próprio gate que deveria proteger.
+if (ambiente.NODE_ENV === 'production' && !ambiente.AMBIENTE_DE_PROVA) {
+  if (ambiente.SESSAO_SEGREDO === 'segredo-de-desenvolvimento') {
+    throw new Error(
+      '[ambiente] SESSAO_SEGREDO ausente (ou igual ao default de desenvolvimento) sob ' +
+      'NODE_ENV=production. Defina um segredo forte no ambiente antes de subir — ex.: ' +
+      '`openssl rand -hex 32`.',
+    );
+  }
+  if (ambiente.SESSAO_SEGREDO.length < SESSAO_SEGREDO_TAMANHO_MINIMO) {
+    throw new Error(
+      `[ambiente] SESSAO_SEGREDO tem ${ambiente.SESSAO_SEGREDO.length} caracteres sob ` +
+      `NODE_ENV=production — o mínimo é ${SESSAO_SEGREDO_TAMANHO_MINIMO}. Gere um segredo ` +
+      'mais forte e defina-o no ambiente — ex.: `openssl rand -hex 32`.',
+    );
+  }
+
+  if (ambiente.SEMEAR) {
+    throw new Error(
+      '[ambiente] SEMEAR=true sob NODE_ENV=production. Isso semearia a família de teste ' +
+      '(PREATOR_TEST_USER) no banco real — defina SEMEAR=false (ou remova a variável), ou ' +
+      'ligue AMBIENTE_DE_PROVA=true se isto for a stack de prova do gate, não produção real.',
+    );
+  }
 }
 
 /** @fundacao ninguém tipa contra isto ainda — todo mundo importa `ambiente` direto. */

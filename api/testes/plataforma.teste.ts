@@ -7,7 +7,7 @@
  * lugares onde a soma das partes tem de fechar com o todo.
  */
 import { sql } from 'drizzle-orm';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { db, fecharBanco } from '../src/db';
 import { semear } from '../src/db/semear';
@@ -139,5 +139,105 @@ describe('seed', () => {
     } finally {
       process.env.PREATOR_TEST_USER = usuario;
     }
+  });
+});
+
+// D-09 (emenda de 2026-09-01): NODE_ENV=production sozinho não distingue
+// produção real da stack de PROVA que o gate sobe (D-02, mesma imagem) — e
+// que PRECISA de SEMEAR=true para dar área logada ao gate de navegação.
+// AMBIENTE_DE_PROVA é a barreira 1 que faz essa distinção; as duas guardas
+// (SESSAO_SEGREDO e SEMEAR) só disparam quando ela está desligada. A
+// barreira 2 — a credencial de teste que `semear()` já exige — é
+// independente: liga a chave e ainda falta a credencial.
+//
+// As recusas moram aqui, ao lado do 'seed' acima, e não num arquivo à parte:
+// `ambiente.ts` valida no import (efeito de módulo), então a prova precisa
+// reimportá-lo — dinamicamente, com `vi.resetModules()` — e checar que a
+// promessa do import REJEITA (ou resolve, nos controles).
+describe('ambiente — recusa em produção (D-09)', () => {
+  const nodeEnvOriginal = process.env.NODE_ENV;
+  const segredoOriginal = process.env.SESSAO_SEGREDO;
+  const semearOriginal = process.env.SEMEAR;
+  const provaOriginal = process.env.AMBIENTE_DE_PROVA;
+  const testUserOriginal = process.env.PREATOR_TEST_USER;
+  const testPassOriginal = process.env.PREATOR_TEST_PASS;
+
+  afterEach(() => {
+    if (nodeEnvOriginal === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = nodeEnvOriginal;
+    if (segredoOriginal === undefined) delete process.env.SESSAO_SEGREDO;
+    else process.env.SESSAO_SEGREDO = segredoOriginal;
+    if (semearOriginal === undefined) delete process.env.SEMEAR;
+    else process.env.SEMEAR = semearOriginal;
+    if (provaOriginal === undefined) delete process.env.AMBIENTE_DE_PROVA;
+    else process.env.AMBIENTE_DE_PROVA = provaOriginal;
+    if (testUserOriginal === undefined) delete process.env.PREATOR_TEST_USER;
+    else process.env.PREATOR_TEST_USER = testUserOriginal;
+    if (testPassOriginal === undefined) delete process.env.PREATOR_TEST_PASS;
+    else process.env.PREATOR_TEST_PASS = testPassOriginal;
+    vi.resetModules();
+  });
+
+  it('recusa subir com SESSAO_SEGREDO ausente, no default de dev, ou curto demais, sob NODE_ENV=production fora da stack de prova', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.SEMEAR = 'false';
+    delete process.env.AMBIENTE_DE_PROVA; // produção real: barreira 1 desligada
+
+    delete process.env.SESSAO_SEGREDO;
+    vi.resetModules();
+    await expect(import('../src/config/ambiente')).rejects.toThrow(/SESSAO_SEGREDO/);
+
+    process.env.SESSAO_SEGREDO = 'curto-demais';
+    vi.resetModules();
+    await expect(import('../src/config/ambiente')).rejects.toThrow(/SESSAO_SEGREDO/);
+
+    // Controle: 32 caracteres, o mínimo, sobe sem lançar.
+    process.env.SESSAO_SEGREDO = 'x'.repeat(32);
+    vi.resetModules();
+    await expect(import('../src/config/ambiente')).resolves.toBeDefined();
+  });
+
+  it('recusa subir com SEMEAR=true sob NODE_ENV=production fora da stack de prova', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.SESSAO_SEGREDO = 'x'.repeat(32);
+    delete process.env.AMBIENTE_DE_PROVA; // produção real: barreira 1 desligada
+
+    process.env.SEMEAR = 'true';
+    vi.resetModules();
+    await expect(import('../src/config/ambiente')).rejects.toThrow(/SEMEAR/);
+
+    // Controle: SEMEAR=false, mesmo segredo, sobe sem lançar.
+    process.env.SEMEAR = 'false';
+    vi.resetModules();
+    await expect(import('../src/config/ambiente')).resolves.toBeDefined();
+  });
+
+  it('AMBIENTE_DE_PROVA=true desarma as duas guardas — é o comando do gate que liga, nunca o compose', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.AMBIENTE_DE_PROVA = 'true';
+    process.env.SEMEAR = 'true';
+    // Curto de propósito: sem a barreira 1, isto sozinho já teria derrubado
+    // o processo no teste anterior.
+    process.env.SESSAO_SEGREDO = 'curto';
+    vi.resetModules();
+
+    await expect(import('../src/config/ambiente')).resolves.toBeDefined();
+  });
+
+  it('barreira 2 é independente da 1: ligar AMBIENTE_DE_PROVA não basta — falta a credencial de teste', async () => {
+    process.env.NODE_ENV = 'production';
+    process.env.AMBIENTE_DE_PROVA = 'true';
+    process.env.SEMEAR = 'true';
+    process.env.SESSAO_SEGREDO = 'x'.repeat(32);
+    delete process.env.PREATOR_TEST_USER;
+    vi.resetModules();
+
+    // Barreira 1 desarmada: o módulo sobe sem lançar.
+    await expect(import('../src/config/ambiente')).resolves.toBeDefined();
+
+    // Barreira 2 segue de pé — e não passa pelo módulo `ambiente`, então não
+    // é afetada por AMBIENTE_DE_PROVA: `semear()` lê PREATOR_TEST_USER direto
+    // do processo (semear.ts:110) e recusa de qualquer forma.
+    await expect(semear(db)).rejects.toThrow(/PREATOR_TEST_USER/);
   });
 });

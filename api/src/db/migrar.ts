@@ -12,6 +12,7 @@ import path from 'node:path';
 
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 
+import { ambiente } from '../config/ambiente';
 import { db, fecharBanco } from './index';
 import { semear } from './semear';
 
@@ -28,7 +29,7 @@ async function principal(): Promise<void> {
   await migrate(db, { migrationsFolder: pasta });
   console.log('[migrar] migrations aplicadas');
 
-  if (process.env.SEMEAR === 'true') {
+  if (ambiente.SEMEAR) {
     console.log('[migrar] SEMEAR=true — semeando');
     const resumo = await semear(db);
     console.log(`[migrar] ${resumo}`);
