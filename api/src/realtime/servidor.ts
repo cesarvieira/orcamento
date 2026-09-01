@@ -14,13 +14,17 @@
  */
 import type { Server as ServidorHttp } from 'node:http';
 
-// Import NOMEADO, não default: o pacote `cookie` (v1) marca `__esModule: true`
-// mas não exporta `default`. Com `esModuleInterop`, `import cookie from 'cookie'`
-// compila para algo cujo `.default` é `undefined` — e `cookie.parse` estourava
-// em TODO handshake, derrubando o tempo real inteiro em dev e em produção. A
-// suíte não pegava porque o esbuild do Vitest resolve o default de outro jeito:
-// o verde do teste não valia para o artefato que roda de verdade.
-import { parse as analisarCookies } from 'cookie';
+// O `cookie` v2 é ESM PURO: o manifesto traz `"type": "module"` e só `exports` —
+// sem `main`, sem `types`. Por isso o `api/tsconfig.json` resolve por `nodenext`:
+// o algoritmo antigo (node10) ignora `exports` e não acha o pacote. O emit segue
+// CommonJS, porque este pacote não declara `"type": "module"` — e `require()` de
+// um módulo ESM é o que o Node faz sozinho desde a 22.12.
+//
+// O v2 também renomeou a superfície: `parse` virou `parseCookie`. E a lição que
+// já derrubou o tempo real uma vez continua valendo — o esbuild do Vitest resolve
+// este import de outro jeito, então o verde da suíte não vale para o artefato que
+// roda de verdade. Quem prova isto é o `dist/` sob Node, não o teste.
+import { parseCookie as analisarCookies } from 'cookie';
 import { Server as ServidorSocket } from 'socket.io';
 
 import { ambiente } from '../config/ambiente';
