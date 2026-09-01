@@ -78,11 +78,18 @@ export default defineNuxtConfig({
       // navegador sai no HTML —, mas quem o tem escreve na sua instância.
       // Sobrescrito por NUXT_PUBLIC_SENTRY_DSN.
       sentryDsn: '',
-      // A versão que gerou o evento — o SHA do commit (D-09). String vazia é
+      // A versão que gerou o evento — o SHA do commit (D-09). Lê
+      // `process.env` aqui, e não só um literal: é ISSO que grava o valor
+      // como default do runtimeConfig já em tempo de build, no stage `build`
+      // do Dockerfile, onde `NUXT_PUBLIC_SENTRY_RELEASE` está setada antes de
+      // `pnpm build` rodar. Um literal `''` (como o `sentryDsn` acima) NUNCA
+      // seria sobrescrito por isso — o override por `NUXT_PUBLIC_*` que o
+      // Nuxt aplica depois é em tempo de EXECUÇÃO do processo compilado, e
+      // por padrão o container final não tem a variável no ambiente (mesmo
+      // padrão de `sentryAmbiente`, duas linhas abaixo). String vazia é
       // default e é estado válido: sem release, o SDK funciona igual, só dói
-      // mais de ler qual deploy produziu o erro. Sobrescrito por
-      // NUXT_PUBLIC_SENTRY_RELEASE.
-      sentryRelease: '',
+      // mais de ler qual deploy produziu o erro.
+      sentryRelease: process.env.NUXT_PUBLIC_SENTRY_RELEASE ?? '',
       // Separa dev, prova e produção dentro da instância.
       sentryAmbiente: process.env.NODE_ENV ?? 'development',
       // 0 = só captura de erro, sem trace. O disco da instância é seu.
