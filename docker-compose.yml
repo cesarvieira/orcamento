@@ -75,6 +75,17 @@ services:
       # token. Só a api recebe: um NUXT_PUBLIC_* com este valor o publicaria
       # no HTML de todo visitante.
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      # Observabilidade (D-08). Vazio é o estado padrão e é válido: o SDK não
+      # inicializa e nada sai do contêiner — é assim que o gate roda sem
+      # depender de a instância do Sentry existir.
+      SENTRY_DSN: ${SENTRY_DSN:-}
+      SENTRY_AMBIENTE: ${SENTRY_AMBIENTE:-}
+      SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
+      SENTRY_RELEASE: ${SENTRY_RELEASE:-}
+      SENTRY_ORG: ${SENTRY_ORG:-}
+      # A porta de teste EXPOSTA (GET /diagnostico/sentry). Desligada por
+      # padrão: ela estoura de propósito.
+      SENTRY_TESTE_HABILITADO: ${SENTRY_TESTE_HABILITADO:-false}
     ports:
       - '${API_PORT:-3000}:3000'
     depends_on:
@@ -115,6 +126,13 @@ services:
       # token é recusado. `NUXT_PUBLIC_*` sobrescreve `runtimeConfig.public`
       # em tempo de execução, então trocar a credencial não pede rebuild.
       NUXT_PUBLIC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      # O DSN do front — OUTRO projeto na mesma instância, e público por
+      # construção: ele sai no HTML. Vazio deixa o SDK inerte, no navegador e
+      # no SSR. Ver D-08.
+      NUXT_PUBLIC_SENTRY_DSN: ${NUXT_PUBLIC_SENTRY_DSN:-}
+      NUXT_PUBLIC_SENTRY_AMBIENTE: ${NUXT_PUBLIC_SENTRY_AMBIENTE:-}
+      NUXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE: ${NUXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE:-0}
+      NUXT_PUBLIC_SENTRY_TESTE_HABILITADO: ${NUXT_PUBLIC_SENTRY_TESTE_HABILITADO:-false}
     ports:
       - '${FRONT_PORT:-3001}:3001'
     depends_on:

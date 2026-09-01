@@ -57,6 +57,12 @@ O login por Google é opcional: sem `GOOGLE_CLIENT_ID` no ambiente, o botão fic
 inerte e o resto do app funciona igual. Para ligá-lo, siga
 [`.preator/playbooks/google-client-id.md`](.preator/playbooks/google-client-id.md).
 
+O Sentry também é opcional, e pela mesma lógica: sem `SENTRY_DSN` no ambiente o
+SDK fica inerte e nada sai da máquina. Para ligá-lo — e para as **três portas
+que provam a integração a qualquer momento** —, siga
+[`.preator/playbooks/sentry.md`](.preator/playbooks/sentry.md)
+([D-08](docs/decisoes/D-08-observabilidade.md)).
+
 Para rodar a suíte de integração (`pnpm run teste`), copie também
 `cp .env.test.example .env.test` — mesma instância do Postgres de dev, banco
 separado (`orcamento_teste`).
