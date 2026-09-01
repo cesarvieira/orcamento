@@ -182,6 +182,19 @@ __pf_pasta="$(basename "$__pf_dir")"
 __pf_proj_raw="orcamento-${__pf_pasta}"
 PROJETO_COMPOSE="$(printf '%s' "$__pf_proj_raw" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9-]+/-/g; s/^-+//; s/-+$//')"
 
+# NÃO EXPORTADO — de propósito, depois de medir o custo do contrário
+# (revisão da tarefa #122). `export` vaza para TODO processo filho do shell
+# que sourceou este perfil, não só para quem precisa do valor: um `docker
+# compose -f docker-compose.dev.yml ...` disparado no mesmo terminal, depois
+# de `. ./preator-perfil.sh`, passaria a resolver para este projeto em vez
+# de `orcamento-dev` — quebrando por baixo o mesmo invariante que este
+# arquivo já documenta mais abaixo (ver "BANCO DE TESTE" logo à frente: o
+# Postgres de dev é um servidor só, compartilhado de propósito, e não deriva
+# nome nem porta). Quem precisa deste valor fora deste processo — hoje só o
+# `deploy-fresh.sh`, que sobe a stack por fora do `STACK_UP_CMD` — recebe
+# por INVOCAÇÃO INLINE (`COMPOSE_PROJECT_NAME=$PROJETO_COMPOSE docker
+# compose ...`), escopo de um comando só, que não sobrevive além dele.
+
 __pf_base=20000
 if [[ "$__pf_pasta" =~ ^([0-9]+)- ]]; then
   __pf_n="${BASH_REMATCH[1]}"
@@ -199,6 +212,27 @@ fi
 API_PORT=$(( __pf_base + __pf_n * 3 ))
 FRONT_PORT=$(( __pf_base + __pf_n * 3 + 1 ))
 POSTGRES_PORT=$(( __pf_base + __pf_n * 3 + 2 ))
+
+# NÃO EXPORTADO — mesmo motivo do COMPOSE_PROJECT_NAME acima, e a mesma
+# revisão (#122) que pegou aquele pegou este: `export` alcançaria também o
+# `docker-compose.dev.yml` (que declara sua PRÓPRIA porta, `${POSTGRES_PORT
+# :-5433}` — ver "BANCO DE TESTE" abaixo) e a API NATIVA de dev
+# (`api/src/config/ambiente.ts` lê `API_PORT` do ambiente com default 3000;
+# `pnpm dev` passaria a escutar na porta derivada enquanto o front
+# continuaria chamando `localhost:3000` — quebra sem mensagem de erro).
+#
+# Quem precisa destas portas fora deste processo — hoje só o
+# `deploy-fresh.sh`, que sobe `docker-compose.yml` direto, por fora do
+# `STACK_UP_CMD` — recebe por INVOCAÇÃO INLINE, não por herança de
+# ambiente:
+#
+#   API_PORT=$API_PORT FRONT_PORT=$FRONT_PORT POSTGRES_PORT=$POSTGRES_PORT \
+#     COMPOSE_PROJECT_NAME=$PROJETO_COMPOSE \
+#     bash preator/esteira/gates/deploy-fresh.sh .
+#
+# Escopo de um comando só — não sobrevive além dele, não contamina o
+# próximo `docker compose -f docker-compose.dev.yml` nem o próximo `pnpm
+# dev` disparado no mesmo terminal.
 
 # só o ramo hash precisa da checagem: o ramo numerado já é livre de colisão
 # por construção. Custo pago só quando o Docker existe e este é o caminho
@@ -264,7 +298,13 @@ echo "preator-perfil.sh: banco de teste derivado = ${BANCO_TESTE_DERIVADO} (orig
 
 unset __pf_dir __pf_pasta __pf_proj_raw __pf_base __pf_n __pf_hash __pf_origem __pf_porta __pf_dono __pf_banco_sufixo
 
-STACK_UP_CMD="API_PORT=$API_PORT FRONT_PORT=$FRONT_PORT POSTGRES_PORT=$POSTGRES_PORT API_BASE_PUBLICA=http://localhost:$API_PORT ORIGEM_WEB=http://localhost:$FRONT_PORT docker compose -f $COMPOSE -p $PROJETO_COMPOSE up -d --build"
+# AMBIENTE_DE_PROVA=true: segunda barreira contra a guarda de
+# NODE_ENV=production (história #120, D-09). A stack que os gates sobem É a
+# de produção (D-02) e roda com SEMEAR=true de propósito — sem isto o
+# `migrate` cairia na guarda como se fosse produção de verdade. Quem declara
+# a stack de prova é este COMANDO, nunca o docker-compose.yml versionado: o
+# default lá é `false`.
+STACK_UP_CMD="API_PORT=$API_PORT FRONT_PORT=$FRONT_PORT POSTGRES_PORT=$POSTGRES_PORT API_BASE_PUBLICA=http://localhost:$API_PORT ORIGEM_WEB=http://localhost:$FRONT_PORT AMBIENTE_DE_PROVA=true docker compose -f $COMPOSE -p $PROJETO_COMPOSE up -d --build"
 STACK_DOWN_CMD="docker compose -f $COMPOSE -p $PROJETO_COMPOSE down"
 
 # ---------------------------------------------------------------------------
