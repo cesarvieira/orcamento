@@ -182,17 +182,18 @@ __pf_pasta="$(basename "$__pf_dir")"
 __pf_proj_raw="orcamento-${__pf_pasta}"
 PROJETO_COMPOSE="$(printf '%s' "$__pf_proj_raw" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9-]+/-/g; s/^-+//; s/-+$//')"
 
-# EXPORTADO — não só atribuído. docker-compose.yml declara `name: orcamento`
-# fixo no topo; sem isto, qualquer `docker compose` que NÃO receba `-p`
-# explícito (ex.: deploy-fresh.sh, que sobe o compose direto, por fora do
-# STACK_UP_CMD) cai nesse nome fixo e compartilhado entre worktrees — dois
-# `deploy-fresh` concorrentes, cada um rodando `down -v`, se destroem.
-# Medido (não assumido): COMPOSE_PROJECT_NAME no ambiente tem precedência
-# sobre o `name:` do arquivo quando não há `-p` — `docker compose config`
-# com a variável exportada resolve para PROJETO_COMPOSE, não para
-# "orcamento". O `-p` explícito do STACK_UP_CMD continua sendo o mesmo
-# valor, então nada muda para quem já passa por ele.
-export COMPOSE_PROJECT_NAME="$PROJETO_COMPOSE"
+# NÃO EXPORTADO — de propósito, depois de medir o custo do contrário
+# (revisão da tarefa #122). `export` vaza para TODO processo filho do shell
+# que sourceou este perfil, não só para quem precisa do valor: um `docker
+# compose -f docker-compose.dev.yml ...` disparado no mesmo terminal, depois
+# de `. ./preator-perfil.sh`, passaria a resolver para este projeto em vez
+# de `orcamento-dev` — quebrando por baixo o mesmo invariante que este
+# arquivo já documenta mais abaixo (ver "BANCO DE TESTE" logo à frente: o
+# Postgres de dev é um servidor só, compartilhado de propósito, e não deriva
+# nome nem porta). Quem precisa deste valor fora deste processo — hoje só o
+# `deploy-fresh.sh`, que sobe a stack por fora do `STACK_UP_CMD` — recebe
+# por INVOCAÇÃO INLINE (`COMPOSE_PROJECT_NAME=$PROJETO_COMPOSE docker
+# compose ...`), escopo de um comando só, que não sobrevive além dele.
 
 __pf_base=20000
 if [[ "$__pf_pasta" =~ ^([0-9]+)- ]]; then
@@ -212,15 +213,26 @@ API_PORT=$(( __pf_base + __pf_n * 3 ))
 FRONT_PORT=$(( __pf_base + __pf_n * 3 + 1 ))
 POSTGRES_PORT=$(( __pf_base + __pf_n * 3 + 2 ))
 
-# EXPORTADO — não só atribuído. Sem isto, só o STACK_UP_CMD (que as inlina
-# na linha do comando) enxerga as portas derivadas: qualquer `docker
-# compose` filho que NÃO passe por ele — o deploy-fresh.sh sobe direto, por
-# fora do STACK_UP_CMD — cai nos defaults do arquivo (3000/3001/5432). O
-# sintoma medido: API respondeu (era outra stack de pé na porta 3000),
-# front não respondeu na porta derivada — o gate subia numa porta e
-# conferia em outra, porque só $API_BASE/$FRONT_BASE (via raiz.sh) sabiam
-# da porta certa.
-export API_PORT FRONT_PORT POSTGRES_PORT
+# NÃO EXPORTADO — mesmo motivo do COMPOSE_PROJECT_NAME acima, e a mesma
+# revisão (#122) que pegou aquele pegou este: `export` alcançaria também o
+# `docker-compose.dev.yml` (que declara sua PRÓPRIA porta, `${POSTGRES_PORT
+# :-5433}` — ver "BANCO DE TESTE" abaixo) e a API NATIVA de dev
+# (`api/src/config/ambiente.ts` lê `API_PORT` do ambiente com default 3000;
+# `pnpm dev` passaria a escutar na porta derivada enquanto o front
+# continuaria chamando `localhost:3000` — quebra sem mensagem de erro).
+#
+# Quem precisa destas portas fora deste processo — hoje só o
+# `deploy-fresh.sh`, que sobe `docker-compose.yml` direto, por fora do
+# `STACK_UP_CMD` — recebe por INVOCAÇÃO INLINE, não por herança de
+# ambiente:
+#
+#   API_PORT=$API_PORT FRONT_PORT=$FRONT_PORT POSTGRES_PORT=$POSTGRES_PORT \
+#     COMPOSE_PROJECT_NAME=$PROJETO_COMPOSE \
+#     bash preator/esteira/gates/deploy-fresh.sh .
+#
+# Escopo de um comando só — não sobrevive além dele, não contamina o
+# próximo `docker compose -f docker-compose.dev.yml` nem o próximo `pnpm
+# dev` disparado no mesmo terminal.
 
 # só o ramo hash precisa da checagem: o ramo numerado já é livre de colisão
 # por construção. Custo pago só quando o Docker existe e este é o caminho
