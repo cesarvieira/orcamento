@@ -63,9 +63,22 @@ rebuildar.
 
 **3 · Um artefato, mais um overlay de roteamento.** O `docker-compose.yml` ganha `image:` **ao
 lado** do `build:` que já tem. Local e no gate, `up -d --build` continua buildando e apenas passa a
-taggear — `deploy-fresh` prova o mesmo artefato de sempre. No servidor a imagem vem do registry e o
-`up` não builda. O que é **só** de produção — labels do Traefik, rede externa do proxy, nenhuma
-porta publicada — vive num `docker-compose.producao.yml` aplicado por cima.
+taggear — `deploy-fresh` prova o mesmo artefato de sempre. O que é **só** de produção — labels do
+Traefik, rede externa do proxy, nenhuma porta publicada — vive num `docker-compose.producao.yml`
+aplicado por cima.
+
+**⚠️ E o overlay REMOVE o `build:` (`build: !reset null`) — isto é parte da decisão, não detalhe.**
+A primeira redação dizia "no servidor a imagem vem do registry e o `up` não builda". Era suposição,
+e era falsa: com `build:` presente e a imagem ausente do daemon local, o Compose **builda em vez de
+puxar**. Medido no primeiro deploy real desta história — a imagem publicada era `82888ed0d125`, a
+que rodava no servidor era `2ec33ddf192d`, com o mesmo nome e a mesma tag, e
+`printenv NUXT_PUBLIC_SENTRY_RELEASE` dentro do contêiner voltava vazio, porque um build no servidor
+não recebe `--build-arg` nenhum.
+
+O `/health` respondia 200 o tempo todo: a imagem buildada no servidor **funciona**, ela só não é a
+imagem que o gate provou. Sem remover o `build:`, a propriedade que abre esta decisão — _o que o
+gate prova e o que roda em produção são a mesma imagem_ — é violada em silêncio, e nenhum gate
+percebe. Sem `build:`, imagem ausente vira erro de deploy, que é a falha que se quer.
 
 **4 · O Actions publica; o Portainer puxa.** O workflow dispara um webhook do Portainer, que re-puxa
 as imagens e sobe o stack. Não existe chave SSH. E o job **verifica**:
