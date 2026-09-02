@@ -24,13 +24,33 @@ services:
   # CANCELA a publicação que docker-compose.yml faz para o gate/dev — um
   # Postgres com 5432 aberto na host, num servidor com IP público, é o banco
   # na internet.
+  # ⛔ EM PRODUÇÃO NÃO SE BUILDA. `build: !reset null` remove a seção que o
+  # docker-compose.yml declara para o gate e para o dev.
+  #
+  # Não é preferência: é o que faz a D-09 valer. Com `build:` presente e a
+  # imagem ausente do daemon local, o Compose **builda em vez de puxar** — e o
+  # build no servidor não recebe `--build-arg` nenhum, então tudo que o CI crava
+  # na imagem (o release, a URL do Sentry) nasce vazio. MEDIDO no primeiro
+  # deploy real desta história: a imagem publicada era `82888ed0d125` e a que
+  # rodava no servidor era `2ec33ddf192d`, com o MESMO nome e a MESMA tag.
+  # `printenv NUXT_PUBLIC_SENTRY_RELEASE` dentro do contêiner voltava vazio.
+  #
+  # O `/health` não tem como notar: a imagem buildada no servidor funciona: ela
+  # só não é a imagem que o gate provou. Era a propriedade central da D-09
+  # ("o que o gate prova e o que roda são a mesma imagem") sendo violada em
+  # silêncio.
+  #
+  # Sem `build:`, a imagem ausente vira erro de deploy em vez de build
+  # improvisado — e falhar alto aqui é exatamente o que se quer.
   postgres:
     ports: !override []
 
   migrate:
+    build: !reset null
     ports: !override []
 
   api:
+    build: !reset null
     ports: !override []
     networks:
       - default
@@ -45,6 +65,7 @@ services:
       - 'traefik.http.services.orcamento-api.loadbalancer.server.port=3000'
 
   web:
+    build: !reset null
     ports: !override []
     networks:
       - default
