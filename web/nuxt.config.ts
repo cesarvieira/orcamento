@@ -78,6 +78,18 @@ export default defineNuxtConfig({
       // navegador sai no HTML —, mas quem o tem escreve na sua instância.
       // Sobrescrito por NUXT_PUBLIC_SENTRY_DSN.
       sentryDsn: '',
+      // A versão que gerou o evento — o SHA do commit (D-09). Lê
+      // `process.env` aqui, e não só um literal: é ISSO que grava o valor
+      // como default do runtimeConfig já em tempo de build, no stage `build`
+      // do Dockerfile, onde `NUXT_PUBLIC_SENTRY_RELEASE` está setada antes de
+      // `pnpm build` rodar. Um literal `''` (como o `sentryDsn` acima) NUNCA
+      // seria sobrescrito por isso — o override por `NUXT_PUBLIC_*` que o
+      // Nuxt aplica depois é em tempo de EXECUÇÃO do processo compilado, e
+      // por padrão o container final não tem a variável no ambiente (mesmo
+      // padrão de `sentryAmbiente`, duas linhas abaixo). String vazia é
+      // default e é estado válido: sem release, o SDK funciona igual, só dói
+      // mais de ler qual deploy produziu o erro.
+      sentryRelease: process.env.NUXT_PUBLIC_SENTRY_RELEASE ?? '',
       // Separa dev, prova e produção dentro da instância.
       sentryAmbiente: process.env.NODE_ENV ?? 'development',
       // 0 = só captura de erro, sem trace. O disco da instância é seu.
@@ -111,22 +123,41 @@ export default defineNuxtConfig({
   },
 
   /**
-   * Source map do cliente — e por que ele é OPT-IN.
+   * Source map — cliente E servidor, e por que os dois são OPT-IN.
    *
-   * Sem source map, o stack trace do navegador chega minificado e quase
-   * inútil. Com ele ligado sempre, todo artefato de produção passa a carregar
-   * os `.map` — peso a mais e o código-fonte recuperável por quem adivinhar a
-   * URL, mesmo sem Sentry nenhum na jogada.
+   * Sem source map, o stack trace chega minificado e quase inútil. Com ele
+   * ligado sempre, todo artefato de produção passa a carregar os `.map` —
+   * peso a mais e o código-fonte recuperável por quem adivinhar a URL, mesmo
+   * sem Sentry nenhum na jogada.
    *
-   * Então ele acompanha a intenção: existe `SENTRY_AUTH_TOKEN` no build? Emite
-   * (`hidden`: gera o arquivo, sem o comentário que o aponta) e sobe para a
-   * instância. Não existe? Build normal, sem mapa e sem upload — e nada quebra.
+   * Então os dois acompanham a intenção: existe `SENTRY_AUTH_TOKEN` no
+   * build? Emite (`hidden`: gera o arquivo, sem o comentário que o aponta) e
+   * sobe para a instância. Não existe? Build normal, sem mapa e sem upload —
+   * e nada quebra.
    *
    * ⚠️ O upload ainda depende do binário do `@sentry/cli`, que este monorepo
    * NÃO instala por padrão (ver `allowBuilds` em `pnpm-workspace.yaml`). São
    * as duas coisas juntas, e o playbook diz isso.
+   *
+   * `server` NÃO É REDUNDANTE com `client` — medido, não suposto. Achado em
+   * produção (tarefa #121): sem `server` aqui, um build SEM token deixava
+   * 62 `.map` de servidor na imagem — o Nitro os emite POR PADRÃO, com ou
+   * sem token, ao contrário do cliente (que já nascia opt-in). E
+   * `sourcemaps.filesToDeleteAfterUpload`, logo abaixo no bloco `sentry`, NÃO
+   * limpava essa sobra: aquela deleção é um hook do PLUGIN do Sentry, e sem
+   * token o plugin nunca roda — não há hook para disparar. A dupla trava
+   * simetricamente: sem token nenhum dos dois lados EMITE `.map`, então não
+   * sobra nada para o glob ter que apagar depois. O risco de vazar
+   * código-fonte é só do lado `public/` (servido por HTTP); `server/`
+   * ninguém alcança por URL e o `CMD` nem lê esses mapas (sem
+   * `--enable-source-maps`) — mas a D-09 promete "os `.map` não podem
+   * entrar na imagem" sem condicional nenhum, e é isso que este `server`
+   * fecha.
    */
-  sourcemap: { client: process.env.SENTRY_AUTH_TOKEN ? 'hidden' : false },
+  sourcemap: {
+    client: process.env.SENTRY_AUTH_TOKEN ? 'hidden' : false,
+    server: process.env.SENTRY_AUTH_TOKEN ? 'hidden' : false,
+  },
 
   compatibilityDate: '2025-07-15',
 
@@ -148,6 +179,50 @@ export default defineNuxtConfig({
       org: process.env.SENTRY_ORG ?? '',
       project: process.env.SENTRY_PROJETO ?? '',
       authToken: process.env.SENTRY_AUTH_TOKEN ?? '',
+    },
+    /**
+     * Requisito de segurança, não polimento: o `.output` inteiro vai para a
+     * imagem final (`web/Dockerfile`). Sem apagar o `.map` depois do upload,
+     * ligar o Sentry publica o código-fonte do front para quem adivinhar a
+     * URL — o risco que o comentário de `sourcemap` acima existe para evitar.
+     *
+     * DOIS globs, e nenhum dos dois é redundante — medido, não suposto:
+     *
+     * 1. O Nuxt roda DOIS builds Vite (cliente e SSR), que escrevem primeiro
+     *    em `<buildDir>/dist/{client,server}`. Só DEPOIS dos dois terminarem
+     *    o Nitro copia `dist/client` para `.output/public`. O hook de
+     *    deleção do plugin do Sentry para o build do CLIENTE dispara no fim
+     *    DAQUELE build Vite — ou seja, ANTES dessa cópia existir. Um glob
+     *    mirando só `.output/**` não encontra nada nesse instante e não
+     *    apaga NADA do lado cliente: o `.map` sobrevive em `dist/client` e o
+     *    Nitro o copia, intacto, para o artefato final. O glob do buildDir
+     *    é o que protege o cliente — e o buildDir não pode ser fixo em
+     *    `.nuxt`: o gate roda com `NUXT_BUILD_DIR=.nuxt-gate` (ver
+     *    `preator-perfil.sh`), então a variável precisa ser lida do mesmo
+     *    jeito que `buildDir:` acima lê.
+     * 2. O Nitro monta `.output/server` numa passada de rollup própria que
+     *    escreve DIRETO ali, sem passar por `dist/server` antes. É essa
+     *    passada que o glob `.output/**` apaga — só o lado servidor.
+     *
+     * Tire um dos dois glob e o outro lado vaza em silêncio: build verde,
+     * imagem com o código-fonte dentro.
+     *
+     * E a deleção NÃO depende do upload ter concluído — é a suposição
+     * natural de quem lê isto pela primeira vez, e ela é errada. É um hook
+     * `buildEnd` INCONDICIONAL (`deleteArtifacts`, dentro de
+     * `@sentry/bundler-plugin-core`): apaga o que casar com o glob sempre
+     * que a opção está definida, upload tendo dado certo, falhado, ou nem
+     * tentado (sem token, `sourceMapsUploadOptions.enabled` é `false` e o
+     * upload nem roda — mas esta deleção continua rodando do mesmo jeito).
+     * Testado: token falso + URL inalcançável → o upload falha, loga o
+     * erro, o build segue verde do mesmo jeito, e os `.map` somem dos dois
+     * lados igual.
+     */
+    sourcemaps: {
+      filesToDeleteAfterUpload: [
+        `${process.env.NUXT_BUILD_DIR || '.nuxt'}/dist/client/**/*.map`,
+        '.output/**/*.map',
+      ],
     },
   },
 });

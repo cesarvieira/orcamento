@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # =============================================================================
 # Imagem de produção do front.
 #
@@ -31,13 +32,49 @@ WORKDIR /app
 ARG API_BASE_PUBLICA=http://localhost:3000
 ENV NUXT_PUBLIC_API_BASE=$API_BASE_PUBLICA
 
+# O release é o SHA do commit (D-09), conhecido no momento do build — não é
+# segredo, então ARG/ENV normal, igual a API_BASE_PUBLICA acima. Aqui ele
+# serve DOIS propósitos: vira o default do runtimeConfig que o `nuxt build`
+# grava no bundle (nuxt.config.ts:85, o navegador lê dali), e é o nome que o
+# `sentry-vite-plugin` associa ao source map que sobe (quando há token). O
+# mesmo `ARG`/`ENV` volta a ser declarado no stage `producao`, abaixo — sem
+# isso o SSR, que lê `process.env` cru no container final, receberia sempre
+# vazio (ver o comentário de lá).
+ARG SENTRY_RELEASE=
+ENV NUXT_PUBLIC_SENTRY_RELEASE=$SENTRY_RELEASE
+
+# Para ONDE o source map sobe. `nuxt.config.ts` lê os três de `process.env` em
+# tempo de build (bloco `sourceMapsUploadOptions`), e sem estes `ARG` eles
+# chegam vazios: o `sentry-cli` cai no default e fala com o **sentry.io**, não
+# com a instância self-hosted — o upload "acontece" e não chega em lugar nenhum.
+#
+# ⚠️ O que torna isso invisível: **o Docker ignora em SILÊNCIO um `--build-arg`
+# cujo `ARG` não foi declarado.** O workflow pode passar os três corretamente e
+# o build não vê nenhum, sem aviso. Foi assim que passou despercebido até a
+# tarefa #123.
+#
+# Diferente do `SENTRY_AUTH_TOKEN` logo abaixo, estes três NÃO são segredo — a
+# URL da instância, o slug da org e o do projeto. `ARG` normal serve; o que não
+# pode virar `ARG` é o token, e o porquê está lá embaixo.
+ARG SENTRY_URL=
+ARG SENTRY_ORG=
+ARG SENTRY_PROJETO=
+
 COPY tsconfig.base.json ./
 # O contrato é GERADO e versionado: entra pronto na imagem. Regenerá-lo aqui
 # exigiria o fonte da API dentro do build do front — acoplamento sem ganho.
 COPY packages/contrato packages/contrato
 COPY web/ web/
 
-RUN pnpm --filter @orcamento/web run build
+# ⛔ SENTRY_AUTH_TOKEN NÃO é ARG. Um ARG fica gravado no histórico de camada
+# da imagem, e a imagem é artefato distribuído — pior que arquivo versionado
+# (D-09, D-07). O secret mount só existe DENTRO deste RUN: nunca vira camada,
+# nunca vira ENV da imagem final. `nuxt.config.ts` continua lendo
+# `process.env.SENTRY_AUTH_TOKEN` sem mudança nenhuma — sem token no mount, a
+# variável simplesmente chega vazia e o build segue sem mapa e sem upload.
+RUN --mount=type=secret,id=sentry_auth_token \
+    SENTRY_AUTH_TOKEN="$(cat /run/secrets/sentry_auth_token 2>/dev/null || true)" \
+    pnpm --filter @orcamento/web run build
 
 # -----------------------------------------------------------------------------
 FROM node:22-alpine AS producao
@@ -46,6 +83,17 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NITRO_PORT=3001
 ENV NITRO_HOST=0.0.0.0
+
+# `ARG` não atravessa `FROM`: este é um stage NOVO, sem nenhuma variável do
+# stage `build` — nem `NUXT_PUBLIC_SENTRY_RELEASE`, nem `NUXT_PUBLIC_API_BASE`
+# (esta sobrevive porque o Nuxt já a compilou dentro do bundle do cliente; o
+# release, não — `sentry.server.config.ts` lê `process.env` CRU no processo
+# que roda AQUI, no container final, então precisa da variável de novo, neste
+# stage). Redeclarar o `ARG` é obrigatório por regra do Docker: um `ARG`
+# declarado antes de um `FROM` só sobrevive àquele `FROM` se for redeclarado
+# depois dele — não basta ele já existir lá em cima.
+ARG SENTRY_RELEASE=
+ENV NUXT_PUBLIC_SENTRY_RELEASE=$SENTRY_RELEASE
 
 # O `.output` do Nitro é autocontido: traz as próprias dependências.
 COPY --from=build /app/web/.output ./

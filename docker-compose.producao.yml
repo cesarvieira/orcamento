@@ -1,0 +1,66 @@
+# =============================================================================
+# docker-compose.producao.yml — overlay de ROTEAMENTO. Não é um terceiro
+# compose: não sobe serviço sozinho, não é alvo de gate, e não contém uma
+# linha de configuração de aplicação — só o que só faz sentido no servidor
+# que já tem Traefik. Ver D-09.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.producao.yml up -d
+#
+# Por que não em docker-compose.yml: a rede externa do proxy NÃO é
+# condicional em compose — se as labels e a rede vivessem lá, o arquivo que
+# o gate roda passaria a exigir um Traefik em toda máquina que prova. Esse é
+# o motivo mecânico do overlay (D-09), não gosto de organização.
+#
+# TRAEFIK_REDE_EXTERNA e TRAEFIK_CERTRESOLVER ainda não foram confirmados no
+# servidor — os defaults abaixo são placeholders óbvios, não um chute do
+# valor real. Quem subir isto em produção sobrescreve os dois no ambiente do
+# servidor; sem override, o nome autoexplica que está errado.
+# =============================================================================
+name: orcamento
+
+services:
+  # Nenhuma porta publicada por este overlay: em produção, Traefik alcança
+  # os serviços pela rede do compose, não pela porta do host. E o overlay
+  # CANCELA a publicação que docker-compose.yml faz para o gate/dev — um
+  # Postgres com 5432 aberto na host, num servidor com IP público, é o banco
+  # na internet.
+  postgres:
+    ports: !override []
+
+  migrate:
+    ports: !override []
+
+  api:
+    ports: !override []
+    networks:
+      - default
+      - proxy
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=${TRAEFIK_REDE_EXTERNA:-rede-traefik-nao-confirmada}'
+      - 'traefik.http.routers.orcamento-api.rule=Host(`api.orcamento.cesarvieira.dev`)'
+      - 'traefik.http.routers.orcamento-api.entrypoints=websecure'
+      - 'traefik.http.routers.orcamento-api.tls=true'
+      - 'traefik.http.routers.orcamento-api.tls.certresolver=${TRAEFIK_CERTRESOLVER:-certresolver-nao-confirmado}'
+      - 'traefik.http.services.orcamento-api.loadbalancer.server.port=3000'
+
+  web:
+    ports: !override []
+    networks:
+      - default
+      - proxy
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=${TRAEFIK_REDE_EXTERNA:-rede-traefik-nao-confirmada}'
+      - 'traefik.http.routers.orcamento-web.rule=Host(`orcamento.cesarvieira.dev`)'
+      - 'traefik.http.routers.orcamento-web.entrypoints=websecure'
+      - 'traefik.http.routers.orcamento-web.tls=true'
+      - 'traefik.http.routers.orcamento-web.tls.certresolver=${TRAEFIK_CERTRESOLVER:-certresolver-nao-confirmado}'
+      - 'traefik.http.services.orcamento-web.loadbalancer.server.port=3001'
+
+networks:
+  # Externa: quem cria e gerencia é o Traefik que já está no ar no servidor
+  # (D-09, contexto 2). Nome ainda não confirmado — ver cabeçalho.
+  proxy:
+    name: ${TRAEFIK_REDE_EXTERNA:-rede-traefik-nao-confirmada}
+    external: true

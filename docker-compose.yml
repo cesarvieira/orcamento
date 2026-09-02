@@ -34,6 +34,11 @@ services:
     build:
       context: .
       dockerfile: api/Dockerfile
+    # Mesma imagem do serviço `api` (o Dockerfile serve aos dois — só o
+    # comando muda). Local, `up -d --build` continua buildando e passa a
+    # TAGGEAR com este nome; no servidor a imagem já vem pronta do registry
+    # e o `up` não builda. Ver D-09.
+    image: ghcr.io/cesarvieira/orcamento-api:${IMAGEM_TAG:-local}
     command: ['node', 'dist/db/migrar.js']
     restart: 'no'
     environment:
@@ -48,6 +53,14 @@ services:
       SEMEAR: ${SEMEAR:-true}
       PREATOR_TEST_USER: ${PREATOR_TEST_USER:-ana@exemplo.test}
       PREATOR_TEST_PASS: ${PREATOR_TEST_PASS:-orcamento-teste}
+      # Segunda barreira contra a guarda de NODE_ENV=production (história
+      # #120): a stack de prova É a de produção (D-02) e roda com
+      # SEMEAR=true de propósito. Default `false` é a decisão — produção usa
+      # este mesmo arquivo e nunca define esta variável, então fica
+      # protegida por código; só quem sobe a stack de PROVA a liga, e é o
+      # COMANDO do gate quem declara isso (preator-perfil.sh), nunca este
+      # arquivo versionado.
+      AMBIENTE_DE_PROVA: ${AMBIENTE_DE_PROVA:-false}
     depends_on:
       postgres:
         condition: service_healthy
@@ -56,6 +69,8 @@ services:
     build:
       context: .
       dockerfile: api/Dockerfile
+    # Mesma imagem do `migrate` — ver comentário lá em cima. Ver D-09.
+    image: ghcr.io/cesarvieira/orcamento-api:${IMAGEM_TAG:-local}
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -63,6 +78,16 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-orcamento}:${POSTGRES_PASSWORD:-orcamento}@postgres:5432/${POSTGRES_DB:-orcamento}
       SESSAO_SEGREDO: ${SESSAO_SEGREDO:-troque-este-segredo-fora-do-gate}
       SESSAO_TTL_HORAS: ${SESSAO_TTL_HORAS:-720}
+      # A MESMA linha que o `migrate` tem, e ela precisa estar nos DOIS: o
+      # compose não propaga variável do shell para um contêiner que não a
+      # referencia. Sem esta linha, o contêiner `api` sobe com
+      # AMBIENTE_DE_PROVA indefinida MESMO durante o gate, a guarda de
+      # produção fica armada, e o gate só passa porque o segredo-placeholder
+      # acima tem exatamente 32 caracteres — o mínimo que a guarda exige.
+      # Encurtá-lo em um caractere derrubaria o gate por um motivo que
+      # ninguém encontraria. Achado na revisão da tarefa #120, num arquivo
+      # que nem #120 nem #122 possuíam sozinhas: é defeito de costura.
+      AMBIENTE_DE_PROVA: ${AMBIENTE_DE_PROVA:-false}
       ORIGEM_WEB: ${ORIGEM_WEB:-http://localhost:3001}
       MAIL_DRIVER: ${MAIL_DRIVER:-log}
       MAIL_FROM: ${MAIL_FROM:-}
@@ -81,7 +106,21 @@ services:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_AMBIENTE: ${SENTRY_AMBIENTE:-}
       SENTRY_TRACES_SAMPLE_RATE: ${SENTRY_TRACES_SAMPLE_RATE:-0.1}
-      SENTRY_RELEASE: ${SENTRY_RELEASE:-}
+      # ⛔ NÃO declare `SENTRY_RELEASE` aqui. Ele é cravado na imagem pelo
+      # `api/Dockerfile` a partir do SHA do commit (D-09), e um `environment:`
+      # explícito do compose SEMPRE vence o `ENV` da imagem — mesmo valendo
+      # string vazia. A linha `SENTRY_RELEASE: ${SENTRY_RELEASE:-}` que morava
+      # aqui zerava, a cada subida, o release que o CI tinha acabado de gravar:
+      # `docker compose config` mostrava `SENTRY_RELEASE: ""` para a `api`
+      # enquanto o `web` — que nunca declarou a dele — preservava o seu.
+      #
+      # Passou despercebido porque com `SENTRY_DSN` vazio o SDK nem inicializa,
+      # então o release vazio só apareceria no dia em que o Sentry fosse ligado
+      # em produção. Achado na revisão de COSTURA da história #116.
+      #
+      # E não devolva o override "só por precaução": o release TEM de ser o SHA
+      # da imagem que está rodando. Um release digitado à mão agrupa erro novo
+      # em versão velha — pior que release nenhum.
       SENTRY_ORG: ${SENTRY_ORG:-}
       # A porta de teste EXPOSTA (GET /diagnostico/sentry). Desligada por
       # padrão: ela estoura de propósito.
@@ -114,6 +153,10 @@ services:
       args:
         # Vai para o HTML servido: é como o NAVEGADOR alcança a API.
         API_BASE_PUBLICA: ${API_BASE_PUBLICA:-http://localhost:3000}
+    # Local, `up -d --build` continua buildando e passa a TAGGEAR com este
+    # nome; no servidor a imagem já vem pronta do registry e o `up` não
+    # builda. Ver D-09.
+    image: ghcr.io/cesarvieira/orcamento-web:${IMAGEM_TAG:-local}
     restart: unless-stopped
     environment:
       NODE_ENV: production

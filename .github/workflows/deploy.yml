@@ -1,0 +1,125 @@
+name: Deploy
+
+# push em main builda e publica; workflow_dispatch roda o mesmo caminho à mão.
+# Sem cancel-in-progress: cancelar um deploy pela metade é pior que esperar o
+# anterior terminar (D-09).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: deploy-main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGEM_API: ghcr.io/cesarvieira/orcamento-api
+  IMAGEM_WEB: ghcr.io/cesarvieira/orcamento-web
+
+jobs:
+  build-publica:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # O release é o SHA do commit, conhecido aqui no build (D-09). Curto
+      # basta: é só um rótulo legível no Sentry, não uma chave de busca.
+      - name: Build e publica a imagem da API
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: api/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGEM_API }}:latest
+            ${{ env.IMAGEM_API }}:sha-${{ github.sha }}
+          build-args: |
+            SENTRY_RELEASE=${{ github.sha }}
+          cache-from: type=gha,scope=api
+          cache-to: type=gha,mode=max,scope=api
+
+      # SENTRY_AUTH_TOKEN vai por `secrets:` (mount BuildKit), nunca por
+      # `build-args` — um ARG fica no histórico de camada da imagem, e imagem
+      # é artefato distribuído (D-09, D-07). O `id` do secret casa com o
+      # `--mount=type=secret,id=sentry_auth_token` do web/Dockerfile.
+      #
+      # Os `build-args` abaixo SÓ valem porque `web/Dockerfile` declara um
+      # `ARG` para cada um. **O Docker ignora em silêncio um `--build-arg`
+      # cujo `ARG` não foi declarado** — nada falha, e o valor simplesmente
+      # não chega ao build. Foi assim que `SENTRY_URL`/`ORG`/`PROJETO`
+      # passaram despercebidos até a #123: sem eles o `sentry-cli` cai no
+      # default e fala com o `sentry.io`, não com a instância self-hosted.
+      # Corrigido na costura desta história (`ac24c85`). Acrescentou um
+      # `build-arg` aqui? Declare o `ARG` lá, ou ele não existe.
+      - name: Build e publica a imagem do front
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: web/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGEM_WEB }}:latest
+            ${{ env.IMAGEM_WEB }}:sha-${{ github.sha }}
+          build-args: |
+            SENTRY_RELEASE=${{ github.sha }}
+            SENTRY_URL=${{ secrets.SENTRY_URL }}
+            SENTRY_ORG=${{ secrets.SENTRY_ORG }}
+            SENTRY_PROJETO=${{ secrets.SENTRY_PROJETO }}
+          secrets: |
+            sentry_auth_token=${{ secrets.SENTRY_AUTH_TOKEN }}
+          cache-from: type=gha,scope=web
+          cache-to: type=gha,mode=max,scope=web
+
+  dispara-e-verifica:
+    needs: build-publica
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      # A URL do webhook é credencial (D-09): nunca aparece no log. O curl é
+      # silencioso (-s) e a saída de erro não ecoa a URL — só o status HTTP.
+      - name: Dispara o webhook do Portainer
+        run: |
+          status=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$PORTAINER_WEBHOOK" || echo "000")
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "Webhook do Portainer respondeu HTTP $status (URL omitida do log de propósito)."
+            exit 1
+          fi
+          echo "Webhook do Portainer respondeu HTTP $status."
+        env:
+          PORTAINER_WEBHOOK: ${{ secrets.PORTAINER_WEBHOOK }}
+
+      # Deploy disparado não é deploy provado (D-09): mesma régua do Portão B
+      # aplicada à publicação. Retry com teto — estourou, job vermelho. Na
+      # primeira execução isto VAI falhar (ninguém criou o stack no Portainer
+      # ainda) e esse é o comportamento correto: não afrouxar para ficar verde.
+      - name: Verifica /health até responder ou estourar o teto
+        run: |
+          url="https://api.orcamento.cesarvieira.dev/health"
+          tentativas=30
+          intervalo=10
+          for i in $(seq 1 "$tentativas"); do
+            status=$(curl -s -o /dev/null -w '%{http_code}' "$url" || echo "000")
+            if [ "$status" = "200" ]; then
+              echo "Health respondeu 200 na tentativa $i/$tentativas."
+              exit 0
+            fi
+            echo "Tentativa $i/$tentativas: /health respondeu $status. Aguardando ${intervalo}s..."
+            sleep "$intervalo"
+          done
+          echo "Teto de $tentativas tentativas estourado sem /health responder 200."
+          exit 1

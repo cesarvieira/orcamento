@@ -14,11 +14,13 @@ import * as Sentry from '@sentry/nuxt';
 import { limparEvento } from './app/utils/limpeza-de-evento';
 
 const dsn = process.env.NUXT_PUBLIC_SENTRY_DSN || '';
+const release = process.env.NUXT_PUBLIC_SENTRY_RELEASE || '';
 
 if (dsn) {
   Sentry.init({
     dsn,
     environment: process.env.NUXT_PUBLIC_SENTRY_AMBIENTE || process.env.NODE_ENV || 'development',
+    ...(release ? { release } : {}),
     tracesSampleRate: Number(process.env.NUXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE ?? 0),
     sendDefaultPii: false,
     beforeSend: evento => limparEvento(evento),
