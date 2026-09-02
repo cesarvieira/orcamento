@@ -22,6 +22,7 @@ consequências que ela impôs.
 | [D-07](D-07-ambiente-e-segredos.md)  | Provedor de email por `.env`; credencial nunca no perfil          | aceita |
 | [D-08](D-08-observabilidade.md)      | Observabilidade por Sentry self-hosted, dirigida por DSN          | aceita |
 | [D-09](D-09-deploy-em-producao.md)   | Deploy: uma imagem no GHCR, dois subdomínios, release do build    | aceita |
+| [D-10](D-10-pwa-instalavel.md)       | PWA instalável; o service worker só cacheia asset versionado      | aceita |
 
 ## Produto
 
