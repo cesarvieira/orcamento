@@ -41,6 +41,21 @@ export default defineNuxtConfig({
           name: 'description',
           content: 'Orçamento familiar por envelope com lastro.',
         },
+        // A cor do produto (`--tinta`, base.scss) — mesmo valor do
+        // `theme_color` do manifesto, abaixo. É o que colore a barra de
+        // status quando o app está instalado (D-10).
+        { name: 'theme-color', content: '#14325a' },
+      ],
+      // Cada `link` aqui é uma promessa que o artefato de deploy precisa
+      // cumprir (D-10, D-09): arquivo declarado e ausente é 404, e o gate de
+      // navegação reprova em erro de rede. Os cinco ícones já estão
+      // versionados em `web/public/icones/`; o maskable é gerado por
+      // `scripts/gerar-icone-maskable.mjs`.
+      link: [
+        { rel: 'manifest', href: '/manifest.webmanifest' },
+        { rel: 'apple-touch-icon', href: '/icones/apple-touch-icon.png' },
+        { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/icones/favicon-32.png' },
+        { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/icones/favicon-16.png' },
       ],
     },
   },

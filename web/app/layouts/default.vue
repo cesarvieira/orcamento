@@ -27,6 +27,7 @@ import { MESES_DO_ANO, competenciaAtual, competenciaDe } from '~/utils/competenc
 
 const rota = useRoute();
 const { sessao, sair } = useSessao();
+const { podeInstalar, instalar } = useInstalacaoPwa();
 
 /**
  * Sair é a única ação de sessão que o shell executa. Vive aqui, e não só em
@@ -156,6 +157,16 @@ const mesesDoAnoNaFolha = computed(() =>
           <span class="sidebar__rodape-vazio">O resumo do mês entra aqui.</span>
         </slot>
       </div>
+
+      <!--
+        INSTALAR (D-10) — mesmo `v-if="podeInstalar"` de `pages/mais/index.vue`,
+        e pelo mesmo motivo que o Sair já vive nos dois lugares: no desktop a
+        sidebar substitui a tela Mais, e ninguém passa por ela.
+      -->
+      <button v-if="podeInstalar" type="button" class="sidebar__instalar" @click="instalar">
+        <i class="ti ti-download"></i>
+        Instalar o app
+      </button>
 
       <button type="button" class="sidebar__sair" @click="encerrar">
         <i class="ti ti-logout"></i>

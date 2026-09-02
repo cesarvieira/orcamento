@@ -80,6 +80,28 @@ export default tseslint.config(
     },
   },
   {
+    // O service worker (D-10, `docs/decisoes/D-10-pwa-instalavel.md`) roda no
+    // escopo global do próprio worker, não no de página nem no de Node — os
+    // globais abaixo (`self`, `caches`, `clients`, ...) não existem em
+    // nenhum dos outros dois, e sem declará-los aqui `eslint .` reprova em
+    // `no-undef`. É custo permanente de não trazer o Workbox (ver D-10,
+    // "Consequências"): um arquivo fora do pipeline do Vite, então também
+    // fora do `tsconfig` e do resto do monorepo — só este bloco o alcança.
+    files: ['web/public/sw.js'],
+    languageOptions: {
+      globals: {
+        self: 'readonly',
+        caches: 'readonly',
+        clients: 'readonly',
+        fetch: 'readonly',
+        Response: 'readonly',
+        Request: 'readonly',
+        URL: 'readonly',
+        Promise: 'readonly',
+      },
+    },
+  },
+  {
     files: ['**/package.json'],
     language: 'json/json',
     plugins: { json: jsonPlugin },

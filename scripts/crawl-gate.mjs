@@ -68,8 +68,13 @@ const ROTAS_LOGADAS = [
 const RUIDO_ACEITO = [
   // A extensão do devtools do Vue, quando presente no ambiente de quem roda.
   /vue-devtools/i,
-  // O favicon padrão não existe e o navegador reclama sozinho.
-  /favicon\.ico/i,
+  // A exceção de `/favicon.ico` (D-10) SAIU daqui: o app agora declara
+  // `link rel="icon"` explícito para os dois PNG (`web/nuxt.config.ts`), e
+  // com ele o Chrome para de pedir o `/favicon.ico` implícito — medido
+  // rodando este crawler contra o front de produção (ver o relato da tarefa
+  // #129). Se um gate futuro mostrar o navegador voltando a pedi-lo, a
+  // exceção volta aqui — com o motivo medido, não por hábito (é a mesma
+  // regra que descartou a lista de bloqueio no `sw.js`, D-10).
 ];
 
 function ehRuido(texto) {
