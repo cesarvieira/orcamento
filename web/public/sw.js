@@ -84,7 +84,22 @@ async function responderNavegacao(requisicao) {
   try {
     return await fetch(requisicao);
   } catch {
-    return caches.match('/offline.html');
+    const doCache = await caches.match('/offline.html');
+    if (doCache) return doCache;
+
+    // SEGUNDA LINHA DE DEFESA — não é o caminho normal. `/offline.html` está
+    // no `PRE_CARGA` do `install`, e `cache.addAll` é atômico: se o install
+    // terminou (só depois dele o `skipWaiting()` roda), a página está no
+    // cache. Isto existe para uma EVICÇÃO PARCIAL do Cache Storage depois
+    // disso — o navegador pode liberar espaço e derrubar só essa entrada.
+    // Sem isto, `caches.match` resolveria `undefined`, `respondWith`
+    // receberia isso, e a navegação morreria com erro de rede exatamente no
+    // caso que esta página existe para cobrir. Não remova por achar
+    // redundante com o cache: os dois cobrem falhas diferentes.
+    return new Response('Sem conexão.', {
+      status: 200,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
   }
 }
 
@@ -94,8 +109,18 @@ async function responderAssetVersionado(requisicao) {
   if (doCache) return doCache;
 
   const daRede = await fetch(requisicao);
-  const cache = await caches.open(VERSAO_CACHE);
-  await cache.put(requisicao, daRede.clone());
+
+  // Só grava resposta BOA no cache. `daRede.ok` (2xx) exclui também os casos
+  // de `type` que interessam aqui: uma resposta `opaque`/`opaqueredirect`
+  // (cross-origin sem CORS) já chega com `ok: false` por definição, então
+  // esta única checagem também cobre esse caso sem precisar olhar `type` à
+  // parte. Cachear um 404/5xx sobreviveria ao problema que o causou: até a
+  // próxima troca de `VERSAO_CACHE`, esse erro seria servido como se fosse
+  // o asset — pior que não cachear, porque não se autocorrige sozinho.
+  if (daRede.ok) {
+    const cache = await caches.open(VERSAO_CACHE);
+    await cache.put(requisicao, daRede.clone());
+  }
   return daRede;
 }
 
