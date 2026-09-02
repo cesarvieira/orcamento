@@ -254,7 +254,7 @@ O ícone `icone-maskable-512.png` é gerado por `scripts/gerar-icone-maskable.mj
 `icone-512.png`. Se a arte mudar:
 
 ```bash
-pnpm run build:icone-maskable
+node scripts/gerar-icone-maskable.mjs
 ```
 
 O script usa Playwright (já no monorepo para o gate) para desenhar o ícone centrado numa zona
