@@ -190,6 +190,80 @@ Ambiente desta máquina: a porta 3000 do host está ocupada por um container de 
 (`API_PORT=3010` na hora do `docker compose up`) — `preator-perfil.sh` e `.env.example` continuam
 declarando 3000, que é a porta correta em qualquer ambiente sem esse conflito.
 
+## PWA instalável
+
+Referência técnica e decisões: [D-10](../decisoes/D-10-pwa-instalavel.md).
+
+**O que existe:**
+
+- `web/public/manifest.webmanifest` — metadados de instalação (nome, ícones, display `standalone`).
+- `web/public/sw.js` — service worker estático, registrado só no cliente e só em produção.
+- `web/public/offline.html` — página sem dados, servida quando navegação falha por rede (exigência
+  do navegador para considerar o app instalável; não é um modo offline completo).
+- `web/public/icones/` — imagens (192px, 512px, maskable-512px, apple-touch-icon, favicon);
+  fornecidas; apenas a maskable é gerada por script.
+- `web/app/plugins/pwa.client.ts` — registra o service worker em produção, escuta
+  `beforeinstallprompt` e `appinstalled`.
+- `web/app/composables/useInstalacaoPwa.ts` — state do evento de instalação, expõe `podeInstalar`
+  e `instalar()`.
+- Botão _Instalar o app_ em `web/app/layouts/default.vue` (sidebar) e `web/app/pages/mais/index.vue`
+  (menu).
+
+**Como instala um usuário:**
+
+O navegador dispara `beforeinstallprompt` quando manifesto, ícones e service worker foram validados
+**e** o app ainda não está instalado — nenhuma ação do app força isto. Ao clicar no botão, o app
+chama `evento.prompt()` para o navegador exibir o prompt nativo. Após instalar, o evento
+`appinstalled` limpa o estado e o botão some — **sem `localStorage`, sem heurística de user agent,
+sem state que possa divergir**. Comportamento está correto por construção.
+
+**O que o service worker cacheia e o que nunca cacheia:**
+
+| O que                         | Service worker faz                           | Por quê                                                   |
+| ----------------------------- | -------------------------------------------- | --------------------------------------------------------- |
+| `/_nuxt/*` (JS e CSS do Vite) | **cacheia** — cache-first, atualiza na rede  | nome versionado por hash; se está no cache, é byte a byte |
+| Fontes (`.woff2`)             | **cacheia** — cache-first, atualiza na rede  | asset estático, versionado por nome                       |
+| Ícones (`/icones/*`)          | **cacheia** — cache-first, atualiza na rede  | asset estático, versionado por nome                       |
+| **HTML de qualquer rota** (/) | **NUNCA cacheia** — passa direto para a rede | dado financeiro do cliente logado — sem cache é seguro    |
+| `/api/*`                      | **NUNCA cacheia** — passa direto para a rede | requisições ao servidor, nunca guardadas                  |
+| `/realtime` (socket)          | **NUNCA cacheia** — passa direto para a rede | conexão bidirecional, sem HTTP                            |
+
+O filtro é **lista de permissão, nunca bloqueio** — essa moldura é permanente e de segurança:
+acrescentar um padrão à permissão reabre o vazamento de dado entre famílias que a regra inviolável
+#1 fecha no servidor. Ver `web/public/sw.js` e [D-10 §1](../decisoes/D-10-pwa-instalavel.md) para o
+raciocínio completo.
+
+O cache é invalidado quando `VERSAO_CACHE` muda em `web/public/sw.js` — o `activate` apaga a
+versão anterior. Alteração no `sw.js` é alteração de segurança, não de performance.
+
+**Como verificar instalabilidade (Chrome/Edge):**
+
+1. Abrir as ferramentas do desenvolvedor (`F12`).
+2. Aba _Application_ → _Manifest_.
+3. Procurar por erros (ícones ausentes, `display: standalone` faltando, etc.).
+4. Se nada aparecer vermelho e o app não está instalado, clicar em _Install_ — é o que o próprio
+   navegador ofereceria em produção.
+
+**Regenerar o ícone maskable:**
+
+O ícone `icone-maskable-512.png` é gerado por `scripts/gerar-icone-maskable.mjs` a partir de
+`icone-512.png`. Se a arte mudar:
+
+```bash
+node scripts/gerar-icone-maskable.mjs
+```
+
+O script usa Playwright (já no monorepo para o gate) para desenhar o ícone centrado numa zona
+segura (78% do quadro), com fundo amostrado da própria arte (`#1881a9`). A saída é idempotente:
+roda duas vezes, sai sempre a mesma imagem (byte a byte, a menos que Chromium mude de versão).
+
+**Pendência — iOS:**
+
+O Safari não expõe `beforeinstallprompt` e nenhum site dispara instalação automaticamente lá. O
+fluxo é manual (_Compartilhar_ → _Adicionar à Tela de Início_). Escrever instrução de usuário é
+decisão de UX e produto, fora do escopo de EF-00 — registrada como pendência conhecida em
+[EF-00 §5](../especificacoes/EF-00-plataforma.md).
+
 ## O que não foi portado do mockup
 
 `support.js` (runtime gerado do dc-runtime) e as props de demonstração `cenarioSemLastro` /
