@@ -219,11 +219,6 @@ sem state que possa divergir**. Comportamento está correto por construção.
 
 **O que o service worker cacheia e o que nunca cacheia:**
 
-Esta é a regra de segurança da decisão D-10 §1. **Toda tela deste produto é área logada — o HTML
-já sai do servidor com o saldo dentro.** Um cache que respondesse HTML do cliente serviria a última
-tela logada **antes de qualquer verificação de sessão**, no aparelho onde outra pessoa da casa
-abre o app depois.
-
 | O que                         | Service worker faz                           | Por quê                                                   |
 | ----------------------------- | -------------------------------------------- | --------------------------------------------------------- |
 | `/_nuxt/*` (JS e CSS do Vite) | **cacheia** — cache-first, atualiza na rede  | nome versionado por hash; se está no cache, é byte a byte |
@@ -233,9 +228,10 @@ abre o app depois.
 | `/api/*`                      | **NUNCA cacheia** — passa direto para a rede | requisições ao servidor, nunca guardadas                  |
 | `/realtime` (socket)          | **NUNCA cacheia** — passa direto para a rede | conexão bidirecional, sem HTTP                            |
 
-O filtro é **lista de permissão, nunca bloqueio** — e essa moldura é permanente: acrescentar um
-padrão à permissão reabre a regra de segurança acima e requer revisão de segurança. Ver `web/public/sw.js`
-e D-10 para o raciocínio completo.
+O filtro é **lista de permissão, nunca bloqueio** — essa moldura é permanente e de segurança:
+acrescentar um padrão à permissão reabre o vazamento de dado entre famílias que a regra inviolável
+#1 fecha no servidor. Ver `web/public/sw.js` e [D-10 §1](../decisoes/D-10-pwa-instalavel.md) para o
+raciocínio completo.
 
 O cache é invalidado quando `VERSAO_CACHE` muda em `web/public/sw.js` — o `activate` apaga a
 versão anterior. Alteração no `sw.js` é alteração de segurança, não de performance.
