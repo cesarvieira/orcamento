@@ -88,8 +88,9 @@ com o HMR do Vite e produz a classe de bug que ninguém consegue reproduzir depo
 
 **6 · A arte do ícone vem do humano; a única imagem derivada é a _maskable_.** Os PNG do pacote
 fornecido entram versionados em `web/public/icones/` — copiados, não redesenhados. A _maskable_, que
-o pacote não traz, é gerada por script a partir do ícone de 1024 px, com o **Playwright que o
-monorepo já tem** para o gate de navegação: sem dependência nova, e regerável por quem vier depois.
+o pacote não traz, é gerada por script a partir do `icone-512.png` — o maior que é versionado, e
+o suficiente, porque a saída também é 512 —, com o **Playwright que o monorepo já tem** para o gate
+de navegação: sem dependência nova, e regerável por quem vier depois.
 
 ## Alternativas consideradas
 
@@ -136,7 +137,7 @@ agora?"_) sem nada para guardar, migrar ou limpar.
 `beforeinstallprompt` e nenhum site dispara instalação lá — o caminho é manual
 (_Compartilhar → Adicionar à Tela de Início_). Escrever uma folha de instruções seria construir
 produto para uma capacidade que o navegador não dá, e mantê-la correta a cada versão do iOS. Fica
-como **pendência declarada** na EF-00 §3, não como bug.
+como **pendência declarada** na EF-00 §5, não como bug.
 
 **Desenhar ou gerar o ícone aqui.** Descartado por decisão do humano em 2026-09-02: a arte foi
 fornecida (pacote `appstore-images`, de 16 a 1024 px). Ícone de produto é identidade, não asset a
@@ -162,7 +163,7 @@ traz e cuja geração é mecânica — centrar o ícone na zona segura que o And
   nenhum. Página que ninguém olha apodrece: é a candidata natural a receber _"só um resumo do
   saldo"_ um dia, e é exatamente isso que ela não pode receber.
 - **O iOS fica sem botão**, e quem usa iPhone não vê diferença nenhuma desta história. Declarado na
-  EF-00 §3 como pendência conhecida; a fase 2 existe se e quando alguém a pedir.
+  EF-00 §5 como pendência conhecida; a fase 2 existe se e quando alguém a pedir.
 - **O `<head>` ganha promessas que o gate cobra.** Manifesto, ícones e `theme-color` entram no
   `app.head` do `web/nuxt.config.ts`; cada arquivo declarado e ausente do artefato de deploy é 404, e
   404 reprova o gate de navegação. A superfície nova de falha não é o código do service worker — é o
