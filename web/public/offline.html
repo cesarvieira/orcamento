@@ -1,0 +1,100 @@
+<!doctype html>
+<!--
+  A PÁGINA OFFLINE — existe por motivo mecânico, não para quem usa (D-10,
+  `docs/decisoes/D-10-pwa-instalavel.md`, §3). O Chrome só considera o app
+  instalável se houver resposta offline válida; sem ela `beforeinstallprompt`
+  nunca dispara. Ela NÃO é o começo de um modo offline: é o preço da
+  checagem, e esse preço se paga sem cachear tela nenhuma — não tem saldo,
+  não tem lançamento, não tem nome de família. Se um dia alguém sentir
+  vontade de acrescentar "só um resumo" aqui, é a decisão que esta página
+  existe para não deixar acontecer por acidente.
+
+  HTML e CSS inline, sem script, sem link externo — inclusive sem apontar
+  para a fonte Manrope do pacote: ela é local (`@fontsource/manrope`) e pode
+  não estar em cache no momento em que esta página é servida (é exibida
+  exatamente quando a rede falhou). O `font-family` abaixo pede Manrope e cai
+  para a pilha do sistema quando ela não está disponível.
+-->
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sem conexão · Orçamento Familiar</title>
+    <style>
+      :root {
+        --fundo: #f6f7f9;
+        --superficie: #ffffff;
+        --tinta: #14325a;
+        --texto: #14325a;
+        --texto-medio: #5b6675;
+        --borda: rgba(0, 0, 0, 0.06);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+      }
+
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: var(--fundo);
+        color: var(--texto);
+        font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        text-align: center;
+        padding: 24px;
+      }
+
+      .cartao {
+        max-width: 360px;
+        background: var(--superficie);
+        border: 1px solid var(--borda);
+        border-radius: 16px;
+        padding: 32px 28px;
+      }
+
+      .selo {
+        width: 56px;
+        height: 56px;
+        margin: 0 auto 16px;
+        border-radius: 9999px;
+        background: var(--tinta);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        font-weight: 800;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 18px;
+        font-weight: 800;
+        letter-spacing: -0.01em;
+      }
+
+      p {
+        margin: 0;
+        font-size: 13.5px;
+        line-height: 1.6;
+        color: var(--texto-medio);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="cartao">
+      <div class="selo">!</div>
+      <h1>Sem conexão</h1>
+      <p>O Orçamento Familiar está sem internet no momento. A tela volta assim que a rede voltar.</p>
+    </div>
+  </body>
+</html>
