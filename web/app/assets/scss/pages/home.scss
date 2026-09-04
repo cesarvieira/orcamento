@@ -9,6 +9,185 @@
 // `.sheet*`/`.linha*` são globais (`base.scss`) — esta tela não precisa
 // deles, e por isso não os redeclara.
 
+// ── A GRADE DO DESKTOP (desenho desktop `:247`) ──────────────────────────
+// `minmax(0,1.65fr) minmax(320px,0.85fr)`, gap 22px, `align-items:start`.
+//
+// ⚠️ O `max-width` DIVERGE, e é declarado: o desenho não põe teto nenhum na
+// home (é a única tela dele sem um — as outras vão de 760px a 1120px). Sem
+// teto, em um monitor de 2560px cada cartão de categoria passaria de 700px de
+// largura para mostrar um nome e um número. 1240px é o valor desta casa,
+// escolhido por ser o 1120px da tela de orçamento mais a diferença das
+// colunas — não é do desenho, e está aqui dito.
+.home {
+  @media (min-width: 768px) {
+    max-width: 1240px;
+  }
+}
+
+.home__grade {
+  @media (min-width: 768px) {
+    display: grid;
+    grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.85fr);
+    gap: 22px;
+    // Sem `start` as duas colunas esticam até a altura da mais alta, e os
+    // cartões de apoio ganhariam um fundo do tamanho da lista de categorias.
+    align-items: start;
+  }
+}
+
+.home__principal {
+  @media (min-width: 768px) {
+    min-width: 0;
+  }
+}
+
+// ── A LATERAL ────────────────────────────────────────────────────────────
+// Não existe no telefone: o desenho mobile da home não tem estes dois
+// cartões, e mostrá-los ali empurraria as categorias — que são a tela — para
+// baixo da dobra. Escondida por CSS, não por medida de janela (ver o
+// comentário de `contas`/`metas` em `pages/index.vue`).
+
+.home__lateral {
+  display: none;
+
+  @media (min-width: 768px) {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+}
+
+.home__painel {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 18px;
+}
+
+.home__painel-cabecalho {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.home__painel-titulo {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.home__painel-link {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--texto-fraco);
+
+  &:hover {
+    color: var(--tinta);
+  }
+}
+
+.home__painel-vazio {
+  margin: 0;
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
+.home__painel-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.home__conta {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--texto);
+}
+
+.home__conta-icone {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 9px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+}
+
+.home__conta-texto {
+  flex: 1;
+  min-width: 0;
+}
+
+// A coluna é estreita (320px no mínimo): nome e sublinha cortam com
+// reticências em vez de quebrar a linha e desalinhar o saldo à direita.
+.home__conta-nome {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home__conta-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--texto-fraco);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home__conta-valor {
+  flex: none;
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.home__painel-metas {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.home__meta-topo {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.home__meta-nome {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home__meta-pct {
+  flex: none;
+  color: var(--texto-fraco);
+}
+
+.home__meta-trilho {
+  height: 5px;
+  margin-top: 6px;
+  border-radius: 9999px;
+  background: #eceef1;
+  overflow: hidden;
+}
+
+.home__meta-preenchimento {
+  height: 100%;
+  background: var(--tinta);
+}
+
 // ── estados vazios ───────────────────────────────────────────────────────
 
 .home__vazio {
@@ -151,10 +330,19 @@
 
 // ── lista de categorias (recorte §4.6) ───────────────────────────────────
 
+// Desenho desktop `:276` — `repeat(2,minmax(0,1fr))`, gap 12px. É a mudança
+// que tira a home do desenho de telefone esticado: uma coluna única de
+// cartões de 50px de altura por toda a largura de um monitor.
 .home__lista {
   display: flex;
   flex-direction: column;
   gap: 8px;
+
+  @media (min-width: 768px) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
 }
 
 .home__cartao {
@@ -177,6 +365,12 @@
   color: var(--texto);
   text-align: left;
   cursor: pointer;
+
+  // O cartão respira mais no desktop (desenho `:277`, `padding:16`).
+  @media (min-width: 768px) {
+    padding: 16px;
+    gap: 12px;
+  }
 }
 
 .home__icone {
@@ -189,6 +383,13 @@
   align-items: center;
   justify-content: center;
   font-size: 17px;
+
+  @media (min-width: 768px) {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--raio-pequeno);
+    font-size: 19px;
+  }
 }
 
 .home__texto {
@@ -206,6 +407,10 @@
 .home__nome {
   font-size: 13.5px;
   font-weight: 700;
+
+  @media (min-width: 768px) {
+    font-size: 14.5px;
+  }
 }
 
 .home__valores {
@@ -218,6 +423,10 @@
   font-size: 15px;
   font-weight: 800;
   letter-spacing: -0.01em;
+
+  @media (min-width: 768px) {
+    font-size: 17px;
+  }
 }
 
 .home__pct {
@@ -232,6 +441,10 @@
   font-size: 11px;
   color: var(--texto-fraco);
   margin-top: 3px;
+
+  @media (min-width: 768px) {
+    font-size: 11.5px;
+  }
 }
 
 // Linha `bloqLabel` (recorte-desenho-20.md §2) — mesma cor de aviso da faixa
@@ -255,6 +468,10 @@
   border-radius: 9999px;
   background: #eceef1;
   overflow: hidden;
+
+  @media (min-width: 768px) {
+    margin-top: 11px;
+  }
 }
 
 .home__barra-fill {

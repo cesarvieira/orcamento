@@ -98,9 +98,41 @@ const EsquemaLancamento = registrarEsquema(
   }),
 );
 
+/**
+ * O SALDO ACUMULADO DE UM DIA — a coluna de conferência do extrato.
+ *
+ * 🟨 Regra nova, decidida com o humano (2026-09-03); não vem do mockup nem de
+ * EF nenhuma. A derivação inteira mora em
+ * `modulos/lancamentos/servico.ts#saldosPorDiaDoExtrato`, com as três decisões
+ * (o que "todas as contas" soma, o que o número significa num cartão, e que é
+ * saldo de FECHAMENTO do dia) registradas lá.
+ *
+ * Vem PRONTO para o cliente de propósito: o front lê e formata, nunca soma
+ * `valorCentavos` para chegar nele (regra inviolável #4 — isso criaria uma
+ * segunda verdade para o saldo da conta, que `saldoCentavos` já é).
+ */
+const EsquemaSaldoDoDia = z.object({
+  data: z.string().meta({ description: 'AAAA-MM-DD — o dia que este saldo fecha.' }),
+  saldoCentavos: z.number().int().meta({
+    description:
+      'Inteiro em centavos (D-06). Saldo ao FIM deste dia: saldo inicial da conta (ou a soma ' +
+      'do de todas as contas da família, sem filtro) mais todo movimento com data até aqui, ' +
+      'inclusive o de meses anteriores. NEGATIVO é legítimo: num cartão este número é a ' +
+      'dívida acumulada, mesmo sinal de `saldoCentavos` de uma CREDITO.',
+  }),
+});
+
 registrarEsquema(
   'LancamentosListados',
-  z.object({ lancamentos: z.array(EsquemaLancamento) }),
+  z.object({
+    lancamentos: z.array(EsquemaLancamento),
+    saldosPorDia: z.array(EsquemaSaldoDoDia).meta({
+      description:
+        'Um item por DIA com movimento na mesma janela dos `lancamentos` acima, em ordem ' +
+        'crescente de data. Os dias saem do mesmo filtro da listagem: nunca há dia listado ' +
+        'sem saldo, nem saldo sem dia listado.',
+    }),
+  }),
 );
 
 // ---------------------------------------------------------------------------

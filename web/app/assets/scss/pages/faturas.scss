@@ -9,6 +9,15 @@
 // O título "Faturas" já vem do shell (`topo__titulo`). Esta tela não o
 // duplica — mesmo padrão de `contas.vue`/`extrato.vue`.
 
+// ── A COLUNA DO DESKTOP (desenho desktop `:431`) ─────────────────────────
+// `max-width:820px` — a fatura é uma lista de linhas curtas sob um cartão de
+// cabeçalho; mais largo que isso só afasta descrição de valor.
+.faturas {
+  @media (min-width: 768px) {
+    max-width: 820px;
+  }
+}
+
 .faturas__vazio {
   margin: 0;
   padding: 24px 0;

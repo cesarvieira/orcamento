@@ -43,6 +43,7 @@ inexprimível.
 | RN-21 | O resíduo do parcelamento vai para a **última** parcela; a soma é exatamente o total      | serviço                           | D-06                                             |
 | RN-22 | Competência **selada** não aceita novo lançamento                                         | validação                         | [EF-08](EF-08-fechamento.md)                     |
 | RN-39 | `recebido` da competência = **soma dos lançamentos `RECEITA`** daquela competência        | leitura da competência            | decisão do humano, 2026-08-27                    |
+| RN-57 | O extrato devolve o **saldo acumulado de cada dia**: o de fechamento, não o do dia        | leitura do extrato                | decisão do humano, 2026-09-03                    |
 
 **RN-18 e RN-19 juntas são competência × caixa** — a fonte de confusão mais comum em app de
 finanças, e a que o mockup acerta.
@@ -59,6 +60,35 @@ de caixa. Ela diz **competência**, coerente com RN-15 e com o fato de `não alo
 de uma competência — mas o par competência × caixa de RN-18/RN-19 merece um olhar quando esta
 EF for construída de verdade.
 
+**RN-57 nasceu DEPOIS do ciclo da história #18**, em 2026-09-03, de um pedido do humano: conferir
+o extrato do app contra o extrato do banco, linha a linha. Listar não bastava — faltava o saldo de
+fechamento de cada dia. Não vem do protótipo, que não tem a coluna. As três decisões que a definem
+foram tomadas pelo humano no mesmo dia e ficam aqui para não serem reabertas por engano:
+
+1. **Sem filtro de conta, o acumulado soma TODAS as contas da família** — cartão e reserva
+   inclusive. É o patrimônio do dia, não o caixa. Uma `TRANSFERENCIA` entre contas próprias soma
+   **zero** (as duas pontas são da mesma família): a linha aparece na lista sem mover o número.
+2. **Num cartão o acumulado é a dívida acumulada**, com o mesmo sinal que `saldoCentavos` de uma
+   `CREDITO` já tem ([EF-02](EF-02-contas.md) §1): a compra soma à dívida, o pagamento da fatura
+   abate. Valor negativo é legítimo aqui.
+3. **É o saldo de FECHAMENTO do dia** — parte do `saldoInicialCentavos` das contas do recorte e
+   soma todo movimento com data até aquele dia, **inclusive o de competências anteriores**. Sem
+   isso o número recomeçaria do zero todo dia 1º e não conferiria com banco nenhum.
+
+**RN-57 obrigou a corrigir o filtro por conta do extrato**, e a correção é parte da regra: a
+listagem filtrava só por `contaId` (a origem), então o extrato de uma conta `RESERVA` vinha
+**sempre vazio** (guardar numa meta é uma transferência com a reserva como destino,
+[EF-07](EF-07-metas.md)/RN-33) e o de um `CARTÃO` **escondia o pagamento da fatura**
+([EF-05](EF-05-faturas.md)/RN-24). O extrato de uma conta agora varre exatamente as mesmas linhas
+que o saldo dela — `contaId = X or contaDestinoId = X`, o critério de [EF-02](EF-02-contas.md) §1.
+Sem essa correção o acumulado não fecharia com `saldoCentavos`, e duas verdades sobre o saldo de
+uma conta é o defeito que a regra inviolável #4 do projeto existe para impedir.
+
+**O que RN-57 NÃO decide:** o acumulado é ordenado e cortado por `data`, não por `competencia`. As
+duas coincidem hoje porque a competência é `data.slice(0,7)` na escrita — se algum dia uma compra
+no crédito passar a cair na competência do fechamento da fatura (a leitura que RN-18 sugere e que
+`docs/decisoes` ainda não decidiu), esta regra precisa ser revisitada junto.
+
 ---
 
 ## §3 — Telas
@@ -66,12 +96,12 @@ EF for construída de verdade.
 **Referência de tela:** folha de novo lançamento (`sheetLanc`) · tela `home` (Visão do mês) ·
 tela `extrato` · modal de detalhe.
 
-| Recurso         | Rota               | Fluxo                                                                                   |
-| --------------- | ------------------ | --------------------------------------------------------------------------------------- |
-| Novo lançamento | folha, FAB central | teclado de valor · categoria · conta · data · parcelas · atalhos                        |
-| Visão do mês    | `/`                | recebido · previsto · planejado · não alocado · categorias                              |
-| Extrato         | `/extrato`         | agrupado por dia · filtro por conta · estado vazio é tela de verdade                    |
-| Detalhe         | modal              | descrição · valor · categoria · conta · data · **quem lançou** · parcelamento · excluir |
+| Recurso         | Rota               | Fluxo                                                                                                          |
+| --------------- | ------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Novo lançamento | folha, FAB central | teclado de valor · categoria · conta · data · parcelas · atalhos                                               |
+| Visão do mês    | `/`                | recebido · previsto · planejado · não alocado · categorias                                                     |
+| Extrato         | `/extrato`         | agrupado por dia · **saldo acumulado no cabeçalho do dia** · filtro por conta · estado vazio é tela de verdade |
+| Detalhe         | modal              | descrição · valor · categoria · conta · data · **quem lançou** · parcelamento · excluir                        |
 
 ---
 
@@ -99,6 +129,14 @@ tela `extrato` · modal de detalhe.
       [EF-05](EF-05-faturas.md), #19, não construída. Ver `MC-04`, `EF04-MC-002`
 - [x] Retroativo não consome o teto do mês corrente — `lancamentos.teste.ts:301-352`
 - [x] Transferência não aparece como gasto de categoria nenhuma — `lancamentos.teste.ts:170-195`
+- [x] **RN-57 — saldo acumulado por dia**, uma prova por decisão: fechamento do dia e soma de dois
+      lançamentos no mesmo dia, o último dia batendo com `saldoCentavos` da conta, o acumulado
+      partindo da competência anterior, a transferência que ENTRA aparecendo no extrato da conta de
+      destino, a dívida acumulada do cartão zerando ao pagar a fatura, a transferência entre contas
+      próprias somando zero em "todas as contas", e isolamento entre famílias — 8 testes,
+      `api/testes/extrato-saldo.teste.ts`. **A prova é de servidor**: o número nunca renderizou no
+      gate de navegação, porque a família semeada não tem lançamento nenhum — mesma causa de
+      `EF04-MC-003`. Ver `MC-04`, `EF04-MC-007`
 - [x] Extrato abre no artefato de deploy, **incluindo o estado vazio** — provado que abre e mostra
       vazio (gate de navegação), mas o seed não tem lançamento nenhum
       (`api/src/db/semear.ts:60`), então o vazio exercitado é o 🟨 "família sem histórico", nunca
@@ -110,7 +148,7 @@ tela `extrato` · modal de detalhe.
       `EF04-MC-005`
 - [x] `PROVA_DE_COMPORTAMENTO=PASS` em toda tarefa mesclada desta história — lista viva, na ordem
       real (não envelhece como uma contagem fixa neste texto): `git log --oneline --first-parent
-    main..historia/18-ef-04-lancamentos`. A suíte roda **181 testes**, 0 falhando — contagem
+  main..historia/18-ef-04-lancamentos`. A suíte roda **349 testes**, 0 falhando — contagem
       literal, conferida de novo por esta tarefa (`node scripts/contar-testes.mjs`); muda só se um
       módulo ganhar ou perder teste, não com o passar de tarefas de documentação
 

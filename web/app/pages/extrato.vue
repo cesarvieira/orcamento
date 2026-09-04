@@ -45,6 +45,32 @@
  *    categoria) usa a cor/ícone do TIPO (`TIPOS_LANCAMENTO`, mesma fonte
  *    que a folha de lançamento já usa); para DESPESA, a cor/ícone da
  *    categoria.
+ *
+ * ═══════════════════════════════════════════════════════════════════════
+ * O SALDO ACUMULADO — 🟨 regra NOVA, fora do desenho (2026-09-03):
+ * ═══════════════════════════════════════════════════════════════════════
+ *
+ * 6. SALDO DE FECHAMENTO POR DIA, no cabeçalho do dia, à direita. Não está
+ *    no mockup: nasceu do pedido de conferir o extrato contra o do banco.
+ *    O número é DERIVADO NO SERVIDOR (`saldosPorDia`, de
+ *    `api/src/modulos/lancamentos/servico.ts#saldosPorDiaDoExtrato`) — as
+ *    três decisões do humano (o que "todas as contas" soma, o que ele
+ *    significa num cartão, e que é fechamento do dia) estão registradas lá,
+ *    não aqui. Esta tela só indexa por dia e formata: somar `valorCentavos`
+ *    para chegar no saldo seria a segunda fonte da verdade que a regra
+ *    inviolável #4 proíbe.
+ *
+ * 7. A TRANSFERÊNCIA QUE ENTRA passou a aparecer no extrato filtrado. O
+ *    filtro por conta olhava só `contaId` (a origem), então o extrato de uma
+ *    RESERVA vinha sempre vazio e o de um CARTÃO escondia o pagamento da
+ *    fatura. Corrigido no serviço, porque sem isso o acumulado não fecharia
+ *    com `saldoCentavos` da conta. Consequências nesta tela, ambas
+ *    dependentes de haver uma conta escolhida:
+ *    - `subDoLancamento` diz "Transferência DE X" quando a conta filtrada é
+ *      o destino, e "para X" quando é a origem;
+ *    - `valorComSinal` dá sinal à transferência (entrada +, saída −). SEM
+ *      filtro ela continua sem sinal, como RN-17 sempre mandou: para a
+ *      família não é gasto nem ganho, e o acumulado não se move com ela.
  */
 import type { Categoria, Conta, Lancamento } from '@orcamento/contrato';
 import { classeDoIcone, useContas } from '~/composables/useContas';
@@ -77,9 +103,14 @@ const { listarLancamentos, listarCategorias } = useLancamentos({
  * vive dentro do composable, testado sem montar a SFC em
  * `useExtratoLeitura.teste.ts`.
  */
-const { lancamentos, carregando, erro, familiaSemHistorico, carregar: carregarLeitura } = useExtratoLeitura({
-  listar: listarLancamentos,
-});
+const {
+  lancamentos,
+  saldosPorDia,
+  carregando,
+  erro,
+  familiaSemHistorico,
+  carregar: carregarLeitura,
+} = useExtratoLeitura({ listar: listarLancamentos });
 
 /**
  * O custo extra de listar SEM filtro (dentro do composable, só no caminho
@@ -155,6 +186,13 @@ interface GrupoDoDia {
   data: string;
   rotulo: string;
   itens: Lancamento[];
+  /**
+   * O saldo de FECHAMENTO do dia (ponto 6 do cabeçalho). `null` só no caso
+   * degenerado de um dia listado sem saldo correspondente — o servidor deriva
+   * os dois do mesmo filtro, então na prática não acontece; o template
+   * simplesmente não desenha o número em vez de mostrar um zero mentiroso.
+   */
+  saldoCentavos: number | null;
 }
 
 /** `AAAA-MM-DD` → "20 de agosto". Fatiamento de string — nunca `new Date()` (ver ponto 2 do cabeçalho). */
@@ -163,6 +201,14 @@ function rotuloDoDia(dataIso: string): string {
   const nomeDoMes = MESES_DO_ANO[Number(mesStr) - 1] ?? mesStr ?? '';
   return `${diaStr ?? ''} de ${nomeDoMes.toLowerCase()}`;
 }
+
+/**
+ * `data` → saldo de fechamento. Um índice, não um cálculo: o número já vem
+ * derivado do servidor (`saldosPorDia`), esta tela só o encontra pelo dia.
+ */
+const saldoPorData = computed(
+  () => new Map(saldosPorDia.value.map(s => [s.data, s.saldoCentavos])),
+);
 
 const grupos = computed<GrupoDoDia[]>(() => {
   const porDia = new Map<string, Lancamento[]>();
@@ -177,6 +223,7 @@ const grupos = computed<GrupoDoDia[]>(() => {
       data,
       rotulo: rotuloDoDia(data),
       itens: [...itens].sort((a, b) => b.criadoEm.localeCompare(a.criadoEm)),
+      saldoCentavos: saldoPorData.value.get(data) ?? null,
     }));
 });
 
@@ -187,6 +234,22 @@ function categoriaDoLancamento(l: Lancamento): Categoria | null {
 }
 function contaDestinoDoLancamento(l: Lancamento): Conta | null {
   return l.contaDestinoId ? (contas.value.find(c => c.id === l.contaDestinoId) ?? null) : null;
+}
+function contaOrigemDoLancamento(l: Lancamento): Conta | null {
+  return contas.value.find(c => c.id === l.contaId) ?? null;
+}
+
+/**
+ * A conta filtrada é o DESTINO desta transferência — ou seja, o dinheiro
+ * ENTROU nela. Só faz sentido com um filtro ativo: sem filtro não há de que
+ * ponta olhar (ver ponto 7 do cabeçalho).
+ */
+function ehEntradaNaContaFiltrada(l: Lancamento): boolean {
+  return (
+    l.tipo === 'TRANSFERENCIA' &&
+    contaFiltroId.value !== null &&
+    l.contaDestinoId === contaFiltroId.value
+  );
 }
 
 function corDoLancamento(l: Lancamento): string {
@@ -203,12 +266,35 @@ function iconeDoLancamento(l: Lancamento): string {
 function subDoLancamento(l: Lancamento): string {
   if (l.tipo === 'DESPESA') return categoriaDoLancamento(l)?.nome ?? 'Despesa';
   if (l.tipo === 'RECEITA') return 'Receita';
+  // "para X" ou "de X" conforme a ponta que a tela está olhando — antes o
+  // extrato filtrado nem mostrava a transferência que ENTRA, e o texto só
+  // precisava da saída (ver ponto 7 do cabeçalho).
+  if (ehEntradaNaContaFiltrada(l)) {
+    const origem = contaOrigemDoLancamento(l);
+    return origem ? `Transferência de ${origem.nome}` : 'Transferência recebida';
+  }
   const destino = contaDestinoDoLancamento(l);
   return destino ? `Transferência para ${destino.nome}` : 'Transferência';
 }
-/** DESPESA aparece negativa, RECEITA positiva; TRANSFERÊNCIA não é gasto nem ganho (RN-17) — sem sinal. */
+
+/**
+ * DESPESA aparece negativa, RECEITA positiva.
+ *
+ * TRANSFERÊNCIA depende de haver uma conta escolhida (ponto 7 do cabeçalho):
+ * - SEM filtro, continua sem sinal, como sempre foi — RN-17: transferência
+ *   não é gasto nem ganho, e para a família o dinheiro só mudou de bolso (o
+ *   acumulado do dia, aliás, não se move com ela).
+ * - COM filtro, ganha o sinal DAQUELA conta: saída negativa, entrada
+ *   positiva. Não é regra nova, é a mesma de `expressaoSaldoDerivado`
+ *   (EF-02 §1) — e sem isso a linha diria "+R$ 500,00" ao lado de um saldo do
+ *   dia que acabou de cair R$ 500,00.
+ */
 function valorComSinal(l: Lancamento): number {
-  return l.tipo === 'DESPESA' ? -l.valorCentavos : l.valorCentavos;
+  if (l.tipo === 'DESPESA') return -l.valorCentavos;
+  if (l.tipo === 'TRANSFERENCIA' && contaFiltroId.value) {
+    return ehEntradaNaContaFiltrada(l) ? l.valorCentavos : -l.valorCentavos;
+  }
+  return l.valorCentavos;
 }
 </script>
 
@@ -268,7 +354,21 @@ function valorComSinal(l: Lancamento): number {
 
     <div v-else class="extrato__dias">
       <div v-for="grupo in grupos" :key="grupo.data" class="extrato__dia">
-        <p class="extrato__dia-rotulo">{{ grupo.rotulo }}</p>
+        <!--
+          ── O CABEÇALHO DO DIA + O SALDO DE FECHAMENTO ─────────────────────
+          O número vem pronto de `saldosPorDia` (servidor). Fica na mesma
+          linha do dia, à direita, porque é assim que se confere: passando o
+          olho por uma coluna, contra o extrato do banco.
+        -->
+        <div class="extrato__dia-cabecalho">
+          <p class="extrato__dia-rotulo">{{ grupo.rotulo }}</p>
+          <p v-if="grupo.saldoCentavos !== null" class="extrato__dia-saldo">
+            <span class="extrato__dia-saldo-rotulo">saldo</span>
+            <span :class="{ 'extrato__dia-saldo-valor--negativo': grupo.saldoCentavos < 0 }">
+              {{ formatarCentavos(grupo.saldoCentavos) }}
+            </span>
+          </p>
+        </div>
         <div class="lista">
           <button
             v-for="l in grupo.itens"

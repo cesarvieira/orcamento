@@ -523,57 +523,74 @@ function deixarNegativo(): void {
     <p v-else-if="erroLista" class="orcamento__vazio orcamento__vazio--erro" role="alert">{{ erroLista }}</p>
 
     <template v-else>
-      <!-- ── RENDA PREVISTA ─────────────────────────────────────────────── -->
-      <div class="orcamento__renda">
-        <div class="orcamento__renda-rotulo">Renda prevista no mês</div>
-        <div class="orcamento__renda-controle">
-          <button
-            type="button"
-            class="orcamento__passo"
-            aria-label="Diminuir renda prevista"
-            :disabled="mutandoRenda"
-            @click="rendaMenos"
-          >
-            −
-          </button>
-          <input
-            v-model="rendaTexto"
-            class="orcamento__renda-campo"
-            type="text"
-            inputmode="decimal"
-            aria-label="Renda prevista no mês"
-            :disabled="mutandoRenda"
-            @focus="focarRenda"
-            @blur="confirmarRenda"
-            @keyup.enter="confirmarRenda"
-          >
-          <button
-            type="button"
-            class="orcamento__passo"
-            aria-label="Aumentar renda prevista"
-            :disabled="mutandoRenda"
-            @click="rendaMais"
-          >
-            +
-          </button>
-        </div>
-        <p class="orcamento__renda-aviso">
-          Recebido até agora {{ formatarCentavos(recebidoCentavos) }}.
-          Os tetos se desbloqueiam conforme o dinheiro entra.
-        </p>
-      </div>
+      <!--
+        ── A GRADE DO DESKTOP (desenho desktop `:507`) ────────────────────
+        `minmax(0,1fr) 340px`: as categorias à esquerda, o cartão do lastro
+        numa coluna fixa à direita. Era a tela mais esticada do desktop — uma
+        única coluna de cartões de 40px de altura por 1440px de largura.
 
-      <!-- ── LISTA DE CATEGORIAS ────────────────────────────────────────── -->
-      <p v-if="categorias.length === 0" class="orcamento__vazio">Nenhuma categoria cadastrada ainda.</p>
+        A LATERAL VEM PRIMEIRO NO DOM de propósito. No telefone não há duas
+        colunas e a ordem do documento é a ordem da tela: a renda prevista
+        abre a tela, como sempre abriu. No desktop as duas caixas são
+        POSICIONADAS na grade (`grid-column`), então a ordem visual não
+        depende da do DOM — inverter o DOM para servir ao desktop
+        reordenaria o telefone junto.
+      -->
+      <div class="orcamento__grade">
+        <aside class="orcamento__lateral">
+          <!-- ── RENDA PREVISTA ─────────────────────────────────────────────── -->
+          <div class="orcamento__renda">
+            <div class="orcamento__renda-rotulo">Renda prevista no mês</div>
+            <div class="orcamento__renda-controle">
+              <button
+                type="button"
+                class="orcamento__passo"
+                aria-label="Diminuir renda prevista"
+                :disabled="mutandoRenda"
+                @click="rendaMenos"
+              >
+                −
+              </button>
+              <input
+                v-model="rendaTexto"
+                class="orcamento__renda-campo"
+                type="text"
+                inputmode="decimal"
+                aria-label="Renda prevista no mês"
+                :disabled="mutandoRenda"
+                @focus="focarRenda"
+                @blur="confirmarRenda"
+                @keyup.enter="confirmarRenda"
+              >
+              <button
+                type="button"
+                class="orcamento__passo"
+                aria-label="Aumentar renda prevista"
+                :disabled="mutandoRenda"
+                @click="rendaMais"
+              >
+                +
+              </button>
+            </div>
+            <p class="orcamento__renda-aviso">
+              Recebido até agora {{ formatarCentavos(recebidoCentavos) }}.
+              Os tetos se desbloqueiam conforme o dinheiro entra.
+            </p>
+          </div>
+        </aside>
 
-      <div v-else class="orcamento__lista">
-        <div v-for="c in categorias" :key="c.id" class="orcamento__cartao">
-          <div class="orcamento__linha">
-            <button type="button" class="orcamento__identidade" @click="abrirEdicaoCategoria(c)">
-              <span class="orcamento__icone" :style="{ background: c.cor }">
-                <i class="ti" :class="classeDoIconeCategoria(c.icone)"></i>
-              </span>
-              <!--
+        <div class="orcamento__principal">
+          <!-- ── LISTA DE CATEGORIAS ────────────────────────────────────────── -->
+          <p v-if="categorias.length === 0" class="orcamento__vazio">Nenhuma categoria cadastrada ainda.</p>
+
+          <div v-else class="orcamento__lista">
+            <div v-for="c in categorias" :key="c.id" class="orcamento__cartao">
+              <div class="orcamento__linha">
+                <button type="button" class="orcamento__identidade" @click="abrirEdicaoCategoria(c)">
+                  <span class="orcamento__icone" :style="{ background: c.cor }">
+                    <i class="ti" :class="classeDoIconeCategoria(c.icone)"></i>
+                  </span>
+                  <!--
                 ⚠️ DIVERGE DO MOCKUP, E É DE PROPÓSITO. O desenho
                 (`MOCKUP-EF-03.md` §1) põe o NOME em destaque e, abaixo,
                 `teto R$ X · ícone e cor` em texto secundário. Aqui é o
@@ -586,73 +603,75 @@ function deixarNegativo(): void {
                 corretamente: divergência silenciosa do design é indistinguível
                 de engano. Esta é declarada.
               -->
-              <span class="orcamento__texto">
-                <span class="orcamento__nome">{{ formatarCentavos(c.tetoCentavos) }}</span>
-                <span class="orcamento__sub">{{ c.nome }}</span>
-              </span>
-            </button>
+                  <span class="orcamento__texto">
+                    <span class="orcamento__nome">{{ formatarCentavos(c.tetoCentavos) }}</span>
+                    <span class="orcamento__sub">{{ c.nome }}</span>
+                  </span>
+                </button>
 
-            <div class="orcamento__acoes">
-              <button
-                type="button"
-                class="orcamento__passo orcamento__passo--pequeno"
-                aria-label="Diminuir teto"
-                :disabled="mutando"
-                @click="tetoMenos(c)"
-              >
-                −
-              </button>
-              <button
-                type="button"
-                class="orcamento__passo orcamento__passo--pequeno"
-                aria-label="Aumentar teto"
-                :disabled="mutando"
-                @click="tetoMais(c)"
-              >
-                +
-              </button>
-              <button
-                type="button"
-                class="orcamento__remover"
-                aria-label="Remover categoria"
-                :disabled="mutando"
-                @click="removerCategoria(c)"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
+                <div class="orcamento__acoes">
+                  <button
+                    type="button"
+                    class="orcamento__passo orcamento__passo--pequeno"
+                    aria-label="Diminuir teto"
+                    :disabled="mutando"
+                    @click="tetoMenos(c)"
+                  >
+                    −
+                  </button>
+                  <button
+                    type="button"
+                    class="orcamento__passo orcamento__passo--pequeno"
+                    aria-label="Aumentar teto"
+                    :disabled="mutando"
+                    @click="tetoMais(c)"
+                  >
+                    +
+                  </button>
+                  <button
+                    type="button"
+                    class="orcamento__remover"
+                    aria-label="Remover categoria"
+                    :disabled="mutando"
+                    @click="removerCategoria(c)"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
 
-          <!--
+              <!--
             Cartão canônico do mockup (MOCKUP-EF-03.md §6, adendo) — o mesmo
             que a tela `home` (EF-04) vai usar quando existir; ver comentário
             no <script> desta tela.
           -->
-          <div v-if="c.disponivelCentavos < 0" class="orcamento__cartao-estouro">
-            <div class="orcamento__cartao-estouro-texto">
-              <p class="orcamento__cartao-estouro-titulo">{{ tituloEstouro(c) }}</p>
-              <p class="orcamento__cartao-estouro-subtitulo">Cobrir com o saldo de outra categoria</p>
+              <div v-if="c.disponivelCentavos < 0" class="orcamento__cartao-estouro">
+                <div class="orcamento__cartao-estouro-texto">
+                  <p class="orcamento__cartao-estouro-titulo">{{ tituloEstouro(c) }}</p>
+                  <p class="orcamento__cartao-estouro-subtitulo">Cobrir com o saldo de outra categoria</p>
+                </div>
+                <button type="button" class="orcamento__cartao-estouro-botao" @click="abrirRemanejar(c)">
+                  Remanejar
+                </button>
+              </div>
             </div>
-            <button type="button" class="orcamento__cartao-estouro-botao" @click="abrirRemanejar(c)">
-              Remanejar
+          </div>
+
+          <!-- ── CRIAR CATEGORIA ────────────────────────────────────────────── -->
+          <div class="orcamento__nova">
+            <input
+              v-model="novoNome"
+              type="text"
+              placeholder="Nova categoria"
+              class="orcamento__nova-input"
+              :disabled="criandoCategoria"
+              @keyup.enter="criarCategoriaNova"
+            >
+            <button type="button" class="orcamento__nova-botao" :disabled="!novoNome.trim() || criandoCategoria" @click="criarCategoriaNova">
+              {{ criandoCategoria ? 'Criando…' : 'Criar' }}
             </button>
           </div>
         </div>
-      </div>
-
-      <!-- ── CRIAR CATEGORIA ────────────────────────────────────────────── -->
-      <div class="orcamento__nova">
-        <input
-          v-model="novoNome"
-          type="text"
-          placeholder="Nova categoria"
-          class="orcamento__nova-input"
-          :disabled="criandoCategoria"
-          @keyup.enter="criarCategoriaNova"
-        >
-        <button type="button" class="orcamento__nova-botao" :disabled="!novoNome.trim() || criandoCategoria" @click="criarCategoriaNova">
-          {{ criandoCategoria ? 'Criando…' : 'Criar' }}
-        </button>
       </div>
     </template>
 

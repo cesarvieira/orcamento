@@ -22,6 +22,13 @@ import { mensagemDoErro } from './useApi.ts';
 /** O contrato gerado já tem esta forma (regra inviolável #4: não redeclarar o modelo do back). */
 export type RespostaDeLancamentos = LancamentosListados;
 
+/**
+ * O saldo de fechamento de um dia, como o servidor derivou
+ * (`api/src/modulos/lancamentos/servico.ts#saldosPorDiaDoExtrato`). Tipo
+ * extraído do contrato, não redeclarado — mesma regra que `RespostaDeLancamentos`.
+ */
+export type SaldoDoDia = RespostaDeLancamentos['saldosPorDia'][number];
+
 export interface ParametrosDeLeitura {
   competencia?: string;
   contaId?: string;
@@ -34,6 +41,14 @@ export interface OpcoesLeituraDoExtrato {
 
 export function useExtratoLeitura(opcoes: OpcoesLeituraDoExtrato) {
   const lancamentos = ref<Lancamento[]>([]);
+  /**
+   * Vem PRONTO do servidor e é só repassado — este composable não soma
+   * `valorCentavos` para chegar nele, e a tela também não (regra inviolável
+   * #4). Anda junto de `lancamentos`: é gravado na MESMA atribuição, sob o
+   * mesmo carimbo `minhaOrdem`, para que uma resposta atrasada não deixe a
+   * lista de um mês com o saldo de outro.
+   */
+  const saldosPorDia = ref<SaldoDoDia[]>([]);
   const carregando = ref(true);
   const erro = ref<string | null>(null);
   /** Distingue o vazio "por filtro/mês" (tem fonte) do vazio "família nova" (não tem). */
@@ -67,6 +82,7 @@ export function useExtratoLeitura(opcoes: OpcoesLeituraDoExtrato) {
       if (minhaOrdem !== leituraEmOrdem) return;
 
       lancamentos.value = resposta.lancamentos;
+      saldosPorDia.value = resposta.saldosPorDia;
       erro.value = null;
 
       if (resposta.lancamentos.length === 0) {
@@ -82,5 +98,5 @@ export function useExtratoLeitura(opcoes: OpcoesLeituraDoExtrato) {
     }
   }
 
-  return { lancamentos, carregando, erro, familiaSemHistorico, carregar };
+  return { lancamentos, saldosPorDia, carregando, erro, familiaSemHistorico, carregar };
 }

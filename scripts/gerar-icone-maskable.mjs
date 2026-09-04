@@ -38,19 +38,85 @@ const LADO = 512;
 const PROPORCAO_DO_ICONE = 0.78;
 
 /**
- * A cor de fundo sólido, amostrada da própria arte — não inventada. Medida
- * uma vez sobre `icone-512.png`: é a cor OPACA mais frequente da imagem
- * depois do branco das figuras humanas (que é detalhe do desenho, não fundo)
- * — a média exata dos pixels que caem nesse tom é `rgb(24, 129, 169)`. Os
- * cantos do PNG original são transparentes; sem uma cor nomeada aqui, o
- * fundo do maskable ficaria transparente e o Android pintaria atrás dele com
- * a cor que a plataforma decidir (tipicamente branco), destoando do ícone.
+ * A COR DE FUNDO é AMOSTRADA DA ARTE, na hora de gerar — não é constante.
+ *
+ * Ela precisa existir: os cantos do PNG original são transparentes e, sem uma
+ * cor por trás, o Android pintaria o fundo do maskable com a cor que a
+ * plataforma decidir (tipicamente branco), destoando do ícone.
+ *
+ * ⛔ POR QUE NÃO É MAIS UMA CONSTANTE. Era `#1881a9` e virou `#374f6f` quando
+ * a arte mudou, em 2026-09-03 — e a troca só não passou batida porque alguém
+ * lembrou de reamostrar na mão. O `MANUAL-00` ainda ficou um ciclo inteiro com
+ * o valor velho. Um número que só está certo enquanto alguém lembra de
+ * atualizá-lo é armadilha, não configuração.
+ *
+ * ── O MÉTODO: MODA, NÃO MÉDIA ────────────────────────────────────────────
+ *
+ * A cor de fundo é a MODA das cores opacas — o balde mais populoso de um
+ * histograma quantizado de 8 em 8 —, e o valor devolvido é a média dos pixels
+ * DENTRO desse balde (o que dá precisão de volta sem trazer o resto da imagem
+ * junto). O branco fica de fora: `rgb > 235` nos três canais é figura (casa,
+ * mãos, moedas), não fundo.
+ *
+ * ⚠️ NÃO troque por "média de todos os pixels opacos". Parece equivalente e
+ * não é — medido nas duas artes deste produto:
+ *
+ *   arte              | média (errada) | MODA (em uso) | medida à mão na época
+ *   ------------------|----------------|---------------|----------------------
+ *   1 · turquesa      | #379eab        | #1a84aa       | #1881a9
+ *   2 · azul-marinho  | #374f6f        | #334b6c       | —
+ *
+ * Na arte 1 a média erra por 20 níveis num canal: as moedas verdes e amarelas
+ * e o contorno escuro puxam o resultado para um turquesa lavado que não é o
+ * fundo de lugar nenhum. A moda ignora tudo isso por construção — ela pergunta
+ * "qual cor cobre mais área?", que é exatamente a pergunta certa. A coluna da
+ * direita é a prova de que a moda reproduz o que o autor original mediu à mão:
+ * `#1a84aa` contra `#1881a9`, dentro do erro do balde.
+ *
+ * (Este arquivo já afirmou que as duas medidas históricas vinham do mesmo
+ * método. Não vinham: `#1881a9` era moda e `#374f6f` era média. A tabela acima
+ * existe para que o engano não se repita.)
  */
-const COR_FUNDO_MASKABLE = '#1881a9';
+function amostrarCorDeFundo(pagina) {
+  return pagina.evaluate(() => {
+    const img = document.getElementById('icone');
+    const canvas = document.createElement('canvas');
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(img, 0, 0);
+
+    const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    // Baldes de 8 em 8 por canal: fino o bastante para não juntar duas cores
+    // distintas, grosso o bastante para que um gradiente suave caia todo no
+    // mesmo balde em vez de se espalhar em milhares deles.
+    const baldes = new Map();
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] < 250) continue;
+      if (data[i] > 235 && data[i + 1] > 235 && data[i + 2] > 235) continue;
+
+      const chave = `${data[i] >> 3}_${data[i + 1] >> 3}_${data[i + 2] >> 3}`;
+      const balde = baldes.get(chave) ?? { n: 0, r: 0, g: 0, b: 0 };
+      balde.n += 1;
+      balde.r += data[i];
+      balde.g += data[i + 1];
+      balde.b += data[i + 2];
+      baldes.set(chave, balde);
+    }
+
+    if (baldes.size === 0) throw new Error('maskable: a arte não tem pixel opaco de fundo para amostrar');
+
+    const dominante = [...baldes.values()].reduce((a, b) => (b.n > a.n ? b : a));
+    const media = [dominante.r, dominante.g, dominante.b].map(canal => Math.round(canal / dominante.n));
+    return `#${media.map(v => v.toString(16).padStart(2, '0')).join('')}`;
+  });
+}
 
 async function gerar() {
   const base64 = readFileSync(ORIGEM).toString('base64');
   const ladoDoIcone = Math.round(LADO * PROPORCAO_DO_ICONE);
+  let corDeFundo;
 
   const navegador = await chromium.launch();
   try {
@@ -59,9 +125,11 @@ async function gerar() {
       deviceScaleFactor: 1,
     });
 
+    // O fundo entra VAZIO de propósito: a cor sai da própria arte, e para
+    // amostrá-la a imagem precisa estar carregada na página primeiro.
     await pagina.setContent(`
       <html>
-        <body style="margin:0;width:${LADO}px;height:${LADO}px;background:${COR_FUNDO_MASKABLE};
+        <body style="margin:0;width:${LADO}px;height:${LADO}px;
                      display:flex;align-items:center;justify-content:center;">
           <img
             id="icone"
@@ -74,6 +142,11 @@ async function gerar() {
     `);
     await pagina.locator('#icone').waitFor();
 
+    corDeFundo = await amostrarCorDeFundo(pagina);
+    await pagina.evaluate((cor) => {
+      document.body.style.background = cor;
+    }, corDeFundo);
+
     const png = await pagina.screenshot({ type: 'png' });
     writeFileSync(DESTINO, png);
   } finally {
@@ -81,7 +154,7 @@ async function gerar() {
   }
 
   console.log(`gerado: ${DESTINO}`);
-  console.log(`  quadro ${LADO}×${LADO} · ícone a ${Math.round(PROPORCAO_DO_ICONE * 100)}% (${ladoDoIcone}px) · fundo ${COR_FUNDO_MASKABLE}`);
+  console.log(`  quadro ${LADO}×${LADO} · ícone a ${Math.round(PROPORCAO_DO_ICONE * 100)}% (${ladoDoIcone}px) · fundo ${corDeFundo}, amostrado da arte`);
 }
 
 await gerar();

@@ -122,7 +122,7 @@ const mesesDoAnoNaFolha = computed(() =>
     <!-- ── SIDEBAR · ≥ 768px ────────────────────────────────────────────── -->
     <aside class="sidebar">
       <div class="marca">
-        <span class="marca__selo"><i class="ti ti-home-dollar"></i></span>
+        <span class="marca__selo"><img src="/icones/icone-192.png" alt="" width="192" height="192"></span>
         <span class="marca__texto">
           <span class="marca__titulo">Orçamento familiar</span>
           <span class="marca__sub">{{ sessao?.familiaNome ?? '—' }}</span>

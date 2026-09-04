@@ -942,6 +942,13 @@ export interface components {
                 /** @description ISO 8601. */
                 criadoEm: string;
             }[];
+            /** @description Um item por DIA com movimento na mesma janela dos `lancamentos` acima, em ordem crescente de data. Os dias saem do mesmo filtro da listagem: nunca há dia listado sem saldo, nem saldo sem dia listado. */
+            saldosPorDia: {
+                /** @description AAAA-MM-DD — o dia que este saldo fecha. */
+                data: string;
+                /** @description Inteiro em centavos (D-06). Saldo ao FIM deste dia: saldo inicial da conta (ou a soma do de todas as contas da família, sem filtro) mais todo movimento com data até aqui, inclusive o de meses anteriores. NEGATIVO é legítimo: num cartão este número é a dívida acumulada, mesmo sinal de `saldoCentavos` de uma CREDITO. */
+                saldoCentavos: number;
+            }[];
         };
         /** @enum {string} */
         ModoDeExclusao: "esta" | "todas" | "a-partir-desta";

@@ -24,8 +24,15 @@
 /**
  * A versão do cache. Mudar esta constante é o único jeito de invalidar tudo —
  * o `activate` apaga qualquer cache cujo nome não seja este.
+ *
+ * `v1` → `v2`: a arte do ícone foi trocada (pacote `appstore-images` novo,
+ * D-10 §6). Os ARQUIVOS da `PRE_CARGA` continuam com os mesmos nomes, e é
+ * exatamente por isso que a versão precisou subir: `install` só popula o
+ * cache com este nome, e `activate` só apaga cache com nome DIFERENTE — quem
+ * já tinha o app instalado continuaria servindo os bytes da arte velha para
+ * sempre, sem nunca reparar que o arquivo mudou no servidor.
  */
-const VERSAO_CACHE = 'orcamento-pwa-v1';
+const VERSAO_CACHE = 'orcamento-pwa-v2';
 
 /** O mínimo que o `install` pré-carrega: a resposta offline e os ícones do manifesto. */
 const PRE_CARGA = [
@@ -34,6 +41,8 @@ const PRE_CARGA = [
   '/icones/icone-512.png',
   '/icones/icone-maskable-512.png',
   '/icones/apple-touch-icon.png',
+  '/icones/favicon-96.png',
+  '/icones/favicon-48.png',
   '/icones/favicon-32.png',
   '/icones/favicon-16.png',
 ];

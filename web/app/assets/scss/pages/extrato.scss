@@ -12,6 +12,15 @@
 // a precisar dele nos três dropdowns dela — com o segundo consumidor, manter a
 // regra na tela seria a primeira das cópias divergentes.
 
+// ── A COLUNA DO DESKTOP (desenho desktop `:375`) ─────────────────────────
+// `max-width:900px`. Sem `margin:auto`: o desenho encosta a coluna à
+// esquerda, logo depois da sidebar — como todas as outras telas.
+.extrato {
+  @media (min-width: 768px) {
+    max-width: 900px;
+  }
+}
+
 // O título "Extrato" já vem do shell (`topo__titulo`). Esta tela só
 // acrescenta a sublinha — mesmo padrão de `contas.scss`/`orcamento.scss`.
 .extrato__subtitulo {
@@ -40,6 +49,14 @@
   position: relative;
   z-index: 30;
   margin-bottom: 16px;
+
+  // Desenho desktop `:379` — o seletor de conta tem largura própria
+  // (`max-width:360px`), não a da coluna: é um campo de uma linha, e esticá-lo
+  // por 900px deixa o rótulo "CONTA" sozinho num descampado.
+  @media (min-width: 768px) {
+    max-width: 360px;
+    margin-bottom: 18px;
+  }
 }
 
 .extrato__filtro {
@@ -137,13 +154,55 @@
   gap: 16px;
 }
 
-.extrato__dia-rotulo {
+// O cabeçalho do dia é uma LINHA: o dia à esquerda, o saldo de fechamento à
+// direita (ponto 6 do cabeçalho de `extrato.vue`). `baseline` alinha os dois
+// textos pela base, não pelo meio — a diferença de corpo entre eles (11px do
+// rótulo, 13px do número) deixaria o alinhamento central visivelmente torto.
+.extrato__dia-cabecalho {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
   margin: 0 2px 8px;
+}
+
+.extrato__dia-rotulo {
+  margin: 0;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--texto-fraco);
+}
+
+.extrato__dia-saldo {
+  margin: 0;
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  color: var(--texto-fraco);
+}
+
+// "saldo" antes do número — sem ele o valor à direita se confunde com o total
+// gasto no dia, que é a outra leitura possível de um número naquele lugar.
+.extrato__dia-saldo-rotulo {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+}
+
+// Vermelho quando o saldo do dia é negativo — conta estourada, ou a dívida
+// acumulada de um cartão (que é sempre negativa, por construção: ver a decisão
+// 2 em `servico.ts#saldosPorDiaDoExtrato`).
+.extrato__dia-saldo-valor--negativo {
+  color: var(--alerta);
 }
 
 // ── linha de lançamento (recorte §5.5) — 28px, não os 32px de `.linha` ──

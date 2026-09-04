@@ -86,11 +86,40 @@ desktop ninguém passa pela tela _Mais_.
 com o HMR do Vite e produz a classe de bug que ninguém consegue reproduzir depois. O plugin é
 `.client.ts` e verifica o build antes de registrar.
 
-**6 · A arte do ícone vem do humano; a única imagem derivada é a _maskable_.** Os PNG do pacote
-fornecido entram versionados em `web/public/icones/` — copiados, não redesenhados. A _maskable_, que
-o pacote não traz, é gerada por script a partir do `icone-512.png` — o maior que é versionado, e
-o suficiente, porque a saída também é 512 —, com o **Playwright que o monorepo já tem** para o gate
-de navegação: sem dependência nova, e regerável por quem vier depois.
+**6 · A arte do ícone vem do humano; o que é pequeno demais para copiar, o repositório deriva.**
+Os PNG do pacote fornecido entram versionados em `web/public/icones/` — copiados, não redesenhados.
+Três exceções, todas geradas por script a partir do `icone-512.png` (o maior que é versionado), com
+o **Playwright que o monorepo já tem** para o gate de navegação — sem dependência nova, e regeráveis
+por quem vier depois:
+
+- a **_maskable_**, que o pacote não traz — `scripts/gerar-icone-maskable.mjs`;
+- os **favicons** (16, 32, 48, 96) — `scripts/gerar-favicons.mjs`;
+- o **`apple-touch-icon`** (180) — mesmo script.
+
+**Os tamanhos pequenos passaram a ser derivados em 2026-09-03, por defeito medido no pacote**, não
+por preferência: o `16.png`, o `32.png` e o `180.png` chegaram achatados contra branco (zero pixels
+transparentes, os quatro cantos em `rgb(255,255,255)` opaco), enquanto o `192` e o `512` do mesmo
+pacote vinham com os cantos transparentes corretos — na aba do navegador, um quadrado branco em
+volta do ícone arredondado; na tela de início do iPhone, lascas brancas nos cantos. O defeito é do
+gerador que produziu o pacote, então copiar de novo o traria de volta. Derivar também corrigiu a
+redução: o script cai pela metade a cada passo (512 → 256 → … → 16) em vez de saltar direto, que é
+o que preserva traço fino.
+
+**O `apple-touch-icon` é o oposto dos favicons: tem de ser OPACO.** O iOS compõe alfa sobre preto e
+só então aplica a própria máscara arredondada — canto transparente vira lasca preta, canto branco
+(o que o pacote entregou) vira lasca branca. O preenchimento não é cor chapada nem gradiente
+amostrado: as duas foram tentadas e medidas, e erravam de 10 a 15 níveis na faixa lateral que sobra,
+porque a arte tem margem nas laterais e gradiente diagonal. O que vale é **extensão de borda** —
+cada linha estica a cor do próprio pixel da arte na ponta dela até o limite do quadro. A emenda é
+zero por construção, e não há constante para envelhecer quando a arte mudar (a maior diferença
+medida no resultado, a 8px da borda, é de 4–5 níveis, que é o gradiente da própria arte).
+
+**O que derivar NÃO resolve, e nenhuma versão deste script vai resolver:** a 16 px a arte é uma
+casa, uma seta, um cifrão, duas mãos e uma pilha de moedas em 256 pixels no total. O limite ali é a
+quantidade de detalhe do desenho, não a qualidade da reamostragem. Sair desse limite pede outra
+coisa — um SVG (que escala sem perda e que os navegadores preferem quando existe) ou uma variante
+simplificada da marca para tamanhos pequenos. As duas são **arte, e portanto do humano**: nenhuma
+delas se inventa aqui.
 
 ## Alternativas consideradas
 

@@ -92,12 +92,16 @@
  *    abrir um SEGUNDO caminho para a mesma ação (o que a doutrina proíbe
  *    mais ainda do que duplicar código).
  */
-import type { CategoriaNaCompetencia, CompetenciaLida } from '@orcamento/contrato';
+import type { CategoriaNaCompetencia, CompetenciaLida, Conta, Meta } from '@orcamento/contrato';
+import { classeDoIcone, useContas } from '~/composables/useContas';
 import { useFolhaLancamento, useLancamentos } from '~/composables/useLancamentos';
+import { useMetas } from '~/composables/useMetas';
 import { classeDoIconeCategoria, useOrcamento } from '~/composables/useOrcamento';
 import { formatarCentavos } from '~/utils/dinheiro';
 
 const { lerCompetencia } = useOrcamento();
+const { listarContas } = useContas();
+const { listarMetas } = useMetas();
 const { abrir: abrirLancamento } = useFolhaLancamento();
 
 // ── LEITURA DA COMPETÊNCIA ──────────────────────────────────────────────
@@ -108,6 +112,27 @@ const { competencia } = useCompetencia();
 const leitura = ref<CompetenciaLida | null>(null);
 const carregando = ref(true);
 const erroLista = ref<string | null>(null);
+
+/**
+ * ── A LATERAL DO DESKTOP (desenho desktop `:302-336`) ────────────────────
+ *
+ * A coluna da direita da home mostra CONTAS e METAS — dois recursos que esta
+ * tela não lia. São leituras próprias, não derivadas de `CompetenciaLida`:
+ * `listarContas()` e `listarMetas()`, os mesmos endpoints que `/contas` e
+ * `/metas` já usam. Nada é recalculado aqui: `saldoCentavos` e
+ * `acumuladoCentavos` chegam derivados do servidor (EF-02 §1 / EF-07 §1).
+ *
+ * A lateral NÃO EXISTE no telefone — o desenho mobile da home não a tem, e
+ * ela é escondida por CSS (`.home__lateral`, `display:none` abaixo de
+ * 768px). As duas leituras acontecem mesmo assim, nos dois formatos: a
+ * alternativa seria medir a janela para decidir se busca, e este app é SSR —
+ * medir `window` no render do servidor é justamente o salto de hidratação que
+ * `layouts/default.vue` documenta ter evitado de propósito. Duas leituras
+ * baratas valem menos que essa regressão.
+ */
+const contas = ref<Conta[]>([]);
+const metas = ref<Meta[]>([]);
+const erroLateral = ref<string | null>(null);
 
 const categorias = computed<CategoriaNaCompetencia[]>(() => leitura.value?.categorias ?? []);
 const recebidoCentavos = computed(() => leitura.value?.recebidoCentavos ?? 0);
@@ -125,17 +150,35 @@ let leituraEmOrdem = 0;
 
 async function carregar(): Promise<void> {
   const minhaOrdem = ++leituraEmOrdem;
-  try {
-    const resposta = await lerCompetencia(competencia.value);
-    if (minhaOrdem !== leituraEmOrdem) return;
-    leitura.value = resposta;
+
+  // `allSettled`, não `all`: a competência é A TELA, contas e metas são a
+  // lateral. Com `all`, um 500 em `/metas` apagaria a visão do mês inteira —
+  // trocaria o conteúdo pelo estado de erro por causa de um cartão de apoio.
+  // Aqui cada ponta decide o próprio destino.
+  const [daCompetencia, dasContas, dasMetas] = await Promise.allSettled([
+    lerCompetencia(competencia.value),
+    listarContas(),
+    listarMetas(),
+  ]);
+
+  if (minhaOrdem !== leituraEmOrdem) return;
+
+  if (daCompetencia.status === 'fulfilled') {
+    leitura.value = daCompetencia.value;
     erroLista.value = null;
-  } catch (erro) {
-    if (minhaOrdem !== leituraEmOrdem) return;
-    erroLista.value = mensagemDoErro(erro, 'Não consegui carregar a visão do mês.');
-  } finally {
-    if (minhaOrdem === leituraEmOrdem) carregando.value = false;
+  } else {
+    erroLista.value = mensagemDoErro(daCompetencia.reason, 'Não consegui carregar a visão do mês.');
   }
+
+  if (dasContas.status === 'fulfilled') contas.value = dasContas.value.contas;
+  if (dasMetas.status === 'fulfilled') metas.value = dasMetas.value.metas;
+
+  erroLateral.value =
+    dasContas.status === 'rejected' || dasMetas.status === 'rejected'
+      ? 'Não consegui carregar contas e metas.'
+      : null;
+
+  carregando.value = false;
 }
 
 onMounted(carregar);
@@ -177,8 +220,13 @@ useLancamentos({
 // este defeito volta. Pagar fatura já cai em `lancamentos` (a rota co-emite
 // `contas` e `lancamentos`, e o wrapper acima já ouve `lancamentos`) — não é
 // esta assinatura que cobre aquele caminho.
+// `metas` entra na lista junto com a lateral (desenho desktop `:322-334`):
+// o cartão de metas mostra `acumuladoCentavos`, que muda a cada ato de
+// guardar (EF-07). Sem ouvir o recurso, guardar numa aba deixava a barra de
+// progresso velha nas outras até o socket reconectar — exatamente o defeito
+// que a nota sobre `contas`, logo acima, descreve.
 useRealtime({
-  recursos: ['orcamento', 'contas'],
+  recursos: ['orcamento', 'contas', 'metas'],
   competenciaAtiva: computed(() => competencia.value),
   aoInvalidar: async () => {
     await carregar();
@@ -241,6 +289,43 @@ function corDisponivel(c: CategoriaNaCompetencia): string {
 function tituloEstouro(c: CategoriaNaCompetencia): string {
   return `${c.nome} passou ${formatarCentavos(Math.abs(c.disponivelCentavos))} do teto`;
 }
+
+// ── OS CARTÕES DA LATERAL (desenho desktop `:302-336`) ───────────────────
+// As três funções abaixo são CÓPIAS DECLARADAS de `contas.vue#subDaConta`,
+// `contas.vue#corDoValor` e `metas.vue#pct` — a mesma linha de conta e a
+// mesma barra de meta que aquelas telas desenham, agora em miniatura aqui.
+// Copiadas, e não extraídas para um composable, pelo mesmo motivo que o
+// cartão de estouro do ponto 6 é cópia: as três são derivações de
+// APRESENTAÇÃO de duas linhas cada, e o dono da regra continua sendo a tela
+// do módulo. Se uma delas mudar de regra (e não de fonte), muda nos dois
+// lugares — está dito aqui para que a segunda cópia não passe por engano
+// numa revisão de diff.
+
+/** `a.sub` do desenho — cópia de `contas.vue#subDaConta`. */
+function subDaConta(conta: Conta): string {
+  if (conta.tipo === 'CREDITO') return `Fecha dia ${conta.diaFechamento} · vence dia ${conta.diaVencimento}`;
+  if (conta.tipo === 'RESERVA') return 'Fora do orçamento'; // RN-07 — não entra no lastro
+  return 'Conta corrente';
+}
+
+/** `a.corValor` do desenho — cópia de `contas.vue#corDoValor`. */
+function corDaConta(conta: Conta): string {
+  return conta.saldoCentavos < 0 ? 'var(--alerta)' : 'var(--texto)';
+}
+
+/** `m.pct` do desenho — cópia de `metas.vue#pct`: `min(100, acumulado / alvo)`. */
+function pctDaMeta(meta: Meta): number {
+  if (meta.alvoCentavos <= 0) return 0;
+  return Math.min(100, (meta.acumuladoCentavos / meta.alvoCentavos) * 100);
+}
+
+function pctDaMetaStr(meta: Meta): string {
+  return `${pctDaMeta(meta)}%`;
+}
+
+function pctDaMetaLabel(meta: Meta): string {
+  return `${Math.round(pctDaMeta(meta))}%`;
+}
 </script>
 
 <template>
@@ -249,82 +334,151 @@ function tituloEstouro(c: CategoriaNaCompetencia): string {
     <p v-else-if="erroLista" class="home__vazio home__vazio--erro" role="alert">{{ erroLista }}</p>
 
     <template v-else>
-      <!-- ── CARTÃO-HERÓI (recorte-desenho-20.md §3, RN-30 — ver ponto 2 do cabeçalho) ── -->
-      <div class="home__hero">
-        <p class="home__hero-titulo">LIBERADO ATÉ O FIM DO MÊS</p>
-        <p class="home__hero-numero">{{ formatarCentavos(liberadoTotalCentavos) }}</p>
+      <!--
+        ── A GRADE DO DESKTOP (desenho desktop `:247`) ────────────────────
+        `minmax(0,1.65fr) minmax(320px,0.85fr)`: o mês à esquerda, contas e
+        metas na coluna da direita. No telefone não há grade nem lateral —
+        `.home__lateral` é `display:none` abaixo de 768px, porque o desenho
+        mobile da home não tem esses dois cartões.
+      -->
+      <div class="home__grade">
+        <div class="home__principal">
+          <!-- ── CARTÃO-HERÓI (recorte-desenho-20.md §3, RN-30 — ver ponto 2 do cabeçalho) ── -->
+          <div class="home__hero">
+            <p class="home__hero-titulo">LIBERADO ATÉ O FIM DO MÊS</p>
+            <p class="home__hero-numero">{{ formatarCentavos(liberadoTotalCentavos) }}</p>
 
-        <div class="home__hero-blocos">
-          <div class="home__hero-bloco">
-            <p class="home__hero-bloco-rotulo">RECEBIDO</p>
-            <p class="home__hero-bloco-valor">{{ formatarCentavos(recebidoCentavos) }}</p>
-            <p class="home__hero-bloco-sub">de {{ formatarCentavos(rendaPrevistaCentavos) }} previsto</p>
-          </div>
-          <div class="home__hero-bloco">
-            <p class="home__hero-bloco-rotulo">NÃO ALOCADO</p>
-            <p class="home__hero-bloco-valor">{{ formatarCentavos(naoAlocadoCentavos) }}</p>
-            <p class="home__hero-bloco-sub">renda variável</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── FAIXA DE BLOQUEIO (recorte-desenho-20.md §1 — ver ponto 4 do cabeçalho) ── -->
-      <div v-if="deficitCentavos > 0" class="home__bloqueio">
-        <span class="home__bloqueio-icone"><i class="ti ti-lock"></i></span>
-        <div class="home__bloqueio-texto">
-          <p class="home__bloqueio-titulo">{{ formatarCentavos(deficitCentavos) }} do plano está bloqueado</p>
-          <p class="home__bloqueio-explicacao">
-            Conta corrente + limite dos cartões cobrem {{ formatarCentavos(lastroCentavos) }}. A reserva fica
-            fora do orçamento.
-          </p>
-        </div>
-      </div>
-
-      <!-- ── LISTA DE CATEGORIAS (recorte-desenho-20.md §2) ─────────────────────── -->
-      <div class="home__secao-cabecalho">
-        <span class="home__secao-titulo">Categorias</span>
-        <span class="home__secao-legenda">liberado · teto mensal</span>
-      </div>
-
-      <p v-if="categorias.length === 0" class="home__vazio">
-        Nenhuma categoria cadastrada ainda. Crie uma em Orçamento.
-      </p>
-
-      <div v-else class="home__lista">
-        <div v-for="c in categorias" :key="c.id" class="home__cartao">
-          <!-- ⭐ o cartão INTEIRO é o botão que abre a folha com a categoria pré-escolhida (recorte §1). -->
-          <button type="button" class="home__categoria" @click="abrirLancamento({ categoriaId: c.id })">
-            <span class="home__icone" :style="{ background: c.cor }">
-              <i class="ti" :class="classeDoIconeCategoria(c.icone)"></i>
-            </span>
-            <span class="home__texto">
-              <span class="home__linha-superior">
-                <span class="home__nome">{{ c.nome }}</span>
-                <span class="home__valores">
-                  <span class="home__disponivel" :style="{ color: corDisponivel(c) }">
-                    {{ formatarCentavos(c.liberadoCentavos) }}
-                  </span>
-                  <span class="home__pct">{{ pctLabel(c) }}</span>
-                </span>
-              </span>
-              <span class="home__gasto">{{ gastoLabel(c) }}</span>
-              <span v-if="c.bloqueadoCentavos > 0" class="home__bloqueado">{{ bloqLabel(c) }}</span>
-              <span class="home__barra">
-                <span class="home__barra-fill" :style="{ width: larguraBarra(c), background: c.cor }"></span>
-                <span class="home__barra-bloqueado" :style="{ width: larguraBloqueio(c) }"></span>
-              </span>
-            </span>
-          </button>
-
-          <!-- Cartão canônico de estouro — mesmo texto de `orcamento.vue`, ver ponto 6 do cabeçalho. -->
-          <div v-if="c.disponivelCentavos < 0" class="home__estouro">
-            <div class="home__estouro-texto">
-              <p class="home__estouro-titulo">{{ tituloEstouro(c) }}</p>
-              <p class="home__estouro-subtitulo">Cobrir com o saldo de outra categoria</p>
+            <div class="home__hero-blocos">
+              <div class="home__hero-bloco">
+                <p class="home__hero-bloco-rotulo">RECEBIDO</p>
+                <p class="home__hero-bloco-valor">{{ formatarCentavos(recebidoCentavos) }}</p>
+                <p class="home__hero-bloco-sub">de {{ formatarCentavos(rendaPrevistaCentavos) }} previsto</p>
+              </div>
+              <div class="home__hero-bloco">
+                <p class="home__hero-bloco-rotulo">NÃO ALOCADO</p>
+                <p class="home__hero-bloco-valor">{{ formatarCentavos(naoAlocadoCentavos) }}</p>
+                <p class="home__hero-bloco-sub">renda variável</p>
+              </div>
             </div>
-            <NuxtLink to="/orcamento" class="home__estouro-botao">Remanejar</NuxtLink>
+          </div>
+
+          <!-- ── FAIXA DE BLOQUEIO (recorte-desenho-20.md §1 — ver ponto 4 do cabeçalho) ── -->
+          <div v-if="deficitCentavos > 0" class="home__bloqueio">
+            <span class="home__bloqueio-icone"><i class="ti ti-lock"></i></span>
+            <div class="home__bloqueio-texto">
+              <p class="home__bloqueio-titulo">{{ formatarCentavos(deficitCentavos) }} do plano está bloqueado</p>
+              <p class="home__bloqueio-explicacao">
+                Conta corrente + limite dos cartões cobrem {{ formatarCentavos(lastroCentavos) }}. A reserva fica
+                fora do orçamento.
+              </p>
+            </div>
+          </div>
+
+          <!-- ── LISTA DE CATEGORIAS (recorte-desenho-20.md §2) ─────────────────────── -->
+          <div class="home__secao-cabecalho">
+            <span class="home__secao-titulo">Categorias</span>
+            <span class="home__secao-legenda">liberado · teto mensal</span>
+          </div>
+
+          <p v-if="categorias.length === 0" class="home__vazio">
+            Nenhuma categoria cadastrada ainda. Crie uma em Orçamento.
+          </p>
+
+          <div v-else class="home__lista">
+            <div v-for="c in categorias" :key="c.id" class="home__cartao">
+              <!-- ⭐ o cartão INTEIRO é o botão que abre a folha com a categoria pré-escolhida (recorte §1). -->
+              <button type="button" class="home__categoria" @click="abrirLancamento({ categoriaId: c.id })">
+                <span class="home__icone" :style="{ background: c.cor }">
+                  <i class="ti" :class="classeDoIconeCategoria(c.icone)"></i>
+                </span>
+                <span class="home__texto">
+                  <span class="home__linha-superior">
+                    <span class="home__nome">{{ c.nome }}</span>
+                    <span class="home__valores">
+                      <span class="home__disponivel" :style="{ color: corDisponivel(c) }">
+                        {{ formatarCentavos(c.liberadoCentavos) }}
+                      </span>
+                      <span class="home__pct">{{ pctLabel(c) }}</span>
+                    </span>
+                  </span>
+                  <span class="home__gasto">{{ gastoLabel(c) }}</span>
+                  <span v-if="c.bloqueadoCentavos > 0" class="home__bloqueado">{{ bloqLabel(c) }}</span>
+                  <span class="home__barra">
+                    <span class="home__barra-fill" :style="{ width: larguraBarra(c), background: c.cor }"></span>
+                    <span class="home__barra-bloqueado" :style="{ width: larguraBloqueio(c) }"></span>
+                  </span>
+                </span>
+              </button>
+
+              <!-- Cartão canônico de estouro — mesmo texto de `orcamento.vue`, ver ponto 6 do cabeçalho. -->
+              <div v-if="c.disponivelCentavos < 0" class="home__estouro">
+                <div class="home__estouro-texto">
+                  <p class="home__estouro-titulo">{{ tituloEstouro(c) }}</p>
+                  <p class="home__estouro-subtitulo">Cobrir com o saldo de outra categoria</p>
+                </div>
+                <NuxtLink to="/orcamento" class="home__estouro-botao">Remanejar</NuxtLink>
+              </div>
+            </div>
           </div>
         </div>
+
+        <!--
+        ── A LATERAL (desenho desktop `:302-336`) ─────────────────────────
+        Dois cartões de APOIO: um resumo das contas e um das metas, cada um
+        com o atalho para a tela dona do assunto. Não são superfícies de
+        edição — a linha da conta leva a `/contas`, onde a folha de edição
+        de verdade já existe (mesmo raciocínio do botão "Remanejar", ponto 6
+        do cabeçalho: um SEGUNDO caminho para a mesma ação é o que a
+        doutrina proíbe mais ainda que duplicar código).
+      -->
+        <aside class="home__lateral">
+          <p v-if="erroLateral" class="home__vazio home__vazio--erro" role="alert">{{ erroLateral }}</p>
+
+          <div class="home__painel">
+            <div class="home__painel-cabecalho">
+              <span class="home__painel-titulo">Contas</span>
+              <NuxtLink to="/contas" class="home__painel-link">Gerenciar</NuxtLink>
+            </div>
+
+            <p v-if="contas.length === 0" class="home__painel-vazio">Nenhuma conta cadastrada ainda.</p>
+
+            <div v-else class="home__painel-lista">
+              <NuxtLink v-for="c in contas" :key="c.id" to="/contas" class="home__conta">
+                <span class="home__conta-icone" :style="{ background: c.cor }">
+                  <i class="ti" :class="classeDoIcone(c.icone)"></i>
+                </span>
+                <span class="home__conta-texto">
+                  <span class="home__conta-nome">{{ c.nome }}</span>
+                  <span class="home__conta-sub">{{ subDaConta(c) }}</span>
+                </span>
+                <span class="home__conta-valor" :style="{ color: corDaConta(c) }">
+                  {{ formatarCentavos(c.saldoCentavos) }}
+                </span>
+              </NuxtLink>
+            </div>
+          </div>
+
+          <div class="home__painel">
+            <div class="home__painel-cabecalho">
+              <span class="home__painel-titulo">Metas</span>
+              <NuxtLink to="/metas" class="home__painel-link">Ver todas</NuxtLink>
+            </div>
+
+            <p v-if="metas.length === 0" class="home__painel-vazio">Nenhum cofrinho ainda.</p>
+
+            <div v-else class="home__painel-metas">
+              <div v-for="m in metas" :key="m.id" class="home__meta">
+                <div class="home__meta-topo">
+                  <span class="home__meta-nome">{{ m.nome }}</span>
+                  <span class="home__meta-pct">{{ pctDaMetaLabel(m) }}</span>
+                </div>
+                <div class="home__meta-trilho">
+                  <div class="home__meta-preenchimento" :style="{ width: pctDaMetaStr(m) }"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
       </div>
     </template>
   </section>

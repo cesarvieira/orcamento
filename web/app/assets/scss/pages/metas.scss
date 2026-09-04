@@ -6,6 +6,16 @@
 // o dropdown da conta de origem (mesmo padrão de `faturas.scss`) e para o
 // botão de salvar da folha de criação.
 
+// ── A COLUNA DO DESKTOP (desenho desktop `:457`) ─────────────────────────
+// `max-width:980px`. A grade de 3 colunas do desenho já existe abaixo, em
+// `.metas__lista`; faltava o teto de largura — sem ele, em 1440px os três
+// cartões ficam com 440px cada e o texto boia dentro deles.
+.metas {
+  @media (min-width: 768px) {
+    max-width: 980px;
+  }
+}
+
 // O título "Metas" já vem do shell (`topo__titulo`). Esta tela só acrescenta
 // a sublinha — mesmo padrão de `contas.vue`/`faturas.vue`.
 .metas__subtitulo {

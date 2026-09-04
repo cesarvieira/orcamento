@@ -79,7 +79,7 @@ async function submeter(): Promise<void> {
 
     <div class="entrar__coluna">
       <div class="entrar__hero">
-        <span class="entrar__selo"><i class="ti ti-home-dollar"></i></span>
+        <span class="entrar__selo"><img src="/icones/icone-192.png" alt="" width="192" height="192"></span>
         <h1 class="entrar__hero-titulo">Orçamento<br>familiar</h1>
         <p class="entrar__hero-sub">Comece criando a família de vocês.</p>
       </div>

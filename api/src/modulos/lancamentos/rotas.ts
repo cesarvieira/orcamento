@@ -32,6 +32,7 @@ import {
   criarLancamento,
   excluirLancamento,
   listarLancamentos,
+  saldosPorDiaDoExtrato,
 } from './servico';
 
 export const rotasDeLancamentos: RouterType = Router();
@@ -181,8 +182,16 @@ rotasDeLancamentos.get('/lancamentos', exigirSessao, async (req, res, next) => {
     const contaId = typeof req.query.contaId === 'string' ? req.query.contaId : undefined;
 
     const familiaId = familiaDaRequisicao(req);
-    const lancamentos = await listarLancamentos(db, familiaId, { competencia, contaId });
-    res.json({ lancamentos });
+
+    // As duas leituras usam os MESMOS filtros e o mesmo `where` (o serviço
+    // deriva as duas de `condicoesDaListagem`), então os dias de
+    // `saldosPorDia` são exatamente os dias presentes em `lancamentos`.
+    const filtros = { competencia, contaId };
+    const [lancamentos, saldosPorDia] = await Promise.all([
+      listarLancamentos(db, familiaId, filtros),
+      saldosPorDiaDoExtrato(db, familiaId, filtros),
+    ]);
+    res.json({ lancamentos, saldosPorDia });
   } catch (erro) {
     next(erro);
   }

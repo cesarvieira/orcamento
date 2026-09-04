@@ -244,18 +244,31 @@ versão anterior. Alteração no `sw.js` é alteração de segurança, não de p
 4. Se nada aparecer vermelho e o app não está instalado, clicar em _Install_ — é o que o próprio
    navegador ofereceria em produção.
 
-**Regenerar o ícone maskable:**
+**Regenerar os ícones derivados:**
 
-O ícone `icone-maskable-512.png` é gerado por `scripts/gerar-icone-maskable.mjs` a partir de
-`icone-512.png`. Se a arte mudar:
+Dois grupos saem de `icone-512.png` por script, não do pacote (D-10 §6). Se a arte mudar, os dois
+precisam rodar de novo:
 
 ```bash
 node scripts/gerar-icone-maskable.mjs
+node scripts/gerar-favicons.mjs
 ```
 
-O script usa Playwright (já no monorepo para o gate) para desenhar o ícone centrado numa zona
-segura (78% do quadro), com fundo amostrado da própria arte (`#1881a9`). A saída é idempotente:
-roda duas vezes, sai sempre a mesma imagem (byte a byte, a menos que Chromium mude de versão).
+O primeiro desenha o ícone centrado numa zona segura (78% do quadro) sobre um fundo sólido
+**amostrado da própria arte na hora de gerar** — nenhuma cor fica fixa no script, então trocar o
+ícone não pede reamostragem na mão (era constante até 2026-09-04, e já tinha ficado desatualizada
+uma vez). A cor é a **moda** das cores opacas, não a média: a média se deixa puxar pelos elementos
+coloridos do desenho — medido na arte turquesa anterior, errava 20 níveis num canal. A tabela com
+as duas artes e os dois métodos está comentada no próprio script.
+
+O segundo gera `favicon-16/32/48/96.png` **e** o `apple-touch-icon.png`, reduzindo pela metade a
+cada passo. Os favicons saem com transparência; o `apple-touch-icon` sai **opaco** (o iOS compõe
+alfa sobre preto antes de aplicar a própria máscara), preenchido por extensão de borda — cada linha
+estica a cor do pixel da arte na ponta dela. Os três tamanhos pequenos do pacote vinham achatados
+contra branco, e é por isso que deixaram de ser copiados.
+
+Os dois usam Playwright (já no monorepo para o gate) e são idempotentes: rodam duas vezes, sai
+sempre a mesma imagem (byte a byte, a menos que Chromium mude de versão).
 
 **Pendência — iOS:**
 

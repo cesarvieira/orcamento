@@ -28,12 +28,25 @@
   width: 54px;
   height: 54px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
   margin-bottom: 20px;
+  // A ARTE REAL no lugar do glifo do Tabler (pacote `appstore-images`, D-10
+  // §6). O PNG já traz o próprio quadrado arredondado e o próprio fundo, então
+  // a placa translúcida que existia aqui saiu: mantê-la desenharia um segundo
+  // fundo atrás de um ícone que já tem o dele.
+  //
+  // `border-radius` fica, e não é decoração inútil: os cantos do PNG são
+  // transparentes, mas se um dia a arte vier sem eles é o `overflow` deste
+  // contêiner que segura o formato.
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
 }
 
 .entrar__hero-titulo {
@@ -221,7 +234,6 @@
     width: 42px;
     height: 42px;
     border-radius: 12px;
-    font-size: 23px;
     margin-bottom: 0;
   }
 
