@@ -54,11 +54,17 @@ A competência é calculada **na escrita** e persistida.
 **Referência de tela:** o shell dos dois arquivos do mockup — tab bar no mobile, sidebar no
 desktop. **As mesmas sete telas**, não dois produtos.
 
-| Peça       | Rota                                 | Nota                                       |
-| ---------- | ------------------------------------ | ------------------------------------------ |
-| Layout     | `web/app/layouts/default.vue`        | tab bar < 768px; sidebar acima             |
-| Navegação  | `web/app/config/navegacao.ts`        | os sete destinos, um só lugar              |
-| Tempo real | `web/app/composables/useRealtime.ts` | conecta **só no cliente**, após hidratação |
+| Peça           | Rota                                      | Nota                                                          |
+| -------------- | ----------------------------------------- | ------------------------------------------------------------- |
+| Layout         | `web/app/layouts/default.vue`             | tab bar < 768px; sidebar acima                                |
+| Navegação      | `web/app/config/navegacao.ts`             | os sete destinos, um só lugar                                 |
+| Tempo real     | `web/app/composables/useRealtime.ts`      | conecta **só no cliente**, após hidratação                    |
+| Manifesto      | `web/public/manifest.webmanifest`         | declaração de instalabilidade; referência D-10                |
+| Service Worker | `web/public/sw.js`                        | cache de asset versionado só; lista de permissão de segurança |
+| Plugin PWA     | `web/app/plugins/pwa.client.ts`           | registra SW em produção; escuta `beforeinstallprompt`         |
+| Composable     | `web/app/composables/useInstalacaoPwa.ts` | estado do evento de instalação; dispara prompt                |
+| Botão          | `web/app/layouts/default.vue` (sidebar)   | renderiza se navegador ofereceu instalação                    |
+| Botão          | `web/app/pages/mais/index.vue` (menu)     | renderiza se navegador ofereceu instalação                    |
 
 Nenhuma tela de domínio é construída aqui — só a moldura onde elas entram.
 
@@ -90,6 +96,11 @@ Nenhuma tela de domínio é construída aqui — só a moldura onde elas entram.
 - [x] `preator-perfil.sh` preenchido; `PREATOR_TEST_USER`/`PASS` documentados no `.env.example`
 - [x] A tela de login abre no artefato de deploy, zero erro de console e de rede
 - [x] `PROVA_DE_COMPORTAMENTO=PASS`
+- [ ] Instalação em iOS — o Safari não expõe `beforeinstallprompt` e nenhum site dispara a
+      instalação automaticamente lá; o fluxo é manual (_Compartilhar_ → _Adicionar à Tela de
+      Início_). Instrução de usuário para iOS é decisão de produto e de UX, fora do escopo de EF-00
+      — registrada em [D-10](../decisoes/D-10-pwa-instalavel.md) §Alternativas como pendência
+      declarada.
 
 > Sem o seed e as credenciais de teste, o gate de navegação cobre a tela de login e nada mais —
 > neste produto **tudo** é área logada.

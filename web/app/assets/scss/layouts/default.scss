@@ -242,6 +242,35 @@
     line-height: 1.5;
   }
 
+  // Instalar (D-10) vive na sidebar pelo MESMO motivo que o Sair, logo
+  // abaixo: no desktop `/mais` é a tela redundante, e ninguém passa por lá.
+  // Preenchido, não outline — é ação a favor, não neutra (mesma lógica de
+  // `.instalar` em `assets/scss/pages/mais.scss`).
+  .sidebar__instalar {
+    margin-top: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 40px;
+    border: none;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.14);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.22);
+    }
+
+    i {
+      font-size: 16px;
+    }
+  }
+
   // Sair vive na sidebar porque no desktop `/mais` — onde o botão de sair já
   // existia — é a tela redundante: quem está no desktop navega pela sidebar e
   // nunca passa por lá. Sem isto, desconectar no desktop era impossível.

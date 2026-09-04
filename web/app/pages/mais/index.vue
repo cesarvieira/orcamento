@@ -18,6 +18,7 @@
 import { DESTINOS_EM_MAIS } from '../../config/navegacao';
 
 const { sessao, sair } = useSessao();
+const { podeInstalar, instalar } = useInstalacaoPwa();
 
 async function encerrar() {
   await sair();
@@ -43,6 +44,11 @@ async function encerrar() {
     <p class="rodape">
       {{ sessao?.familiaNome }} · {{ sessao?.membroNome }}
     </p>
+
+    <button v-if="podeInstalar" type="button" class="instalar" @click="instalar">
+      <i class="ti ti-download"></i>
+      Instalar o app
+    </button>
 
     <button type="button" class="sair" @click="encerrar">Sair</button>
   </section>
