@@ -91,7 +91,24 @@ services:
       ORIGEM_WEB: ${ORIGEM_WEB:-http://localhost:3001}
       MAIL_DRIVER: ${MAIL_DRIVER:-log}
       MAIL_FROM: ${MAIL_FROM:-}
+      # As cinco linhas abaixo faltavam, e a falta era SILENCIOSA: o compose
+      # não propaga variável do ambiente para um contêiner que não a
+      # referencia (mesma armadilha do AMBIENTE_DE_PROVA acima). Com
+      # MAIL_DRIVER=smtp propagado mas SMTP_HOST não, o schema aplicava o
+      # default vazio, o nodemailer caía no localhost dele e o envio morria em
+      # `ECONNREFUSED 127.0.0.1:587` — apontando para dentro do próprio
+      # contêiner, com as credenciais certas configuradas no Portainer.
+      MAIL_API_KEY: ${MAIL_API_KEY:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
       CONVITE_TTL_HORAS: ${CONVITE_TTL_HORAS:-72}
+      # Os outros dois prazos do mesmo trio (RN-49, RN-52). Não quebravam nada
+      # — o default do schema é o mesmo valor —, mas eram inajustáveis pelo
+      # ambiente: mudá-los no Portainer não surtia efeito nenhum, em silêncio.
+      CADASTRO_TTL_HORAS: ${CADASTRO_TTL_HORAS:-24}
+      RECUPERACAO_TTL_HORAS: ${RECUPERACAO_TTL_HORAS:-1}
       # A AUDIÊNCIA que a verificação do ID token exige (EF-01). Vazio é um
       # estado válido: desliga o login por Google com erro claro, em vez de
       # aceitar qualquer token. Ver .preator/playbooks/google-client-id.md
