@@ -15,7 +15,7 @@
   "dependencies": {
     "@fontsource/manrope": "^5.1.0",
     "@orcamento/contrato": "workspace:*",
-    "@sentry/nuxt": "^10.72.0",
+    "@sentry/nuxt": "^10.73.0",
     "@tabler/icons-webfont": "^3.31.0",
     "nuxt": "^4.5.2",
     "socket.io-client": "^4.8.0",
