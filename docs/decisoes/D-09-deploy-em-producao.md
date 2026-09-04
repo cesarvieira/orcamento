@@ -26,6 +26,27 @@ Ou seja: **o que o cookie cobra é o domínio registrável ser o mesmo.** Quaisq
 diferentes, não. Escolher hospedagem sem olhar para isto é escolher o arranjo em que a pessoa entra
 e a requisição seguinte já não a conhece.
 
+**⚠️ Emenda de 2026-09-04 — a medição acima é verdadeira e está INCOMPLETA, e a lacuna virou
+defeito em produção.** As duas linhas da tabela mediram uma requisição só: o `fetch` do **navegador**
+para a API. Para ela, domínio registrável igual de fato basta, porque quem manda ali é o `SameSite`.
+
+Só que o SSR (D-01) depende de OUTRA requisição — a do **documento**, que o navegador faz para
+`orcamento.cesarvieira.dev` e que o Nuxt reencaminha à API (`web/app/composables/useApi.ts`). Nessa,
+`SameSite` não decide nada: decide o **escopo** do cookie. E o cookie era gravado sem `Domain`, ou
+seja **host-only** em `api.orcamento.cesarvieira.dev` — logo nunca acompanhava o documento.
+
+O sintoma: todo F5 renderizava no servidor como anônimo, ia para `/entrar`, e o cliente — que fala
+com a API pela URL pública, onde o cookie vai — reencontrava a sessão e mandava para `/`. Um F5 que
+passa pelo login e cai na home, perdendo a tela em que a pessoa estava. Não aparecia localmente
+porque **cookie ignora porta**: `localhost:3000` e `localhost:3001` são o mesmo host, e o cookie
+host-only já chegava ao SSR de graça.
+
+A correção é `COOKIE_DOMINIO` (`api/src/config/ambiente.ts`), vazia por padrão e valendo
+`orcamento.cesarvieira.dev` em produção — `api.orcamento...` pode gravar cookie para o domínio-pai,
+e aí ele acompanha os dois hosts. **A decisão §1 não muda**: os dois subdomínios continuam válidos.
+O que muda é que "mesmo domínio registrável" é condição **necessária e não suficiente** — o escopo
+do cookie é a outra metade.
+
 **2 · O servidor não é folha em branco.** É um Ubuntu com Portainer e um Traefik já no ar terminando
 TLS para outras coisas. A decisão precisa caber nele, não pedir que ele seja reconstruído.
 
@@ -223,6 +244,11 @@ diagnóstico pela metade. O custo está registrado abaixo.
   **ausência**, e ausência não é decisão. Para semear em produção seria preciso ligar a chave **e**
   fornecer credencial de teste — duas coisas deliberadas, nenhuma delas por descuido.
 
+- **A topologia de dois hosts custa uma variável de ambiente, e ela é obrigatória em produção**
+  (emenda de 2026-09-04). Sem `COOKIE_DOMINIO=orcamento.cesarvieira.dev` no env do stack, a stack
+  sobe, o `/health` passa, o login funciona — e o F5 perde a tela. **Nenhum gate pega isto**: o gate
+  roda tudo em `localhost`, e este defeito precisa de dois NOMES para existir. É item de
+  verificação do playbook de deploy, na mesma prateleira do certificado do host de terceiro nível.
 - **O Traefik e a instância do Sentry não são provados por gate nenhum daqui.** Mesmo contrato que a
   D-08 assinou: o gate prova que o produto funciona **sem** eles; operá-los é assunto de playbook.
 - **Nada nesta decisão cobre perda de dado.** Backup e restore são a história #117, e a dependência

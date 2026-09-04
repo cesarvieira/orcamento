@@ -76,6 +76,12 @@ drizzle CASCADE`) por isso.
   `httpOnly`/`SameSite=Lax`, TTL de `SESSAO_TTL_HORAS`. Rotas em
   `api/src/modulos/familia/rotas.ts` (`POST /sessoes`, `GET /sessoes/atual`, `POST /entrar`
   conforme a tela). **Só email/senha** — Google OAuth e convite/aceite ficam para a EF-01.
+  - **`COOKIE_DOMINIO`** (2026-09-04) — o `Domain` do cookie. Vazio (default) o deixa host-only, e
+    é o certo em dev e no gate: cookie ignora porta, então `localhost:3000` e `localhost:3001` já
+    são o mesmo host. Com front e API em **nomes** diferentes, ele precisa valer o domínio-pai dos
+    dois (`orcamento.cesarvieira.dev`) — host-only, o cookie não acompanha a requisição do
+    **documento**, o SSR não enxerga sessão e todo F5 passa por `/entrar` antes de cair na home.
+    Ver a emenda de 2026-09-04 na [D-09](../decisoes/D-09-deploy-em-producao.md).
 
 ## Tempo real
 
