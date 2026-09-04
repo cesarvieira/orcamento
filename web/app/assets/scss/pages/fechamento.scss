@@ -1,0 +1,209 @@
+// FECHAMENTO (EF-08) — tela `fechamento` do mockup ("Fechamento de agosto"),
+// `Orcamento Familiar Desktop.dc.html:480-505` / `Orcamento Familiar.dc.html`.
+//
+// Esta folha NASCEU de uma correção, não de uma tela nova: o `<style scoped>`
+// que vivia dentro de `pages/fechamento.vue` era o único do front escrito
+// contra um vocabulário de tokens que NÃO EXISTE — `--cor-superficie`,
+// `--cor-texto-secundario`, `--raio-borda`, `--cor-erro`, `--cor-sucesso`,
+// `--cor-alerta-*`. Nenhum deles está em `base.scss`, então todos resolviam
+// para vazio: cartões sem fundo nem raio, valores sem cor, selo invisível. A
+// tela estava quebrada nos DOIS formatos, não só no desktop.
+//
+// Aqui os tokens são os reais do sistema visual, e as medidas são px como no
+// resto do front (o arquivo antigo usava `rem`, também sozinho).
+
+// O título "Fechamento" já vem do shell (`topo__titulo`). Esta tela só
+// acrescenta a sublinha — mesmo padrão de `contas.scss`/`extrato.scss`.
+//
+// O `padding: 1.5rem` do arquivo antigo saiu: `.conteudo` do shell já paga o
+// respiro da tela (`layouts/default.scss`), e somar os dois empurrava esta
+// tela para dentro em relação a todas as outras.
+.fechamento {
+  // Desenho desktop `:481` — a coluna mais estreita do app, porque o conteúdo
+  // é uma pilha de linhas curtas: esticá-la em 1440px separa rótulo e valor
+  // por meio metro de nada.
+  @media (min-width: 768px) {
+    max-width: 760px;
+  }
+}
+
+.fechamento__subtitulo {
+  margin: -8px 0 16px;
+  font-size: 12px;
+  color: var(--texto-fraco);
+}
+
+// ── estados vazios — o mesmo bloco das outras telas ──────────────────────
+
+.fechamento__vazio {
+  margin: 0;
+  padding: 24px 0;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--texto-fraco);
+
+  &--erro {
+    color: var(--alerta);
+  }
+}
+
+// ── SELO DE MÊS FECHADO ──────────────────────────────────────────────────
+// Não vem do desenho (o mockup só mostra o mês aberto). Pílula na cor de
+// sucesso do sistema, sobre superfície — o `--cor-sucesso-fundo` que o
+// arquivo antigo pedia nunca existiu.
+
+.fechamento__selo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px 14px;
+  border: 1px solid rgba(46, 125, 50, 0.32);
+  border-radius: 9999px;
+  background: var(--superficie);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--sucesso);
+
+  i {
+    font-size: 16px;
+  }
+}
+
+// ── O CARTÃO DO RESUMO (desenho desktop `:484-489`) ──────────────────────
+// UM cartão com quatro LINHAS, não quatro cartões numa grade 2×2: é a forma
+// do desenho, e é a que deixa os valores alinhados numa coluna só para serem
+// comparados de cima a baixo.
+
+.fechamento__cartoes {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio-grande);
+  padding: 20px;
+}
+
+.fechamento__cartao-resumo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 9px 0;
+  font-size: 14px;
+
+  // A régua entre as linhas — todas menos a primeira.
+  & + & {
+    border-top: 1px solid var(--borda);
+  }
+}
+
+.fechamento__cartao-resumo-rotulo {
+  color: var(--texto-medio);
+}
+
+.fechamento__cartao-resumo-valor {
+  font-weight: 700;
+}
+
+// A SOBRA é a linha de fecho: régua mais forte, corpo maior, verde (desenho
+// desktop `:488`).
+.fechamento__cartao-resumo:last-child {
+  border-top: 1px solid var(--borda-media);
+  margin-top: 5px;
+  padding: 12px 0 3px;
+  font-size: 16px;
+
+  .fechamento__cartao-resumo-rotulo {
+    font-weight: 700;
+    color: var(--texto);
+  }
+}
+
+.fechamento__cartao-resumo-valor--sobra {
+  font-weight: 800;
+  color: var(--sucesso);
+}
+
+// ── ONDE PASSOU DO TETO (desenho desktop `:490-500`) ─────────────────────
+
+.fechamento__estouradas {
+  margin-top: 20px;
+}
+
+// Rótulo de seção em versalete, não título de documento — o desenho dá
+// `11px/800`, `letter-spacing:0.06em`, na cor fraca.
+.fechamento__estouradas-titulo {
+  margin: 0 2px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--texto-fraco);
+}
+
+.fechamento__estouradas-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fechamento__estouradas-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+}
+
+.fechamento__estouradas-item-nome {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.fechamento__estouradas-item-valor {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--alerta);
+}
+
+// ── AVISO DE SELAGEM ─────────────────────────────────────────────────────
+// Também fora do desenho. Mesma moldura das outras faixas de atenção do app
+// (`home__bloqueio`): superfície branca com borda na cor de atenção.
+
+.fechamento__aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--superficie);
+  border: 1px solid rgba(239, 108, 0, 0.32);
+  border-radius: var(--raio);
+
+  i {
+    flex: none;
+    font-size: 20px;
+    color: var(--atencao);
+  }
+
+  p {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.55;
+    color: var(--texto-medio);
+  }
+}
+
+// ── O BOTÃO DE FECHAR ────────────────────────────────────────────────────
+// `.botao` é global (`base/_botao.scss`) e nasce de largura cheia, que é o
+// certo no telefone. No desktop o desenho (`:501`) o dá com a largura do
+// próprio texto — botão de ponta a ponta em 760px é alvo de clique absurdo.
+
+.botao {
+  margin-top: 20px;
+
+  @media (min-width: 768px) {
+    width: auto;
+    padding: 0 24px;
+  }
+}

@@ -6,6 +6,16 @@
 // o mockup repete os valores inline porque não tem esse encadeamento; aqui
 // não há por que repetir o defeito junto com o desenho.
 
+// ── A COLUNA DO DESKTOP (desenho desktop `:343`) ─────────────────────────
+// `max-width:980px` e, dentro dela, as contas em DUAS colunas (`:351`). A
+// tela era a lista de telefone esticada por 1440px: um cartão de 30px de
+// altura ocupando a largura de um monitor inteiro.
+.contas {
+  @media (min-width: 768px) {
+    max-width: 980px;
+  }
+}
+
 // O título "Contas" já vem do shell (`topo__titulo`, via `config/navegacao.ts`).
 // Esta tela só acrescenta a sublinha, colada visualmente embaixo dele.
 .contas__subtitulo {
@@ -73,6 +83,15 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+
+  // Desenho desktop `:351` — `repeat(2,minmax(0,1fr))`, gap 14px. O
+  // `minmax(0,…)` não é decoração: sem ele o nome longo de uma conta impede
+  // a coluna de encolher e a grade estoura para fora da moldura.
+  @media (min-width: 768px) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
 }
 
 .contas__cartao {
@@ -80,6 +99,10 @@
   border: 1px solid var(--borda);
   border-radius: var(--raio);
   padding: 14px;
+
+  @media (min-width: 768px) {
+    padding: 18px;
+  }
 }
 
 .contas__linha {
@@ -96,6 +119,8 @@
   cursor: pointer;
 }
 
+// No desktop o cartão cresce e o desenho cresce com ele (`:353-359`):
+// selo 38px, nome 15px, valor 19px.
 .contas__icone {
   width: 34px;
   height: 34px;
@@ -106,6 +131,13 @@
   align-items: center;
   justify-content: center;
   font-size: 19px;
+
+  @media (min-width: 768px) {
+    width: 38px;
+    height: 38px;
+    border-radius: 11px;
+    font-size: 20px;
+  }
 }
 
 .contas__texto {
@@ -117,6 +149,10 @@
   display: block;
   font-size: 14px;
   font-weight: 700;
+
+  @media (min-width: 768px) {
+    font-size: 15px;
+  }
 }
 
 .contas__sub {
@@ -124,6 +160,10 @@
   font-size: 11px;
   color: var(--texto-fraco);
   margin-top: 1px;
+
+  @media (min-width: 768px) {
+    font-size: 11.5px;
+  }
 }
 
 .contas__valor {
@@ -131,6 +171,10 @@
   font-weight: 800;
   letter-spacing: -0.01em;
   white-space: nowrap;
+
+  @media (min-width: 768px) {
+    font-size: 19px;
+  }
 }
 
 .contas__seta {
@@ -212,6 +256,28 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+
+  // ⚠️ DIVERGE DO DESENHO, e é declarado. No desktop (`:348`) este botão é
+  // sólido e mora à DIREITA de um cabeçalho "Contas" dentro do conteúdo —
+  // mas aqui o título "Contas" não está no conteúdo, está no topo do shell
+  // (`topo__titulo`, decisão registrada no cabeçalho desta folha). Sem o
+  // título ao lado, não há cabeçalho para ancorá-lo; ele fica abaixo da
+  // grade. O que se adota do desenho é a FORMA: sólido, altura 42, largura
+  // do próprio texto — tracejado de ponta a ponta é o convite de lista
+  // vazia do telefone, não o de uma grade de duas colunas.
+  // `fit-content`, não `auto`: o botão é `display:flex`, e um contêiner flex
+  // de nível de bloco com largura automática volta a ocupar a linha inteira.
+  @media (min-width: 768px) {
+    width: fit-content;
+    height: 42px;
+    margin-top: 16px;
+    padding: 0 18px;
+    border: none;
+    border-radius: var(--raio-pequeno);
+    background: var(--tinta);
+    font-size: 13px;
+    color: #fff;
+  }
 }
 
 // ── FOLHA · sheetConta ───────────────────────────────────────────────────

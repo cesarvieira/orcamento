@@ -1,3 +1,14 @@
+// A tela "Mais" NÃO existe no desenho de desktop: lá a sidebar cobre tudo o
+// que ela lista, e quem navega pela lateral nunca passa por aqui (é o mesmo
+// motivo de o Sair e o Instalar terem subido para a sidebar, em
+// `layouts/default.scss`). Ela continua alcançável por URL, então recebe uma
+// largura de leitura em vez de esticar 1440px de pílulas.
+.mais {
+  @media (min-width: 768px) {
+    max-width: 520px;
+  }
+}
+
 .mais__titulo {
   margin: 0 0 16px;
   font-size: 19px;

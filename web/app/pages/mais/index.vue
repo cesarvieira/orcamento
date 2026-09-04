@@ -27,7 +27,7 @@ async function encerrar() {
 </script>
 
 <template>
-  <section>
+  <section class="mais">
     <h2 class="mais__titulo">Mais</h2>
 
     <nav class="lista">

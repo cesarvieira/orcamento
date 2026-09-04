@@ -9,6 +9,49 @@
 // aqui de propósito (escopo desta tarefa é só este arquivo — extrair um
 // parcial `base/_folha.scss` tocaria `base.scss`, fora do escopo declarado).
 
+// ── A GRADE DO DESKTOP (desenho desktop `:507-560`) ──────────────────────
+// `minmax(0,1fr) 340px` dentro de `max-width:1120px`: categorias à esquerda,
+// o cartão do lastro numa coluna fixa à direita.
+//
+// No telefone não há regra nenhuma: `.orcamento__grade`, `__lateral` e
+// `__principal` são `<div>`/`<aside>` sem estilo, isto é, blocos em fluxo
+// normal — exatamente o que os três filhos já faziam soltos. Só a partir de
+// 768px eles viram grade, e aí as duas caixas são posicionadas por
+// `grid-column`/`grid-row`, não pela ordem do DOM (ver o comentário no
+// `<template>` de `orcamento.vue`: a lateral vem primeiro no documento
+// porque é ela que abre a tela no telefone).
+.orcamento {
+  @media (min-width: 768px) {
+    max-width: 1120px;
+  }
+}
+
+.orcamento__grade {
+  @media (min-width: 768px) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 22px;
+    // `start`: sem isto as duas colunas esticam até a altura da mais alta, e
+    // o cartão do lastro (curto) ganharia um fundo de 900px de altura.
+    align-items: start;
+  }
+}
+
+.orcamento__principal {
+  @media (min-width: 768px) {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+  }
+}
+
+.orcamento__lateral {
+  @media (min-width: 768px) {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
 // O título "Orçamento" já vem do shell (`topo__titulo`). Esta tela só
 // acrescenta a sublinha, colada visualmente embaixo dele.
 .orcamento__subtitulo {
@@ -39,6 +82,13 @@
   border-radius: var(--raio-grande);
   padding: 15px;
   margin-bottom: 14px;
+
+  // Na coluna da direita não há nada abaixo para separar — o `gap` da grade
+  // já cuida do espaço entre as colunas.
+  @media (min-width: 768px) {
+    padding: 18px;
+    margin-bottom: 0;
+  }
 }
 
 .orcamento__renda-rotulo {
@@ -134,6 +184,13 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+
+  // Desenho desktop `:511` — `repeat(2,minmax(0,1fr))`, gap 10px.
+  @media (min-width: 768px) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
 }
 
 .orcamento__cartao {
@@ -141,6 +198,10 @@
   border: 1px solid var(--borda);
   border-radius: var(--raio);
   padding: 11px 12px;
+
+  @media (min-width: 768px) {
+    padding: 13px 14px;
+  }
 }
 
 .orcamento__linha {
@@ -279,6 +340,13 @@
   display: flex;
   gap: 8px;
   margin-top: 12px;
+
+  // Desenho desktop `:534` — a linha "Nova categoria · Criar" tem largura
+  // própria (`max-width:460px`), não a da coluna de categorias.
+  @media (min-width: 768px) {
+    max-width: 460px;
+    margin-top: 14px;
+  }
 }
 
 .orcamento__nova-input {
