@@ -8,7 +8,8 @@
  * `.preator/skills/negocio/lancamentos-e-parcelamento/SKILL.md`, citando
  * `docs/especificacoes/EF-04-lancamentos.md` §1/§2 como fonte primária.
  */
-import { and, eq, gte } from 'drizzle-orm';
+import { and, eq, gte, lt, or, sql } from 'drizzle-orm';
+import type { SQL } from 'drizzle-orm';
 import type { z } from 'zod';
 
 import type { Db } from '../../db';
@@ -292,23 +293,207 @@ export interface FiltrosDeListagem {
   contaId?: string;
 }
 
+/**
+ * O FILTRO POR CONTA — as DUAS pontas, não só a origem.
+ *
+ * Até a história do saldo acumulado isto era `eq(contaId, X)`, e o extrato
+ * filtrado escondia toda `TRANSFERENCIA` em que a conta é o DESTINO. O efeito
+ * era visível e ninguém tinha reparado:
+ *
+ *   · conta RESERVA — extrato SEMPRE vazio. Guardar numa meta (EF-07/RN-33) é
+ *     uma transferência com a reserva como destino: o dinheiro entrava e
+ *     nenhuma linha aparecia.
+ *   · CARTÃO — as compras apareciam, o PAGAMENTO DA FATURA não (RN-24: uma
+ *     transferência com o cartão como destino).
+ *
+ * A referência de qual é a ponta certa não é escolha desta função: é a MESMA
+ * do saldo derivado da conta, `modulos/contas/servico.ts#expressaoSaldoDerivado`
+ * — `contaId = X or contaDestinoId = X` (EF-02 §1). O extrato de uma conta e o
+ * saldo dela têm de varrer exatamente as mesmas linhas, senão o acumulado
+ * abaixo não fecha com o que a tela de contas mostra.
+ */
+function condicaoDeConta(contaId: string) {
+  return or(eq(lancamentos.contaId, contaId), eq(lancamentos.contaDestinoId, contaId));
+}
+
+function condicoesDaListagem(familiaId: string, filtros: FiltrosDeListagem) {
+  // `SQL | undefined` porque `or()` é tipado assim (só devolveria `undefined`
+  // com zero argumentos, que não é o caso) — e `and()` aceita e descarta os
+  // `undefined` da lista. Mesma razão em `saldoAntesDaCompetencia`.
+  const condicoes: (SQL | undefined)[] = [eq(lancamentos.familiaId, familiaId)];
+  if (filtros.competencia) condicoes.push(eq(lancamentos.competencia, filtros.competencia));
+  if (filtros.contaId) condicoes.push(condicaoDeConta(filtros.contaId));
+  return condicoes;
+}
+
 export async function listarLancamentos(
   db: Db,
   familiaId: string,
   filtros: FiltrosDeListagem = {},
 ): Promise<LancamentoLido[]> {
-  const condicoes = [eq(lancamentos.familiaId, familiaId)];
-  if (filtros.competencia) condicoes.push(eq(lancamentos.competencia, filtros.competencia));
-  if (filtros.contaId) condicoes.push(eq(lancamentos.contaId, filtros.contaId));
-
   const linhas = await db
     .select(colunasDeLeituraComSerie)
     .from(lancamentos)
     .leftJoin(seriesParcelas, eq(lancamentos.serieParcelaId, seriesParcelas.id))
-    .where(and(...condicoes))
+    .where(and(...condicoesDaListagem(familiaId, filtros)))
     .orderBy(lancamentos.data, lancamentos.criadoEm);
 
   return linhas.map(linha => paraLeitura(linha, linha.quantidadeParcelas));
+}
+
+// ---------------------------------------------------------------------------
+// O SALDO ACUMULADO POR DIA — a coluna de conferência do extrato.
+//
+// 🟨 REGRA NOVA, decidida com o humano (2026-09-03). Não vem do mockup (que
+// não tem a coluna) nem de EF nenhuma: o extrato existia para LISTAR, e
+// conferir contra o extrato do banco pedia um saldo de fechamento por dia.
+// As três decisões do humano, para que ninguém as reabra por engano:
+//
+//   1. "Todas as contas" SOMA TODAS as contas da família — inclusive cartão e
+//      reserva. É o patrimônio do dia, não o caixa. Transferência entre contas
+//      próprias soma zero (as duas pontas estão na família, garantido por
+//      `criarLancamento`), então a linha aparece na lista sem mover o número —
+//      é o comportamento correto, não um defeito.
+//   2. Em CARTÃO o acumulado é a DÍVIDA acumulada, com o mesmo sinal que
+//      `saldoCentavos` de uma CREDITO já tem (`contas/servico.ts`): compra
+//      soma à dívida, pagamento de fatura abate.
+//   3. O número é o saldo de FECHAMENTO do dia, mostrado no cabeçalho do dia.
+//
+// ⚠️ E o que este bloco NÃO faz: nada disto é recalculado no cliente. O front
+// lê `saldosPorDia` pronto (regra inviolável #4) — somar `valorCentavos` lá
+// criaria uma segunda verdade para o saldo da conta, que é justamente o que
+// `saldoCentavos` (EF-02 §1) já é.
+// ---------------------------------------------------------------------------
+
+export interface SaldoDoDia {
+  data: string;
+  saldoCentavos: number;
+}
+
+/**
+ * O movimento de UMA linha, com sinal, do ponto de vista do recorte pedido.
+ *
+ * COM conta escolhida é literalmente o termo de `expressaoSaldoDerivado`
+ * (`contas/servico.ts`) restrito a ela — RN-17: transferência não é despesa,
+ * move as duas pontas, origem perde e destino ganha.
+ *
+ * SEM conta escolhida a soma é sobre a família inteira, e aí `TRANSFERENCIA`
+ * vale ZERO: a origem perderia e o destino ganharia o mesmo valor, e as duas
+ * contas são da mesma família (`criarLancamento` recusa destino de fora, R1).
+ * Somar só uma das pontas faria o patrimônio da família subir ou cair sozinho
+ * ao mover dinheiro de um bolso para o outro.
+ */
+function expressaoMovimento(contaId?: string) {
+  if (contaId) {
+    return sql<number>`case
+      when ${lancamentos.tipo} = 'RECEITA' and ${lancamentos.contaId} = ${contaId}
+        then ${lancamentos.valorCentavos}
+      when ${lancamentos.tipo} = 'DESPESA' and ${lancamentos.contaId} = ${contaId}
+        then -${lancamentos.valorCentavos}
+      when ${lancamentos.tipo} = 'TRANSFERENCIA' and ${lancamentos.contaId} = ${contaId}
+        then -${lancamentos.valorCentavos}
+      when ${lancamentos.tipo} = 'TRANSFERENCIA' and ${lancamentos.contaDestinoId} = ${contaId}
+        then ${lancamentos.valorCentavos}
+      else 0
+    end`;
+  }
+  return sql<number>`case
+    when ${lancamentos.tipo} = 'RECEITA' then ${lancamentos.valorCentavos}
+    when ${lancamentos.tipo} = 'DESPESA' then -${lancamentos.valorCentavos}
+    else 0
+  end`;
+}
+
+/**
+ * O ponto de partida: `saldoInicialCentavos` da conta escolhida, ou a soma do
+ * de todas as contas da família. Nulo (cartão não tem saldo inicial — EF-02
+ * §1, é dívida e não caixa) coalesce para 0, igual ao saldo derivado.
+ *
+ * `::integer` pelo mesmo motivo documentado em `contas/servico.ts`:
+ * `sum(integer)` volta `bigint`, e o driver `pg` serializa `bigint` como
+ * STRING.
+ */
+async function saldoInicialDaFamilia(db: Db, familiaId: string, contaId?: string): Promise<number> {
+  const condicoes = [eq(contas.familiaId, familiaId)];
+  if (contaId) condicoes.push(eq(contas.id, contaId));
+
+  const [linha] = await db
+    .select({ total: sql<number>`coalesce(sum(coalesce(${contas.saldoInicialCentavos}, 0)), 0)::integer` })
+    .from(contas)
+    .where(and(...condicoes));
+
+  return linha?.total ?? 0;
+}
+
+/**
+ * Tudo o que aconteceu ANTES da janela que o extrato mostra.
+ *
+ * Sem isto o acumulado começaria do zero todo dia 1º e não conferiria com
+ * nada: o extrato é filtrado por COMPETÊNCIA, mas o saldo de uma conta é a
+ * história inteira dela. A competência é `AAAA-MM`, `data` é `AAAA-MM-DD`, e
+ * a competência é `data.slice(0,7)` na escrita (`dominio.ts#competenciaDaData`)
+ * — então "antes da janela" é exatamente `data < AAAA-MM-01`.
+ *
+ * Sem filtro de competência não há janela: a listagem já traz a história toda,
+ * e o anterior é zero.
+ */
+async function saldoAntesDaCompetencia(
+  db: Db,
+  familiaId: string,
+  filtros: FiltrosDeListagem,
+): Promise<number> {
+  if (!filtros.competencia) return 0;
+
+  const condicoes: (SQL | undefined)[] = [
+    eq(lancamentos.familiaId, familiaId),
+    lt(lancamentos.data, `${filtros.competencia}-01`),
+  ];
+  if (filtros.contaId) condicoes.push(condicaoDeConta(filtros.contaId));
+
+  const [linha] = await db
+    .select({ total: sql<number>`coalesce(sum(${expressaoMovimento(filtros.contaId)}), 0)::integer` })
+    .from(lancamentos)
+    .where(and(...condicoes));
+
+  return linha?.total ?? 0;
+}
+
+/**
+ * O saldo de FECHAMENTO de cada dia que o extrato mostra, na mesma ordem
+ * crescente de `listarLancamentos`.
+ *
+ * Os dias vêm do MESMO `where` da listagem (`condicoesDaListagem`), então a
+ * lista de dias aqui e a lista de dias lá são a mesma por construção — não há
+ * como um cabeçalho de dia ficar sem número, nem sobrar número sem dia.
+ *
+ * A soma corrida é feita aqui, em inteiro, e não com uma janela SQL: são os
+ * dias de UM mês (no máximo 31 linhas), e um `sum() over (order by data)`
+ * voltaria `bigint` — mais cast a depurar do que aritmética a economizar.
+ */
+export async function saldosPorDiaDoExtrato(
+  db: Db,
+  familiaId: string,
+  filtros: FiltrosDeListagem = {},
+): Promise<SaldoDoDia[]> {
+  const [saldoInicial, anterior, diasComMovimento] = await Promise.all([
+    saldoInicialDaFamilia(db, familiaId, filtros.contaId),
+    saldoAntesDaCompetencia(db, familiaId, filtros),
+    db
+      .select({
+        data: lancamentos.data,
+        movimentoCentavos: sql<number>`coalesce(sum(${expressaoMovimento(filtros.contaId)}), 0)::integer`,
+      })
+      .from(lancamentos)
+      .where(and(...condicoesDaListagem(familiaId, filtros)))
+      .groupBy(lancamentos.data)
+      .orderBy(lancamentos.data),
+  ]);
+
+  let acumulado = saldoInicial + anterior;
+  return diasComMovimento.map((dia) => {
+    acumulado += dia.movimentoCentavos;
+    return { data: dia.data, saldoCentavos: acumulado };
+  });
 }
 
 export async function buscarLancamento(

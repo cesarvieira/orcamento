@@ -34,6 +34,15 @@ function lancamentoFalso(id: string): LancamentoFalso {
   } as LancamentoFalso;
 }
 
+/**
+ * Uma resposta do extrato. `saldosPorDia` entrou no contrato com o saldo
+ * acumulado por dia; estes testes são sobre a CORRIDA de leitura, não sobre o
+ * saldo, então o dublê devolve a lista vazia — o que importa aqui é a forma.
+ */
+function resposta(lancamentos: LancamentoFalso[]): RespostaDeLancamentos {
+  return { lancamentos, saldosPorDia: [] };
+}
+
 async function aguardarMicrotarefas(voltas = 4): Promise<void> {
   for (let i = 0; i < voltas; i++) await Promise.resolve();
 }
@@ -76,7 +85,7 @@ describe('useExtratoLeitura', () => {
     // Resolve a leitura filtrada vazia → carregar() entra no caminho vazio e chama
     // verificarSeFamiliaTemHistorico, que dispara SEU PRÓPRIO listar({}) → pendente[1].
     // Essa segunda chamada fica pendente (não resolvida ainda) — é a "resposta atrasada".
-    resolverChamada(0, { lancamentos: [] });
+    resolverChamada(0, resposta([]));
     await aguardarMicrotarefas();
 
     // ── DISPARO 2 (mais novo): carregar('2026-09'), disparado DEPOIS do disparo 1 ────
@@ -85,7 +94,7 @@ describe('useExtratoLeitura', () => {
 
     // A leitura filtrada da chamada mais nova volta com lançamento (não é vazia) —
     // decide a tela direto, sem precisar de verificarSeFamiliaTemHistorico.
-    resolverChamada(2, { lancamentos: [lancamentoFalso('mais-novo')] });
+    resolverChamada(2, resposta([lancamentoFalso('mais-novo')]));
     await chamadaMaisNova;
 
     expect(
@@ -96,7 +105,7 @@ describe('useExtratoLeitura', () => {
     // ── A RESPOSTA ATRASADA chega por último: o histórico do disparo 1 (o mais ANTIGO) ──
     // era vazio — sozinha ela diria "família sem histórico". Mas o disparo 1 já está
     // OBSOLETO: o disparo 2 (mais novo) já decidiu a tela.
-    resolverChamada(1, { lancamentos: [] });
+    resolverChamada(1, resposta([]));
     await aguardarMicrotarefas();
     await chamadaMaisAntiga;
 
@@ -115,9 +124,9 @@ describe('useExtratoLeitura', () => {
     const leitura = useExtratoLeitura({ listar });
 
     const chamada = leitura.carregar({ competencia: '2026-08' });
-    resolverChamada(0, { lancamentos: [] }); // filtrada vazia → dispara o histórico
+    resolverChamada(0, resposta([])); // filtrada vazia → dispara o histórico
     await aguardarMicrotarefas();
-    resolverChamada(1, { lancamentos: [] }); // histórico também vazio → família nova
+    resolverChamada(1, resposta([])); // histórico também vazio → família nova
     await chamada;
 
     expect(leitura.familiaSemHistorico.value).toBe(true);

@@ -1663,10 +1663,35 @@
               ],
               "additionalProperties": false
             }
+          },
+          "saldosPorDia": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "data": {
+                  "type": "string",
+                  "description": "AAAA-MM-DD — o dia que este saldo fecha."
+                },
+                "saldoCentavos": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "Inteiro em centavos (D-06). Saldo ao FIM deste dia: saldo inicial da conta (ou a soma do de todas as contas da família, sem filtro) mais todo movimento com data até aqui, inclusive o de meses anteriores. NEGATIVO é legítimo: num cartão este número é a dívida acumulada, mesmo sinal de `saldoCentavos` de uma CREDITO."
+                }
+              },
+              "required": [
+                "data",
+                "saldoCentavos"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Um item por DIA com movimento na mesma janela dos `lancamentos` acima, em ordem crescente de data. Os dias saem do mesmo filtro da listagem: nunca há dia listado sem saldo, nem saldo sem dia listado."
           }
         },
         "required": [
-          "lancamentos"
+          "lancamentos",
+          "saldosPorDia"
         ],
         "additionalProperties": false
       },
