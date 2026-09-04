@@ -75,7 +75,7 @@ async function comGoogle(): Promise<void> {
     <!-- ── painel de marca · só desktop ─────────────────────────────────── -->
     <aside class="entrar__marca">
       <div class="entrar__marca-topo">
-        <span class="entrar__selo"><i class="ti ti-home-dollar"></i></span>
+        <span class="entrar__selo"><img src="/icones/icone-192.png" alt="" width="192" height="192"></span>
         <span class="entrar__marca-nome">Orçamento Familiar</span>
       </div>
 
@@ -99,7 +99,7 @@ async function comGoogle(): Promise<void> {
     <div class="entrar__coluna">
       <!-- hero só mobile: o painel de marca acima já cobre o desktop -->
       <div class="entrar__hero">
-        <span class="entrar__selo"><i class="ti ti-home-dollar"></i></span>
+        <span class="entrar__selo"><img src="/icones/icone-192.png" alt="" width="192" height="192"></span>
         <h1 class="entrar__hero-titulo">Orçamento<br>familiar</h1>
         <p class="entrar__hero-sub">Um lugar só para o dinheiro de vocês dois.</p>
       </div>

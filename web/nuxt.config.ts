@@ -48,12 +48,22 @@ export default defineNuxtConfig({
       ],
       // Cada `link` aqui é uma promessa que o artefato de deploy precisa
       // cumprir (D-10, D-09): arquivo declarado e ausente é 404, e o gate de
-      // navegação reprova em erro de rede. Os cinco ícones já estão
-      // versionados em `web/public/icones/`; o maskable é gerado por
-      // `scripts/gerar-icone-maskable.mjs`.
+      // navegação reprova em erro de rede.
+      //
+      // A arte grande vem do pacote do humano; o maskable sai de
+      // `scripts/gerar-icone-maskable.mjs`, e os quatro favicons mais o
+      // `apple-touch-icon` de `scripts/gerar-favicons.mjs` (D-10 §6).
+      //
+      // POR QUE QUATRO TAMANHOS, e não os dois de antes: o navegador escolhe
+      // o arquivo mais próximo do que a tela pede, e pedir são
+      // `16 × densidade`. Com só 16 e 32 declarados, uma tela 3× tinha de
+      // AMPLIAR o 32 — e ampliar é o que borra. Do maior para o menor porque
+      // é a ordem em que se lê "prefira o melhor que couber".
       link: [
         { rel: 'manifest', href: '/manifest.webmanifest' },
         { rel: 'apple-touch-icon', href: '/icones/apple-touch-icon.png' },
+        { rel: 'icon', type: 'image/png', sizes: '96x96', href: '/icones/favicon-96.png' },
+        { rel: 'icon', type: 'image/png', sizes: '48x48', href: '/icones/favicon-48.png' },
         { rel: 'icon', type: 'image/png', sizes: '32x32', href: '/icones/favicon-32.png' },
         { rel: 'icon', type: 'image/png', sizes: '16x16', href: '/icones/favicon-16.png' },
       ],

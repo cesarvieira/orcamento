@@ -109,7 +109,7 @@ async function aceitarComGoogle(): Promise<void> {
 
 <template>
   <div class="convite">
-    <span class="convite__selo"><i class="ti ti-home-dollar"></i></span>
+    <span class="convite__selo"><img src="/icones/icone-192.png" alt="" width="192" height="192"></span>
     <h1 class="convite__titulo">Você foi convidado</h1>
     <p class="convite__subtitulo">
       Digite o código que chegou no seu email e crie sua conta para entrar na família.
