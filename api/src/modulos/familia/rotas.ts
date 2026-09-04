@@ -62,6 +62,7 @@ import {
   abrirSessao,
   encerrarSessao,
   encerrarSessoesDoMembro,
+  escopoDoCookie,
   opcoesDoCookie,
   type ContextoDaSessao,
 } from './sessao-servico';
@@ -261,7 +262,7 @@ registrarRota({
 rotasDeFamilia.delete('/sessoes/atual', exigirSessao, async (req, res, next) => {
   try {
     await encerrarSessao(db, contextoDaRequisicao(req).sessaoId);
-    res.clearCookie(COOKIE_SESSAO, { path: '/' });
+    res.clearCookie(COOKIE_SESSAO, escopoDoCookie());
     res.status(204).end();
   } catch (erro) {
     next(erro);

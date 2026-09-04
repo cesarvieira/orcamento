@@ -89,6 +89,15 @@ services:
       # que nem #120 nem #122 possuíam sozinhas: é defeito de costura.
       AMBIENTE_DE_PROVA: ${AMBIENTE_DE_PROVA:-false}
       ORIGEM_WEB: ${ORIGEM_WEB:-http://localhost:3001}
+      # O domínio do cookie de sessão. VAZIO é o default e é o certo aqui:
+      # cookie ignora porta, então no gate e em dev `localhost:3000` e
+      # `localhost:3001` já são o mesmo host e o cookie host-only basta.
+      #
+      # Em PRODUÇÃO isto precisa valer `orcamento.cesarvieira.dev` (sem o
+      # `api.`) — senão o cookie nunca acompanha a requisição do DOCUMENTO, o
+      # SSR não enxerga sessão nenhuma e todo F5 passa por `/entrar` antes de
+      # cair na home. Ver `api/src/config/ambiente.ts` e a emenda da D-09.
+      COOKIE_DOMINIO: ${COOKIE_DOMINIO:-}
       MAIL_DRIVER: ${MAIL_DRIVER:-log}
       MAIL_FROM: ${MAIL_FROM:-}
       # As cinco linhas abaixo faltavam, e a falta era SILENCIOSA: o compose

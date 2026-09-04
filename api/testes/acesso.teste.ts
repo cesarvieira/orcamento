@@ -5,8 +5,9 @@
  * o handshake do socket lê (R2).
  */
 import request from 'supertest';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
+import { ambiente } from '../src/config/ambiente';
 import { fecharBanco } from '../src/db';
 import {
   abrirApp,
@@ -90,5 +91,57 @@ describe('acesso', () => {
     const resposta = await request(app).get('/health');
     expect(resposta.status).toBe(200);
     expect(resposta.body.banco).toBe('ok');
+  });
+});
+
+/**
+ * O ESCOPO do cookie — `Domain`, e o par gravar/apagar.
+ *
+ * Existe por um defeito de produção: com o cookie host-only no host da API, a
+ * requisição do DOCUMENTO chega ao SSR sem ele, a API responde 401 e todo F5
+ * passa por `/entrar` antes de cair na home. `COOKIE_DOMINIO` é o que dá ao
+ * cookie o domínio-pai dos dois hosts.
+ *
+ * O gate roda tudo em `localhost`, onde o defeito é INVISÍVEL (cookie ignora
+ * porta), então o que se prova aqui é o comportamento da variável — não a
+ * topologia. As duas metades juntas de propósito: gravar com `Domain` e
+ * apagar sem ele deixaria `sair` sem efeito, e o sintoma seria uma sessão que
+ * não morre.
+ */
+describe('o escopo do cookie de sessão', () => {
+  const DOMINIO = 'orcamento.exemplo.test';
+  const original = ambiente.COOKIE_DOMINIO;
+
+  afterEach(() => {
+    ambiente.COOKIE_DOMINIO = original;
+  });
+
+  it('sem COOKIE_DOMINIO o cookie é host-only', async () => {
+    ambiente.COOKIE_DOMINIO = '';
+
+    const entrada = await request(app)
+      .post('/sessoes')
+      .send({ email: familia.email, senha: familia.senha });
+
+    const cookie = cookieDaResposta(entrada.headers['set-cookie'] as unknown as string[]);
+    expect(cookie).not.toMatch(/Domain=/i);
+  });
+
+  it('com COOKIE_DOMINIO o cookie leva o Domain — ao gravar E ao apagar', async () => {
+    ambiente.COOKIE_DOMINIO = DOMINIO;
+
+    const entrada = await request(app)
+      .post('/sessoes')
+      .send({ email: familia.email, senha: familia.senha });
+    const cookie = cookieDaResposta(entrada.headers['set-cookie'] as unknown as string[]);
+    expect(cookie).toMatch(new RegExp(`Domain=${DOMINIO}`, 'i'));
+
+    const saida = await request(app).delete('/sessoes/atual').set('Cookie', cookie);
+    expect(saida.status).toBe(204);
+
+    // Sem esta linha o `sair` apagaria um cookie host-only que não existe, e o
+    // de verdade sobreviveria no navegador.
+    const apagado = cookieDaResposta(saida.headers['set-cookie'] as unknown as string[]);
+    expect(apagado).toMatch(new RegExp(`Domain=${DOMINIO}`, 'i'));
   });
 });

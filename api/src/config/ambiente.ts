@@ -76,6 +76,34 @@ const esquema = z.object({
    */
   ORIGEM_WEB: z.string().default('http://localhost:3001'),
 
+  /**
+   * O DOMÍNIO do cookie de sessão. Vazio — o default — deixa o cookie
+   * *host-only*: preso ao host da API e a mais nenhum.
+   *
+   * Não é ajuste fino: é o que faz o F5 sobreviver à sessão quando front e API
+   * moram em hosts diferentes (D-09). Host-only, o cookie vai para
+   * `api.orcamento.cesarvieira.dev` e NUNCA para `orcamento.cesarvieira.dev`
+   * — então a requisição do DOCUMENTO, que é a que o SSR do Nuxt recebe e
+   * reencaminha (`web/app/composables/useApi.ts`), chega sem cookie nenhum, a
+   * API responde 401 e o middleware conclui, com toda a razão, que não há
+   * sessão. Depois o navegador hidrata, fala com a API pela URL pública — aí
+   * o cookie vai — e manda para `/`. É o F5 que passa por `/entrar` e cai na
+   * home. Medido em produção.
+   *
+   * O que a D-09 mediu era OUTRA requisição: o `fetch` do NAVEGADOR para a
+   * API, onde quem manda é o `SameSite=Lax` e domínio registrável igual
+   * basta. O documento não passa por aquela medição.
+   *
+   * Em produção vale `orcamento.cesarvieira.dev`: `api.orcamento...` pode
+   * gravar cookie para o domínio-pai, e aí ele acompanha os DOIS hosts.
+   *
+   * Vazio em dev e no gate de propósito, e lá não custa nada: cookie ignora
+   * PORTA, então `localhost:3000` e `localhost:3001` já são o mesmo host para
+   * o navegador. É também por isso que nenhum gate pega este defeito sozinho
+   * — ele precisa de dois NOMES para existir.
+   */
+  COOKIE_DOMINIO: z.string().default(''),
+
   MAIL_DRIVER: z.enum(['log', 'smtp', 'resend', 'ses']).default('log'),
   MAIL_FROM: z.string().default(''),
   /** Credencial do provedor de API (Resend/SES). Vazia quando MAIL_DRIVER=log|smtp. */

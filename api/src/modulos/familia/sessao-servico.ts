@@ -181,13 +181,34 @@ export async function encerrarSessoesDoMembro(db: Db, membroId: string): Promise
     .where(and(eq(sessoes.membroId, membroId), isNull(sessoes.encerradaEm)));
 }
 
+/**
+ * O ESCOPO do cookie: onde ele vale — `path` e, quando há, `domain`.
+ *
+ * Existe separado de `opcoesDoCookie` porque APAGAR um cookie exige repetir o
+ * escopo com que ele foi gravado. Para o navegador,
+ * `Domain=orcamento.cesarvieira.dev` e host-only são cookies DIFERENTES: um
+ * `clearCookie` sem o domínio apaga um cookie que não existe enquanto o de
+ * verdade sobrevive — e sair deixaria de sair, em silêncio.
+ *
+ * `COOKIE_DOMINIO` vazio OMITE a chave, e omitir é o que deixa o cookie
+ * host-only; mandar `domain: ''` não é a mesma coisa. Por que a variável
+ * existe, e por que ela é o que faz o F5 sobreviver à sessão em produção:
+ * `api/src/config/ambiente.ts`.
+ */
+export function escopoDoCookie() {
+  return {
+    path: '/',
+    ...(ambiente.COOKIE_DOMINIO ? { domain: ambiente.COOKIE_DOMINIO } : {}),
+  };
+}
+
 /** As opções do cookie. `httpOnly` é exigência do SSR e de segurança (D-01). */
 export function opcoesDoCookie(expiraEm: Date) {
   return {
+    ...escopoDoCookie(),
     httpOnly: true,
     sameSite: 'lax' as const,
     secure: ambiente.NODE_ENV === 'production' && ambiente.ORIGEM_WEB.startsWith('https://'),
-    path: '/',
     expires: expiraEm,
   };
 }
